@@ -1,12 +1,12 @@
 namespace {
 
 template <typename T, size_t N>
-inline constexpr size_t ArraySize(T (&)[N]) {
+constexpr size_t ArraySize(T (&)[N]) {
   return N;
 }
 
 template <size_t N>
-inline constexpr int Find(const uint8_t (&arr)[N], uint8_t target) {
+constexpr int Find(const uint8_t (&arr)[N], uint8_t target) {
   for (size_t i = 0; i < N; ++i) {
     if (arr[i] == target) {
       return i;
@@ -15,17 +15,34 @@ inline constexpr int Find(const uint8_t (&arr)[N], uint8_t target) {
   return -1;
 }
 
-inline constexpr size_t kNumInGPIO = ArraySize(kInGPIO);
-inline constexpr size_t kNumOutGPIO = ArraySize(kOutGPIO);
-inline constexpr size_t kNumLayers = ArraySize(kKeyCodes);
+constexpr size_t kNumInGPIO = ArraySize(kInGPIO);
+constexpr size_t kNumOutGPIO = ArraySize(kOutGPIO);
+constexpr size_t kNumLayers = ArraySize(kKeyCodes);
 
 using KeyMatrix =
     std::array<std::array<std::array<Keycode, kNumOutGPIO>, kNumInGPIO>,
                kNumLayers>;
 
-template <size_t L, size_t R, size_t C>
-inline constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
-                                       const Keycode (&kc)[L][R][C]) {
+template <size_t L, size_t R, size_t C, size_t IN, size_t OUT>
+constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
+                                const Keycode (&kc)[L][R][C],
+                                const uint8_t (&gpio_in)[IN],
+                                const uint8_t (&gpio_out)[OUT]) {
+  if (OUT > IN) {
+    for (size_t i = 0; i < OUT; ++i) {
+      if (Find(gpio_in, gpio_out[i]) != -1) {
+        throw std::invalid_argument(
+            "Currently doesn't support GPIO pin to be both IN and OUT");
+      }
+    }
+  } else {
+    for (size_t i = 0; i < IN; ++i) {
+      if (Find(gpio_out, gpio_in[i]) != -1) {
+        throw std::invalid_argument(
+            "Currently doesn't support GPIO pin to be both IN and OUT");
+      }
+    }
+  }
   KeyMatrix output = {0};
   for (size_t l = 0; l < L; ++l) {
     for (size_t r = 0; r < R; ++r) {
@@ -37,8 +54,8 @@ inline constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
         if (gpio[r][c].in == gpio[r][c].out) {
           throw std::invalid_argument("In and out GPIOs have to be different");
         }
-        int in_gpio_idx = Find(kInGPIO, gpio[r][c].in);
-        int out_gpio_idx = Find(kOutGPIO, gpio[r][c].out);
+        int in_gpio_idx = Find(gpio_in, gpio[r][c].in);
+        int out_gpio_idx = Find(gpio_out, gpio[r][c].out);
         if (in_gpio_idx < 0) {
           throw std::invalid_argument("In GPIO not found");
         }
@@ -57,7 +74,8 @@ inline constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
   return output;
 }
 
-constexpr KeyMatrix kKeyMatrix = PostProcess(kGPIOMatrix, kKeyCodes);
+constexpr KeyMatrix kKeyMatrix =
+    PostProcess(kGPIOMatrix, kKeyCodes, kInGPIO, kOutGPIO);
 
 }  // namespace
 

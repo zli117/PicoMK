@@ -26,8 +26,8 @@ uint8_t GetInGPIO(size_t idx);
 Keycode GetKeycode(size_t in_gpio_idx, size_t out_gpio_idx);
 
 enum CustomKeyCode {
-  RE = 0,  // Rotary encoder button
-  JY,      // Joystick button
+  ENCODER = 0,  // Rotary encoder button
+  JY,           // Joystick button
   MSE_L,
   MSE_R,
   FN1,
