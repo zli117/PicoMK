@@ -15,6 +15,8 @@
 
 // clang-format off
 
+// Alias with shorter names. Each name should be no more than 7 characters long.
+
 #define K_NONE       HID_KEY_NONE
 #define K_A          HID_KEY_A
 #define K_B          HID_KEY_B

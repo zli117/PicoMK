@@ -20,6 +20,12 @@ extern "C" void vApplicationStackOverflowHook(TaskHandle_t pxTask,
                                               char *pcTaskName) {}
 extern "C" void vApplicationTickHook(void) {}
 
+// Overrides for C++ so that new and delete will call the correct functions
+void *operator new(size_t size) { return pvPortMalloc(size); }
+void *operator new[](size_t size) { return pvPortMalloc(size); }
+void operator delete(void *ptr) { vPortFree(ptr); }
+void operator delete[](void *ptr) { vPortFree(ptr); }
+
 int main() {
   int i = keyboard::GetKeyboardNumLayers();
   // I2C Initialisation. Using it at 400Khz.
@@ -28,7 +34,6 @@ int main() {
   gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
   gpio_pull_up(I2C_SDA);
   gpio_pull_up(I2C_SCL);
-
 
   vTaskStartScheduler();
 

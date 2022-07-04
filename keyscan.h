@@ -1,9 +1,12 @@
 #ifndef KEYSCAN_H_
 #define KEYSCAN_H_
 
-#include <status.h>
+namespace keyboard {
 
-status keyscan_init(void);
-void keyscan_task(void);
+void keyscan_init();
+
+}
+
+extern "C" void keyscan_task();
 
 #endif /* KEYSCAN_H_ */

@@ -2,20 +2,25 @@
 
 #include <hardware/gpio.h>
 #include <layout.h>
-#include <status.h>
+#include <cstdint>
 
-status keyscan_init(void) {
-  uint8_t is_in[0xff] = {0};
-  for (size_t i = 0; i < num_gpio_in_pins; ++i) {
-    gpio_init(gpio_in_pins[i]);
-    gpio_set_dir(gpio_in_pins[i], false);
-    is_in[gpio_in_pins[i]] = 1;
+namespace keyboard {
+
+void keyscan_init() {
+  for (size_t i = 0; i < GetNumInGPIOs(); ++i) {
+    const uint8_t pin = GetInGPIO(i);
+    gpio_init(pin);
+    gpio_set_dir(pin, false);
   }
-  for (size_t i = 0; i < num_gpio_out_pins; ++i) {
-    gpio_init(gpio_out_pins[i]);
-    gpio_set_dir(gpio_in_pins[i], true);
+  for (size_t i = 0; i < GetNumOutGPIOs(); ++i) {
+    const uint8_t pin = GetOutGPIO(i);
+    gpio_init(pin);
+    gpio_set_dir(pin, true);
   }
-  return OK;
 }
 
-void keyscan_task(void) {}
+}  // namespace keyboard
+
+extern "C" void keyscan_task() {
+  using namespace keyboard;
+}
