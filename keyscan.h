@@ -1,12 +1,12 @@
 #ifndef KEYSCAN_H_
 #define KEYSCAN_H_
 
+#include "status.h"
+
 namespace keyboard {
 
-void keyscan_init();
+status KeyScanInit();
 
 }
-
-extern "C" void keyscan_task();
 
 #endif /* KEYSCAN_H_ */

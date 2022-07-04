@@ -13,17 +13,17 @@ struct Keycode {
 };
 
 struct GPIO {
-  uint8_t in;
-  uint8_t out;
+  uint8_t row; // in
+  uint8_t col; // out
 };
 
 size_t GetKeyboardNumLayers();
-size_t GetNumOutGPIOs();
-size_t GetNumInGPIOs();
+size_t GetNumSinkGPIOs();
+size_t GetNumSourceGPIOs();
 
-uint8_t GetOutGPIO(size_t idx);
-uint8_t GetInGPIO(size_t idx);
-Keycode GetKeycode(size_t in_gpio_idx, size_t out_gpio_idx);
+uint8_t GetSinkGPIO(size_t idx);
+uint8_t GetSourceGPIO(size_t idx);
+Keycode GetKeycode(size_t layer, size_t sink_gpio_idx, size_t source_gpio_idx);
 
 enum CustomKeyCode {
   ENCODER = 0,  // Rotary encoder button

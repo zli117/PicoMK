@@ -1,7 +1,7 @@
 #include "layout.h"
 
-#include <class/hid/hid.h>
-#include <layout_helper.h>
+#include "class/hid/hid.h"
+#include "layout_helper.h"
 
 namespace keyboard {
 
@@ -28,9 +28,10 @@ namespace keyboard {
 #define CONFIG_NUM_PHY_ROWS 6
 #define CONFIG_NUM_PHY_COLS 15
 
-static constexpr uint8_t kInGPIO[] = {R0, R1, R2, R3, R4};
-static constexpr uint8_t kOutGPIO[] = {C0, C1, C2, C3,  C4,  C5,  C6,
+static constexpr uint8_t kRowGPIO[] = {R0, R1, R2, R3, R4};
+static constexpr uint8_t kColGPIO[] = {C0, C1, C2, C3,  C4,  C5,  C6,
                                        C7, C8, C9, C10, C11, C12, C13};
+static constexpr bool kDiodeColToRow = true;
 
 // clang-format off
 
@@ -61,6 +62,6 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 // clang-format on
 
 // Compile time validation and conversion for the key matrix
-#include <layout_internal.inc>
+#include "layout_internal.inc"
 
 }  // namespace keyboard

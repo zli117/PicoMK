@@ -10,8 +10,8 @@
 #define ______ \
   { .keycode = (HID_KEY_NONE), .is_custom = true }
 
-#define G(IN, OUT) \
-  { .in = (IN), .out = (OUT) }
+#define G(ROW, COL) \
+  { .row = (ROW), .col = (COL) }
 
 // clang-format off
 

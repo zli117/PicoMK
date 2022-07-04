@@ -25,19 +25,20 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(firmware main.cc layout.cc keyscan.cc)
+add_executable(firmware main.cc layout.cc keyscan.cc usb.cc)
 
 pico_set_program_name(firmware "Pico Keyboard Firmware")
 pico_set_program_version(firmware "0.1")
 
 pico_enable_stdio_uart(firmware 0)
-pico_enable_stdio_usb(firmware 0)
+pico_enable_stdio_usb(firmware 1)
 
 # Add the standard library to the build
-target_link_libraries(firmware pico_stdlib tinyusb_device FreeRTOS-Kernel FreeRTOS-Kernel-Heap4)
+target_link_libraries(firmware pico_stdlib FreeRTOS-Kernel FreeRTOS-Kernel-Heap4)
 
 # Add any user requested libraries
 target_link_libraries(firmware
+        # tinyusb_device
         hardware_i2c
         hardware_watchdog
         hardware_clocks

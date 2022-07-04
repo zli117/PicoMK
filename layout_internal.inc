@@ -15,31 +15,31 @@ constexpr int Find(const uint8_t (&arr)[N], uint8_t target) {
   return -1;
 }
 
-constexpr size_t kNumInGPIO = ArraySize(kInGPIO);
-constexpr size_t kNumOutGPIO = ArraySize(kOutGPIO);
+constexpr size_t kNumRowGPIO = ArraySize(kRowGPIO);
+constexpr size_t kNumColGPIO = ArraySize(kColGPIO);
 constexpr size_t kNumLayers = ArraySize(kKeyCodes);
 
 using KeyMatrix =
-    std::array<std::array<std::array<Keycode, kNumOutGPIO>, kNumInGPIO>,
+    std::array<std::array<std::array<Keycode, kNumColGPIO>, kNumRowGPIO>,
                kNumLayers>;
 
-template <size_t L, size_t R, size_t C, size_t IN, size_t OUT>
+template <size_t L, size_t R, size_t C, size_t GP_ROW, size_t GP_COL>
 constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
                                 const Keycode (&kc)[L][R][C],
-                                const uint8_t (&gpio_in)[IN],
-                                const uint8_t (&gpio_out)[OUT]) {
-  if (OUT > IN) {
-    for (size_t i = 0; i < OUT; ++i) {
-      if (Find(gpio_in, gpio_out[i]) != -1) {
+                                const uint8_t (&gpio_row)[GP_ROW],
+                                const uint8_t (&gpio_col)[GP_COL]) {
+  if (GP_COL > GP_ROW) {
+    for (size_t i = 0; i < GP_COL; ++i) {
+      if (Find(gpio_row, gpio_col[i]) != -1) {
         throw std::invalid_argument(
-            "Currently doesn't support GPIO pin to be both IN and OUT");
+            "Currently doesn't support GPIO pin to be both row and col");
       }
     }
   } else {
-    for (size_t i = 0; i < IN; ++i) {
-      if (Find(gpio_out, gpio_in[i]) != -1) {
+    for (size_t i = 0; i < GP_ROW; ++i) {
+      if (Find(gpio_col, gpio_row[i]) != -1) {
         throw std::invalid_argument(
-            "Currently doesn't support GPIO pin to be both IN and OUT");
+            "Currently doesn't support GPIO pin to be both row and col");
       }
     }
   }
@@ -47,27 +47,27 @@ constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
   for (size_t l = 0; l < L; ++l) {
     for (size_t r = 0; r < R; ++r) {
       for (size_t c = 0; c < C; ++c) {
-        if (kc[l][r][c].keycode == HID_KEY_NONE) {
+        if (!kc[l][r][c].is_custom && kc[l][r][c].keycode == HID_KEY_NONE) {
           continue;
         }
 
-        if (gpio[r][c].in == gpio[r][c].out) {
+        if (gpio[r][c].row == gpio[r][c].col) {
           throw std::invalid_argument("In and out GPIOs have to be different");
         }
-        int in_gpio_idx = Find(gpio_in, gpio[r][c].in);
-        int out_gpio_idx = Find(gpio_out, gpio[r][c].out);
-        if (in_gpio_idx < 0) {
+        int row_gpio_idx = Find(gpio_row, gpio[r][c].row);
+        int col_gpio_idx = Find(gpio_col, gpio[r][c].col);
+        if (row_gpio_idx < 0) {
           throw std::invalid_argument("In GPIO not found");
         }
-        if (out_gpio_idx < 0) {
+        if (col_gpio_idx < 0) {
           throw std::invalid_argument("Out GPIO not found");
         }
-        if (output[l][in_gpio_idx][out_gpio_idx].keycode != HID_KEY_NONE) {
+        if (output[l][row_gpio_idx][col_gpio_idx].keycode != HID_KEY_NONE) {
           throw std::invalid_argument(
               "Trying to assign two keycodes to one location");
         }
 
-        output[l][in_gpio_idx][out_gpio_idx] = kc[l][r][c];
+        output[l][row_gpio_idx][col_gpio_idx] = kc[l][r][c];
       }
     }
   }
@@ -75,20 +75,23 @@ constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
 }
 
 constexpr KeyMatrix kKeyMatrix =
-    PostProcess(kGPIOMatrix, kKeyCodes, kInGPIO, kOutGPIO);
+    PostProcess(kGPIOMatrix, kKeyCodes, kRowGPIO, kColGPIO);
 
 }  // namespace
 
 size_t GetKeyboardNumLayers() { return kNumLayers; }
 
-size_t GetNumOutGPIOs() { return kNumOutGPIO; }
-
-size_t GetNumInGPIOs() { return kNumInGPIO; }
-
-uint8_t GetOutGPIO(size_t idx) { return kOutGPIO[idx]; }
-
-uint8_t GetInGPIO(size_t idx) { return kInGPIO[idx]; }
-
-Keycode GetKeycode(size_t layer, size_t in_gpio_idx, size_t out_gpio_idx) {
-  return kKeyMatrix[layer][in_gpio_idx][out_gpio_idx];
+size_t GetNumSinkGPIOs() { return kDiodeColToRow ? kNumRowGPIO : kNumColGPIO; }
+size_t GetNumSourceGPIOs() {
+  return kDiodeColToRow ? kNumColGPIO : kNumRowGPIO;
+}
+uint8_t GetSinkGPIO(size_t idx) {
+  return kDiodeColToRow ? kRowGPIO[idx] : kColGPIO[idx];
+}
+uint8_t GetSourceGPIO(size_t idx) {
+  return kDiodeColToRow ? kColGPIO[idx] : kRowGPIO[idx];
+}
+Keycode GetKeycode(size_t layer, size_t sink_gpio_idx, size_t source_gpio_idx) {
+  return kKeyMatrix[layer][kDiodeColToRow ? sink_gpio_idx : source_gpio_idx]
+                   [kDiodeColToRow ? source_gpio_idx : sink_gpio_idx];
 }
