@@ -64,3 +64,6 @@ modules.order
 Module.symvers
 Mkfile.old
 dkms.conf
+
+# Debugger
+*.cortex-debug*

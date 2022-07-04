@@ -15,4 +15,15 @@
       "visibility": "hidden"
     },
   },
+  "files.associations": {
+    "config.h": "c",
+    "task.h": "c",
+    "stdlib.h": "c",
+    "pico.h": "c",
+    "types.h": "c",
+    "stddef.h": "c",
+    "tusb.h": "c",
+    "gpio.h": "c",
+    "hid.h": "c"
+  },
 }
