@@ -1,4 +1,4 @@
-#include <stdio.h> // Debug
+// #include <stdio.h>  // Debug
 
 #include "FreeRTOS.h"
 // #include "hardware/clocks.h"
@@ -7,8 +7,9 @@
 #include "keyscan.h"
 #include "layout.h"
 #include "pico/stdlib.h"
-#include "status.h"
 #include "task.h"
+#include "usb.h"
+#include "utils.h"
 
 // I2C defines
 // This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
@@ -31,10 +32,10 @@ extern "C" void vApplicationTickHook(void) {}
 // void operator delete[](void *ptr) { vPortFree(ptr); }
 
 int main() {
-  stdio_init_all();
-  sleep_ms(1000);
-  printf("Started\n");
-  sleep_ms(1000);
+  // stdio_init_all();
+  // sleep_ms(1000);
+  // printf("Started\n");
+  // sleep_ms(1000);
   // // I2C Initialisation. Using it at 400Khz.
   // i2c_init(I2C_PORT, 400 * 1000);
   // gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);
@@ -42,7 +43,12 @@ int main() {
   // gpio_pull_up(I2C_SDA);
   // gpio_pull_up(I2C_SCL);
 
-  if (keyboard::KeyScanInit() == OK) {
+  if (                          //
+      USBInit() == OK &&        //
+      StartUSBTask() == OK &&   //
+      KeyScanInit() == OK &&    //
+      StartKeyScanTask() == OK  //
+  ) {
     vTaskStartScheduler();
   } else {
     printf("Failed to start keyscan task");

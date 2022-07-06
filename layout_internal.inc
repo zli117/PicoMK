@@ -23,6 +23,9 @@ using KeyMatrix =
     std::array<std::array<std::array<Keycode, kNumColGPIO>, kNumRowGPIO>,
                kNumLayers>;
 
+// Force non-const as error
+void failure(const char*) {}
+
 template <size_t L, size_t R, size_t C, size_t GP_ROW, size_t GP_COL>
 constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
                                 const Keycode (&kc)[L][R][C],
@@ -31,15 +34,13 @@ constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
   if (GP_COL > GP_ROW) {
     for (size_t i = 0; i < GP_COL; ++i) {
       if (Find(gpio_row, gpio_col[i]) != -1) {
-        throw std::invalid_argument(
-            "Currently doesn't support GPIO pin to be both row and col");
+        failure("Currently doesn't support GPIO pin to be both row and col");
       }
     }
   } else {
     for (size_t i = 0; i < GP_ROW; ++i) {
       if (Find(gpio_col, gpio_row[i]) != -1) {
-        throw std::invalid_argument(
-            "Currently doesn't support GPIO pin to be both row and col");
+        failure("Currently doesn't support GPIO pin to be both row and col");
       }
     }
   }
@@ -52,19 +53,20 @@ constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
         }
 
         if (gpio[r][c].row == gpio[r][c].col) {
-          throw std::invalid_argument("In and out GPIOs have to be different");
+          failure("Row and col GPIOs have to be different");
         }
         int row_gpio_idx = Find(gpio_row, gpio[r][c].row);
         int col_gpio_idx = Find(gpio_col, gpio[r][c].col);
         if (row_gpio_idx < 0) {
-          throw std::invalid_argument("In GPIO not found");
+          failure("Row GPIO not found");
         }
         if (col_gpio_idx < 0) {
-          throw std::invalid_argument("Out GPIO not found");
+          failure("Col GPIO not found");
         }
         if (output[l][row_gpio_idx][col_gpio_idx].keycode != HID_KEY_NONE) {
-          throw std::invalid_argument(
-              "Trying to assign two keycodes to one location");
+          failure("Trying to assign two keycodes to one location");
+          // throw std::invalid_argument(
+          //     );
         }
 
         output[l][row_gpio_idx][col_gpio_idx] = kc[l][r][c];

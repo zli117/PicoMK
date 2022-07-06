@@ -3,8 +3,6 @@
 #include "class/hid/hid.h"
 #include "layout_helper.h"
 
-namespace keyboard {
-
 #define C0 0
 #define C1 1
 #define C2 2
@@ -63,5 +61,3 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 
 // Compile time validation and conversion for the key matrix
 #include "layout_internal.inc"
-
-}  // namespace keyboard

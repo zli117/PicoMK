@@ -5,8 +5,6 @@
 #include <cstdint>
 #include <stdexcept>
 
-namespace keyboard {
-
 struct Keycode {
   uint8_t keycode;
   bool is_custom;
@@ -33,7 +31,5 @@ enum CustomKeyCode {
   FN1,
   FN2
 };
-
-}  // namespace keyboard
 
 #endif /* LAYOUT_H_ */

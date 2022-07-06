@@ -23,6 +23,8 @@
  *
  */
 
+// clang-format off
+
 #ifndef _TUSB_CONFIG_H_
 #define _TUSB_CONFIG_H_
 
@@ -95,17 +97,19 @@
 #endif
 
 //------------- CLASS -------------//
-#define CFG_TUD_HID               1
+#define CFG_TUD_HID               2  // We have two HID interface
 #define CFG_TUD_CDC               0
 #define CFG_TUD_MSC               0
 #define CFG_TUD_MIDI              0
 #define CFG_TUD_VENDOR            0
 
 // HID buffer size Should be sufficient to hold ID (if any) + Data
-#define CFG_TUD_HID_EP_BUFSIZE    16
+#define CFG_TUD_HID_EP_BUFSIZE    64
 
 #ifdef __cplusplus
  }
 #endif
+
+// clang-format on
 
 #endif /* _TUSB_CONFIG_H_ */
