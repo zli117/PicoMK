@@ -160,5 +160,7 @@ extern "C" void KeyscanTask(void* parameter) {
 
     tud_hid_n_report(ITF_KEYBOARD, /*report_id=*/0, report_buffer,
                      sizeof(report_buffer));
+
+    printf("Printf works\n");
   }
 }

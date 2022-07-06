@@ -32,10 +32,6 @@ extern "C" void vApplicationTickHook(void) {}
 // void operator delete[](void *ptr) { vPortFree(ptr); }
 
 int main() {
-  // stdio_init_all();
-  // sleep_ms(1000);
-  // printf("Started\n");
-  // sleep_ms(1000);
   // // I2C Initialisation. Using it at 400Khz.
   // i2c_init(I2C_PORT, 400 * 1000);
   // gpio_set_function(I2C_SDA, GPIO_FUNC_I2C);

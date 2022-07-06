@@ -4,6 +4,8 @@
 
 #include "FreeRTOS.h"
 #include "config.h"
+#include "pico/stdio.h"
+#include "pico/stdio/driver.h"
 #include "semphr.h"
 #include "task.h"
 #include "timers.h"
@@ -61,8 +63,8 @@ uint8_t const desc_hid_keyboard_report[] = {
 
     // 255 bits bitmap for key state.
     HID_USAGE_PAGE(HID_USAGE_PAGE_KEYBOARD),            //
-    HID_USAGE_MIN(0),                                   // Starts from keycode 0 
-    HID_USAGE_MAX_N(255, 2),                            // Ends at keycode 255 
+    HID_USAGE_MIN(0),                                   // Starts from keycode 0
+    HID_USAGE_MAX_N(255, 2),                            // Ends at keycode 255
     HID_LOGICAL_MIN(0),                                 //
     HID_LOGICAL_MAX(1),                                 //
     HID_REPORT_SIZE(1),                                 // 1 bit for each key
@@ -91,8 +93,15 @@ uint8_t const desc_hid_mouse_report[] = {TUD_HID_REPORT_DESC_MOUSE()};
 // This is required by the USB protocol that all the
 
 #define ENDPOINT_IN_ADDR(ENDPOINT) (0x80 | (((ENDPOINT) + 1) & 0x7))
+#define ENDPOINT_OUT_ADDR(ENDPOINT) (((ENDPOINT) + 1) & 0x7)
+
+#if CONFIG_DEBUG_ENABLE_USB_SERIAL
+#define DESC_CONFIG_TOTAL_LEN \
+  (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_HID_DESC_LEN + TUD_CDC_DESC_LEN)
+#else
 #define DESC_CONFIG_TOTAL_LEN \
   (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_HID_DESC_LEN)
+#endif /* CONFIG_DEBUG_ENABLE_USB_SERIAL */
 
 uint8_t const desc_configuration[] = {
     TUD_CONFIG_DESCRIPTOR(1,                      // bConfigurationValue
@@ -115,7 +124,17 @@ uint8_t const desc_configuration[] = {
                        sizeof(desc_hid_mouse_report),  // Mouse HID size
                        ENDPOINT_IN_ADDR(ITF_MOUSE),    // Endpoint address
                        CFG_TUD_HID_EP_BUFSIZE,         // Endpoint buffer size
-                       CONFIG_USB_POLL_MS)             // Pulling interval
+                       CONFIG_USB_POLL_MS),            // Pulling interval
+
+#if CONFIG_DEBUG_ENABLE_USB_SERIAL
+    TUD_CDC_DESCRIPTOR(ITF_CDC_CTRL,  // bInterfaceNumber
+                       6,             // iInterface (string idx)
+                       ENDPOINT_IN_ADDR(ITF_CDC_CTRL),  // Notification endpoint
+                       CONFIG_DEBUG_USB_SERIAL_CDC_CMD_MAX_SIZE,  // Buffer size
+                       ENDPOINT_OUT_ADDR(ITF_CDC_DATA),  // Avoid conflict
+                       ENDPOINT_IN_ADDR(ITF_CDC_DATA),   //
+                       CONFIG_DEBUG_USB_BUFFER_SIZE),
+#endif /* CONFIG_DEBUG_ENABLE_USB_SERIAL */
 };
 
 char const *string_desc_arr[] = {
@@ -125,6 +144,7 @@ char const *string_desc_arr[] = {
     CONFIG_USB_SERIAL,        // 3: Serial number
     "Keyboard",               // 4: Keyboard interface
     "Mouse",                  // 5: Mouse interface
+    "Serial",                 // 6: CDC
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -239,6 +259,8 @@ bool IsBootProtocol(uint8_t interface) {
 }
 
 status USBInit() {
+  semaphore = xSemaphoreCreateBinary();
+  xSemaphoreGive(semaphore);
   return OK;
 }
 
@@ -253,10 +275,59 @@ status StartUSBTask() {
   return OK;
 }
 
+#if CONFIG_DEBUG_ENABLE_USB_SERIAL
+
+extern "C" {
+static void stdio_usb_out_chars(const char *buf, int length) {
+  static uint64_t last_avail_time;
+
+  xSemaphoreTake(semaphore, portMAX_DELAY);
+
+  if (tud_cdc_connected()) {
+    for (int i = 0; i < length;) {
+      int n = length - i;
+      int avail = (int)tud_cdc_write_available();
+      if (n > avail) n = avail;
+      if (n) {
+        int n2 = (int)tud_cdc_write(buf + i, (uint32_t)n);
+        tud_task();
+        tud_cdc_write_flush();
+        i += n2;
+        last_avail_time = time_us_64();
+      } else {
+        tud_task();
+        tud_cdc_write_flush();
+        if (!tud_cdc_connected() ||
+            (!tud_cdc_write_available() &&
+             time_us_64() > last_avail_time + CONFIG_DEBUG_USB_TIMEOUT_US)) {
+          break;
+        }
+      }
+    }
+  } else {
+    // reset our timeout
+    last_avail_time = 0;
+  }
+  xSemaphoreGive(semaphore);
+}
+
+stdio_driver_t stdio_usb = {
+    .out_chars = stdio_usb_out_chars,
+    .in_chars = NULL,
+};
+}
+
+#endif /* CONFIG_DEBUG_ENABLE_USB_SERIAL */
+
 extern "C" void USBTask(void *parameter) {
   (void)parameter;
 
   tusb_init();
+
+#if CONFIG_DEBUG_ENABLE_USB_SERIAL
+  stdio_set_driver_enabled(&stdio_usb, true);
+#endif /* CONFIG_DEBUG_ENABLE_USB_SERIAL */
+
   while (true) {
     tud_task();
   }
