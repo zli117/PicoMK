@@ -165,7 +165,7 @@ uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
     case ITF_MOUSE:
       return desc_hid_mouse_report;
     default:
-      // Something is not right
+      // Shouldn't reach here, unless something is horribly wrong.
       return NULL;
   }
 }
@@ -314,6 +314,9 @@ static void stdio_usb_out_chars(const char *buf, int length) {
 stdio_driver_t stdio_usb = {
     .out_chars = stdio_usb_out_chars,
     .in_chars = NULL,
+#if PICO_STDIO_ENABLE_CRLF_SUPPORT
+    .crlf_enabled = PICO_STDIO_DEFAULT_CRLF,
+#endif
 };
 }
 
