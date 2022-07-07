@@ -10,9 +10,9 @@
 
 // Each registration creates at most one instance of the handler
 #define REGISTER_CUSTOM_KEYCODE_HANDLER(KEYCODE, CLS)            \
-  static status register_##(CLS) = RegisterCustomKeycodeHandler( \
+  status register_##CLS = RegisterCustomKeycodeHandler(          \
       (KEYCODE), []() -> std::unique_ptr<CustomKeycodeHandler> { \
-        return std::make_unique<(CLS)>();                        \
+        return std::make_unique<CLS>();                          \
       });
 
 class CustomKeycodeHandler {

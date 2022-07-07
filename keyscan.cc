@@ -39,6 +39,12 @@ static std::map<size_t, CustomKeycodeHandlerCreator> custom_handlers;
 static std::vector<Keycode> keycode_requests;
 static std::vector<bool> active_layers;
 
+status RegisterCustomKeycodeHandler(uint8_t keycode,
+                                    CustomKeycodeHandlerCreator creator) {
+  custom_handlers[keycode] = creator;
+  return OK;
+}
+
 // Keyscan APIs
 
 status SetLayerStatus(uint8_t layer, bool active) {
@@ -241,6 +247,27 @@ void ProcessCustomKeycode(Keycode kc, bool is_pressed) {
   }
 }
 
+constexpr size_t kReportBufferSize = 8 + 256 / 8;
+
+void ProcessKeycode(Keycode kc, bool is_pressed, uint8_t (&buffer)[],
+                    uint8_t* boot_protocol_kc_count) {
+  if (kc.is_custom) {
+    ProcessCustomKeycode(kc, is_pressed);
+  } else {
+    const uint8_t keycode = kc.keycode;
+    if (is_pressed) {
+      buffer[keycode / 8 + 8] |= (1 << (keycode % 8));
+      if (*boot_protocol_kc_count < 6) {
+        buffer[2 + (*boot_protocol_kc_count)++] = keycode;
+      } else if (buffer[2] != 0x01) {
+        for (size_t i = 2; i < 8; ++i) {
+          buffer[i] = 0x01;  // ErrorRollOver
+        }
+      }
+    }
+  }
+}
+
 extern "C" void KeyscanTask(void* parameter) {
   (void)parameter;
 
@@ -253,11 +280,17 @@ extern "C" void KeyscanTask(void* parameter) {
 
     const std::vector<uint8_t> active_layers = GetActiveLayers();
 
+    // printf("Active layers: ");
+    // for (uint8_t l : active_layers) {
+    //   printf("%d ", l);
+    // }
+    // printf("\n");
+
     // The first 8 bytes in report buffer is the standard 6 key format for boot
     // protocol. In the report descriptor these are specified as paddings so if
     // the host has full USB HID support, they would be ignored. The remaining
     // 32 bytes are the bitmap for each keycode defined by USB standard.
-    uint8_t report_buffer[8 + 256 / 8] = {0};
+    uint8_t report_buffer[kReportBufferSize] = {0};
     uint8_t boot_protocol_kc_count = 0;
 
     // Set all sink GPIOs to HIGH
@@ -294,25 +327,22 @@ extern "C" void KeyscanTask(void* parameter) {
           }
         }
 
-        if (kc.is_custom) {
-          ProcessCustomKeycode(kc, d_timer.pressed);
-        } else {
-          const uint8_t keycode = kc.keycode;
-          if (d_timer.pressed) {
-            report_buffer[keycode / 8 + 8] |= (1 << (keycode % 8));
-            if (boot_protocol_kc_count < 6) {
-              report_buffer[2 + boot_protocol_kc_count++] = keycode;
-            } else if (report_buffer[2] != 0x01) {
-              for (size_t i = 2; i < 8; ++i) {
-                report_buffer[i] = 0x01;  // ErrorRollOver
-              }
-            }
-          }
-        }
+        ProcessKeycode(kc, d_timer.pressed, report_buffer,
+                       &boot_protocol_kc_count);
       }
 
       // Set the sink back to high
       gpio_put(GetSinkGPIO(sink), true);
+    }
+
+    // Process the requested keys
+    std::vector<Keycode> local_keycode_requests;
+    xSemaphoreTake(semaphore, portMAX_DELAY);
+    std::swap(local_keycode_requests, keycode_requests);
+    xSemaphoreGive(semaphore);
+    for (const auto& kc : local_keycode_requests) {
+      ProcessKeycode(kc, /*is_pressed=*/true, report_buffer,
+                     &boot_protocol_kc_count);
     }
 
     if (!tud_hid_n_ready(ITF_KEYBOARD)) {
@@ -323,3 +353,14 @@ extern "C" void KeyscanTask(void* parameter) {
                      sizeof(report_buffer));
   }
 }
+
+class DebugHander : public CustomKeycodeHandler {
+ public:
+  void ProcessKeyState(Keycode kc, bool is_pressed) override {
+    printf("Custom handler called");
+    if (is_pressed) SendStandardKeycode(HID_KEY_0);
+  }
+
+  std::string GetName() const override { return "DEBUG"; }
+};
+REGISTER_CUSTOM_KEYCODE_HANDLER(20, DebugHander);
