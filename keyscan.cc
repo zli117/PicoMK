@@ -201,12 +201,8 @@ CustomKeycodeHandler* BuiltInHandlerFactory(uint8_t keycode) {
       if (singleton_cache[MSE_L] == NULL) {
         auto mouse_btn_handler = std::make_unique<MouseButtonHandler>();
         singleton_cache[MSE_L] = std::move(mouse_btn_handler);
-        singleton_cache[MSE_M] = std::move(mouse_btn_handler);
-        singleton_cache[MSE_M] = std::move(mouse_btn_handler);
-        singleton_cache[MSE_BACK] = std::move(mouse_btn_handler);
-        singleton_cache[MSE_FORWARD] = std::move(mouse_btn_handler);
       }
-      return singleton_cache[keycode].get();
+      return singleton_cache[MSE_L].get();
     }
     case LAYER_SWITCH: {
       if (singleton_cache[LAYER_SWITCH] == NULL) {
@@ -244,6 +240,8 @@ void ProcessCustomKeycode(Keycode kc, bool is_pressed) {
   }
   if (handler != NULL) {
     handler->ProcessKeyState(kc, is_pressed);
+  } else {
+    LOG_WARNING("Custom Keycode (%d) missing handler", kc.keycode);
   }
 }
 
@@ -279,12 +277,6 @@ extern "C" void KeyscanTask(void* parameter) {
                     /*pulNotificationValue=*/NULL, portMAX_DELAY);
 
     const std::vector<uint8_t> active_layers = GetActiveLayers();
-
-    // printf("Active layers: ");
-    // for (uint8_t l : active_layers) {
-    //   printf("%d ", l);
-    // }
-    // printf("\n");
 
     // The first 8 bytes in report buffer is the standard 6 key format for boot
     // protocol. In the report descriptor these are specified as paddings so if
@@ -353,14 +345,3 @@ extern "C" void KeyscanTask(void* parameter) {
                      sizeof(report_buffer));
   }
 }
-
-class DebugHander : public CustomKeycodeHandler {
- public:
-  void ProcessKeyState(Keycode kc, bool is_pressed) override {
-    printf("Custom handler called");
-    if (is_pressed) SendStandardKeycode(HID_KEY_0);
-  }
-
-  std::string GetName() const override { return "DEBUG"; }
-};
-REGISTER_CUSTOM_KEYCODE_HANDLER(20, DebugHander);
