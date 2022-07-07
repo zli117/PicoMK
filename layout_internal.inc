@@ -93,7 +93,8 @@ uint8_t GetSinkGPIO(size_t idx) {
 uint8_t GetSourceGPIO(size_t idx) {
   return kDiodeColToRow ? kColGPIO[idx] : kRowGPIO[idx];
 }
-Keycode GetKeycode(size_t layer, size_t sink_gpio_idx, size_t source_gpio_idx) {
+Keycode GetKeycodeAtLayer(uint8_t layer, size_t sink_gpio_idx,
+                          size_t source_gpio_idx) {
   return kKeyMatrix[layer][kDiodeColToRow ? sink_gpio_idx : source_gpio_idx]
                    [kDiodeColToRow ? source_gpio_idx : sink_gpio_idx];
 }

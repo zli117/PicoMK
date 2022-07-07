@@ -1,7 +1,11 @@
 #include "keyscan.h"
 
-#include <stdint.h>
 #include <stdio.h>
+
+#include <array>
+#include <cstdint>
+#include <map>
+#include <vector>
 
 #include "FreeRTOS.h"
 #include "config.h"
@@ -22,11 +26,75 @@ struct DebounceTimer {
   DebounceTimer() : tick_count(0), pressed(0) {}
 };
 
+// Inaccessible by other threads
+
 static TaskHandle_t keyscan_task_handle = NULL;
 static TimerHandle_t timer_handle = NULL;
 static SemaphoreHandle_t semaphore = NULL;
-static size_t current_layer = 0;
 static DebounceTimer* debounce_timer = NULL;
+static std::map<size_t, CustomKeycodeHandlerCreator> custom_handlers;
+
+// Accessible by other threads
+
+static std::vector<Keycode> keycode_requests;
+static std::vector<bool> active_layers;
+
+// Keyscan APIs
+
+status SetLayerStatus(uint8_t layer, bool active) {
+  xSemaphoreTake(semaphore, portMAX_DELAY);
+  if (layer > active_layers.size()) {
+    return ERROR;
+  }
+  if (layer == 0) {
+    return OK;
+  }
+  active_layers[layer] = active;
+  xSemaphoreGive(semaphore);
+  return OK;
+}
+
+status ToggleLayerStatus(uint8_t layer) {
+  xSemaphoreTake(semaphore, portMAX_DELAY);
+  if (layer > active_layers.size()) {
+    return ERROR;
+  }
+  if (layer == 0) {
+    return OK;
+  }
+  active_layers[layer] = !active_layers[layer];
+  xSemaphoreGive(semaphore);
+  return OK;
+}
+
+std::vector<uint8_t> GetActiveLayers() {
+  std::vector<uint8_t> output;
+  xSemaphoreTake(semaphore, portMAX_DELAY);
+  for (int16_t i = active_layers.size() - 1; i >= 0; --i) {
+    if (active_layers[i]) {
+      output.push_back(i);
+    }
+  }
+  xSemaphoreGive(semaphore);
+  return output;
+}
+
+status PressThenReleaseKey(Keycode kc) {
+  xSemaphoreTake(semaphore, portMAX_DELAY);
+  keycode_requests.push_back(kc);
+  xSemaphoreGive(semaphore);
+  return OK;
+}
+
+status SendStandardKeycode(uint8_t keycode) {
+  xSemaphoreTake(semaphore, portMAX_DELAY);
+  keycode_requests.push_back(
+      {.keycode = keycode, .is_custom = false, .custom_info = 0});
+  xSemaphoreGive(semaphore);
+  return OK;
+}
+
+// Implementations
 
 extern "C" void KeyscanTask(void* parameter);
 extern "C" void TimerCallback(TimerHandle_t xTimer);
@@ -50,6 +118,9 @@ status KeyScanInit() {
   }
 
   debounce_timer = new DebounceTimer[GetNumSinkGPIOs() * GetNumSourceGPIOs()]();
+
+  active_layers.resize(GetKeyboardNumLayers());
+  active_layers[0] = true;
 
   semaphore = xSemaphoreCreateBinary();
   xSemaphoreGive(semaphore);
@@ -83,7 +154,92 @@ extern "C" void TimerCallback(TimerHandle_t xTimer) {
   xTaskNotifyGive(keyscan_task_handle);
 }
 
-static constexpr size_t kMaxKeyPressed = 6;
+class MouseButtonHandler : public CustomKeycodeHandler {
+ public:
+  void ProcessKeyState(Keycode kc, bool is_pressed) override {}
+
+  std::string GetName() const override { return "Mouse key handler"; }
+};
+
+class LayerButtonHandler : public CustomKeycodeHandler {
+ public:
+  void ProcessKeyState(Keycode kc, bool is_pressed) override {
+    const bool toggle = kc.custom_info & 0x40;
+    const uint8_t layer = kc.custom_info & 0x3f;
+    if (is_pressed) {
+      if (toggle) {
+        ToggleLayerStatus(layer);
+      } else {
+        SetLayerStatus(layer, true);
+      }
+    } else {
+      if (!toggle) {
+        SetLayerStatus(layer, false);
+      }
+    }
+  }
+
+  std::string GetName() const override { return "Layer switch key handler"; }
+};
+
+CustomKeycodeHandler* BuiltInHandlerFactory(uint8_t keycode) {
+  static std::array<std::unique_ptr<CustomKeycodeHandler>, TOTAL_BUILT_IN_KC>
+      singleton_cache;
+
+  switch (keycode) {
+    case MSE_L:
+    case MSE_M:
+    case MSE_R:
+    case MSE_BACK:
+    case MSE_FORWARD: {
+      if (singleton_cache[MSE_L] == NULL) {
+        auto mouse_btn_handler = std::make_unique<MouseButtonHandler>();
+        singleton_cache[MSE_L] = std::move(mouse_btn_handler);
+        singleton_cache[MSE_M] = std::move(mouse_btn_handler);
+        singleton_cache[MSE_M] = std::move(mouse_btn_handler);
+        singleton_cache[MSE_BACK] = std::move(mouse_btn_handler);
+        singleton_cache[MSE_FORWARD] = std::move(mouse_btn_handler);
+      }
+      return singleton_cache[keycode].get();
+    }
+    case LAYER_SWITCH: {
+      if (singleton_cache[LAYER_SWITCH] == NULL) {
+        singleton_cache[LAYER_SWITCH] = std::make_unique<LayerButtonHandler>();
+      }
+      return singleton_cache[LAYER_SWITCH].get();
+    }
+    default:
+      return NULL;
+  };
+}
+
+CustomKeycodeHandler* RegisteredHandlerFactor(uint8_t keycode) {
+  static std::map<uint8_t, std::unique_ptr<CustomKeycodeHandler>>
+      singleton_cache;
+  auto it = singleton_cache.find(keycode);
+  if (it != singleton_cache.end()) {
+    return it->second.get();
+  } else {
+    auto creator_it = custom_handlers.find(keycode);
+    if (creator_it == custom_handlers.end()) {
+      return NULL;
+    }
+    auto handler = creator_it->second();
+    auto* output = handler.get();
+    singleton_cache[keycode] = std::move(handler);
+    return output;
+  }
+}
+
+void ProcessCustomKeycode(Keycode kc, bool is_pressed) {
+  auto* handler = RegisteredHandlerFactor(kc.keycode);
+  if (handler == NULL) {
+    handler = BuiltInHandlerFactory(kc.keycode);
+  }
+  if (handler != NULL) {
+    handler->ProcessKeyState(kc, is_pressed);
+  }
+}
 
 extern "C" void KeyscanTask(void* parameter) {
   (void)parameter;
@@ -94,10 +250,8 @@ extern "C" void KeyscanTask(void* parameter) {
     xTaskNotifyWait(/*do not clear notification on enter*/ 0,
                     /*clear notification on exit*/ 0xffffffff,
                     /*pulNotificationValue=*/NULL, portMAX_DELAY);
-    // TODO: properly get semaphore
-    xSemaphoreTake(semaphore, portMAX_DELAY);
-    const size_t layer = current_layer;
-    xSemaphoreGive(semaphore);
+
+    const std::vector<uint8_t> active_layers = GetActiveLayers();
 
     // The first 8 bytes in report buffer is the standard 6 key format for boot
     // protocol. In the report descriptor these are specified as paddings so if
@@ -131,10 +285,17 @@ extern "C" void KeyscanTask(void* parameter) {
           }
         }
 
-        const Keycode kc = GetKeycode(layer, sink, source);
+        Keycode kc = {0};
+        for (uint8_t l : active_layers) {
+          Keycode layer_kc = GetKeycodeAtLayer(l, sink, source);
+          if (layer_kc.is_custom || layer_kc.keycode != HID_KEY_NONE) {
+            kc = layer_kc;
+            break;
+          }
+        }
 
         if (kc.is_custom) {
-          // TODO: Dispatch custom keycode
+          ProcessCustomKeycode(kc, d_timer.pressed);
         } else {
           const uint8_t keycode = kc.keycode;
           if (d_timer.pressed) {

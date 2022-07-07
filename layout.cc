@@ -43,18 +43,24 @@ static constexpr GPIO kGPIOMatrix[CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] = {
   {G(R4, C3),  G(R4, C4),  G(R4, C6)}
 };
 
-enum { DEFAULT = 0, LAYER_1 };
-
 static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] = {
-  [DEFAULT]={
-    {CK(ENCODER),K(K_GRAVE),  K(K_1),     K(K_2),     K(K_3),     K(K_4),     K(K_5),     K(K_6),     K(K_7),     K(K_8),     K(K_9),     K(K_0),     K(K_MINUS), K(K_EQUAL), K(K_BACKS)},
+  [0]={
+    {K(K_MUTE),  K(K_GRAVE),  K(K_1),     K(K_2),     K(K_3),     K(K_4),     K(K_5),     K(K_6),     K(K_7),     K(K_8),     K(K_9),     K(K_0),     K(K_MINUS), K(K_EQUAL), K(K_BACKS)},
     {K(K_ESC),   K(K_TAB),    K(K_Q),     K(K_W),     K(K_E),     K(K_R),     K(K_T),     K(K_Y),     K(K_U),     K(K_I),     K(K_O),     K(K_P),     K(K_BRKTL), K(K_BRKTR), K(K_BKSL)},
     {K(K_DEL),   K(K_CTR_L),  K(K_A),     K(K_S),     K(K_D),     K(K_F),     K(K_G),     K(K_H),     K(K_J),     K(K_K),     K(K_L),     K(K_SEMIC), K(K_APST),  K(K_ENTER)},
     {K(K_INS),   K(K_SFT_L),  K(K_Z),     K(K_X),     K(K_C),     K(K_V),     K(K_B),     K(K_N),     K(K_M),     K(K_COMMA), K(K_PERID), K(K_SLASH), K(K_SFT_R)},
-    {______,     K(K_GUI_L),  K(K_ALT_L), K(K_SPACE), CK(FN1),    CK(FN2),    K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
-    {CK(MSE_L),  CK(JY),      CK(MSE_R)}
+    {K(K_CAPS),  K(K_GUI_L),  K(K_ALT_L), K(K_SPACE), MO(1),      MO(2),    K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
+    {CK(MSE_L),  CK(MSE_M),   CK(MSE_R)}
   },
-  [LAYER_1]={}
+  [1]={},
+  [2]={
+    {K(K_MUTE),  K(K_GRAVE),  K(K_3),     K(K_4),     K(K_5),     K(K_4),     K(K_5),     K(K_6),     K(K_7),     K(K_8),     K(K_9),     K(K_0),     K(K_MINUS), K(K_EQUAL), K(K_BACKS)},
+    {K(K_ESC),   K(K_TAB),    K(K_3),     K(K_4),     K(K_5),     K(K_R),     K(K_T),     K(K_Y),     K(K_U),     K(K_I),     K(K_O),     K(K_P),     K(K_BRKTL), K(K_BRKTR), K(K_BKSL)},
+    {K(K_DEL),   K(K_CTR_L),  K(K_3),     K(K_4),     K(K_5),     K(K_F),     K(K_G),     K(K_H),     K(K_J),     K(K_K),     K(K_L),     K(K_SEMIC), K(K_APST),  K(K_ENTER)},
+    {K(K_INS),   K(K_SFT_L),  K(K_3),     K(K_4),     K(K_5),     K(K_V),     K(K_B),     K(K_N),     K(K_M),     K(K_COMMA), K(K_PERID), K(K_SLASH), K(K_SFT_R)},
+    {K(K_CAPS),  K(K_GUI_L),  K(K_ALT_L), K(K_SPACE), K(K_5),     K(K_4),    K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
+    {CK(MSE_L),  CK(MSE_M),   CK(MSE_R)}
+  },
 };
 
 // clang-format on

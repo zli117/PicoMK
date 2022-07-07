@@ -290,12 +290,10 @@ static void stdio_usb_out_chars(const char *buf, int length) {
       if (n > avail) n = avail;
       if (n) {
         int n2 = (int)tud_cdc_write(buf + i, (uint32_t)n);
-        tud_task();
         tud_cdc_write_flush();
         i += n2;
         last_avail_time = time_us_64();
       } else {
-        tud_task();
         tud_cdc_write_flush();
         if (!tud_cdc_connected() ||
             (!tud_cdc_write_available() &&

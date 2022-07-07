@@ -2,13 +2,27 @@
 #define LAYOUT_HELPER_H_
 
 #define K(KEYCODE) \
-  { .keycode = (KEYCODE), .is_custom = false }
+  { .keycode = (KEYCODE), .is_custom = false, .custom_info = 0 }
 
 #define CK(KEYCODE) \
-  { .keycode = (KEYCODE), .is_custom = true }
+  { .keycode = (KEYCODE), .is_custom = true, .custom_info = 0 }
 
 #define ______ \
-  { .keycode = (HID_KEY_NONE), .is_custom = true }
+  { .keycode = (HID_KEY_NONE), .is_custom = false, .custom_info = 0 }
+
+// Temporarily activate the layer. Deactive once released.
+#define MO(LAYER)                                 \
+  {                                               \
+    .keycode = (LAYER_SWITCH), .is_custom = true, \
+    .custom_info = ((LAYER)&0x3f)                 \
+  }
+
+// Toggle layer activation.
+#define TG(LAYER)                                 \
+  {                                               \
+    .keycode = (LAYER_SWITCH), .is_custom = true, \
+    .custom_info = (((LAYER)&0x3f) | 0x40)        \
+  }
 
 #define G(ROW, COL) \
   { .row = (ROW), .col = (COL) }
