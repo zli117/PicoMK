@@ -23,7 +23,7 @@ using KeyMatrix =
     std::array<std::array<std::array<Keycode, kNumColGPIO>, kNumRowGPIO>,
                kNumLayers>;
 
-// Force non-const as error
+// Force non-constexpr as error
 void failure(const char*) {}
 
 template <size_t L, size_t R, size_t C, size_t GP_ROW, size_t GP_COL>
@@ -65,8 +65,6 @@ constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
         }
         if (output[l][row_gpio_idx][col_gpio_idx].keycode != HID_KEY_NONE) {
           failure("Trying to assign two keycodes to one location");
-          // throw std::invalid_argument(
-          //     );
         }
 
         output[l][row_gpio_idx][col_gpio_idx] = kc[l][r][c];
