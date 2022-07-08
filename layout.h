@@ -27,8 +27,8 @@ Keycode GetKeycodeAtLayer(uint8_t layer, size_t sink_gpio_idx,
 
 enum BuiltInCustomKeyCode {
   MSE_L = 0,
-  MSE_M,
   MSE_R,
+  MSE_M,
   MSE_BACK,
   MSE_FORWARD,
   LAYER_SWITCH,

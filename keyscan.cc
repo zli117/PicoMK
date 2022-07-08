@@ -103,7 +103,7 @@ status SendStandardKeycode(uint8_t keycode) {
 // Implementations
 
 extern "C" void KeyscanTask(void* parameter);
-extern "C" void TimerCallback(TimerHandle_t xTimer);
+extern "C" void KeyscanTimerCallback(TimerHandle_t xTimer);
 
 __weak_symbol void SinkGPIODelay() { sleep_us(CONFIG_GPIO_SINK_DELAY_US); }
 
@@ -144,7 +144,7 @@ status StartKeyScanTask() {
 
   timer_handle = xTimerCreate("keyscan_timer", CONFIG_SCAN_TICKS,
                               pdTRUE,  // Auto reload
-                              NULL, TimerCallback);
+                              NULL, KeyscanTimerCallback);
 
   if (timer_handle == NULL) {
     return ERROR;
@@ -156,7 +156,7 @@ status StartKeyScanTask() {
   return OK;
 }
 
-extern "C" void TimerCallback(TimerHandle_t xTimer) {
+extern "C" void KeyscanTimerCallback(TimerHandle_t xTimer) {
   xTaskNotifyGive(keyscan_task_handle);
 }
 
@@ -194,8 +194,8 @@ CustomKeycodeHandler* BuiltInHandlerFactory(uint8_t keycode) {
 
   switch (keycode) {
     case MSE_L:
-    case MSE_M:
     case MSE_R:
+    case MSE_M:
     case MSE_BACK:
     case MSE_FORWARD: {
       if (singleton_cache[MSE_L] == NULL) {

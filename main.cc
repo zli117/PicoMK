@@ -1,4 +1,4 @@
-// #include <stdio.h>  // Debug
+#include <stdio.h>
 
 #include "FreeRTOS.h"
 // #include "hardware/clocks.h"
@@ -6,12 +6,11 @@
 // #include "hardware/watchdog.h"
 #include "keyscan.h"
 #include "layout.h"
+#include "peripheral.h"
 #include "pico/stdlib.h"
 #include "task.h"
 #include "usb.h"
 #include "utils.h"
-
-using namespace std;
 
 // I2C defines
 // This example will use I2C0 on GPIO8 (SDA) and GPIO9 (SCL) running at 400KHz.
@@ -21,17 +20,15 @@ using namespace std;
 // #define I2C_SDA 8
 // #define I2C_SCL 9
 
-extern "C" void vApplicationMallocFailedHook(void) {}
+extern "C" void vApplicationMallocFailedHook(void) {
+  LOG_ERROR("Failed malloc. OOM");
+}
 extern "C" void vApplicationIdleHook(void) {}
 extern "C" void vApplicationStackOverflowHook(TaskHandle_t pxTask,
-                                              char *pcTaskName) {}
+                                              char *pcTaskName) {
+  LOG_ERROR("Stack overflow for task %s", pcTaskName);
+}
 extern "C" void vApplicationTickHook(void) {}
-
-// Overrides for C++ so that new and delete will call the correct functions
-// void *operator new(size_t size) { return pvPortMalloc(size); }
-// void *operator new[](size_t size) { return pvPortMalloc(size); }
-// void operator delete(void *ptr) { vPortFree(ptr); }
-// void operator delete[](void *ptr) { vPortFree(ptr); }
 
 int main() {
   // // I2C Initialisation. Using it at 400Khz.
@@ -40,17 +37,23 @@ int main() {
   // gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
   // gpio_pull_up(I2C_SDA);
   // gpio_pull_up(I2C_SCL);
+  USBInit();
+  StartUSBTask();
 
-  if (                          //
-      USBInit() == OK &&        //
-      StartUSBTask() == OK &&   //
-      KeyScanInit() == OK &&    //
-      StartKeyScanTask() == OK  //
-  ) {
-    vTaskStartScheduler();
-  } else {
-    printf("Failed to start keyscan task");
+  if (KeyScanInit() != OK) {
+    LOG_ERROR("Failed to initialize key scan");
   }
+  if (StartKeyScanTask() != OK) {
+    LOG_ERROR("Failed to start key scan task");
+  }
+  if (PeripheralInit() != OK) {
+    LOG_ERROR("Failed to initialize peripheral task");
+  }
+  if (StartPeripheralTask() != OK) {
+    LOG_ERROR("Failed to start peripheral task");
+  }
+
+  vTaskStartScheduler();
 
   while (true)
     ;
