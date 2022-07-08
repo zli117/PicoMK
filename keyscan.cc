@@ -11,6 +11,7 @@
 #include "config.h"
 #include "hardware/gpio.h"
 #include "layout.h"
+#include "peripheral.h"
 #include "pico/stdlib.h"
 #include "semphr.h"
 #include "task.h"
@@ -162,7 +163,9 @@ extern "C" void KeyscanTimerCallback(TimerHandle_t xTimer) {
 
 class MouseButtonHandler : public CustomKeycodeHandler {
  public:
-  void ProcessKeyState(Keycode kc, bool is_pressed) override {}
+  void ProcessKeyState(Keycode kc, bool is_pressed) override {
+    SetMouseButtonState((BuiltInCustomKeyCode)kc.keycode, is_pressed);
+  }
 
   std::string GetName() const override { return "Mouse key handler"; }
 };

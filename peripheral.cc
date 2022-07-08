@@ -109,7 +109,10 @@ extern "C" void PeripheralTask(void* parameter) {
 
     xSemaphoreTake(semaphore, portMAX_DELAY);
     const uint8_t mouse_buttons = mouse_button_state;
+
+#if CONFIG_ENABLE_JOYSTICK
     const JoystickMode js_mode = joystick_mode;
+#endif /* CONFIG_ENABLE_JOYSTICK */
     xSemaphoreGive(semaphore);
 
     int8_t x = 0;
@@ -132,7 +135,7 @@ extern "C" void PeripheralTask(void* parameter) {
         break;
       }
       default:
-        // LOG_ERROR("Unsupported joystick mode (%d)", js_mode);
+        LOG_ERROR("Unsupported joystick mode (%d)", js_mode);
         break;
     }
 #endif /* CONFIG_ENABLE_JOYSTICK */
