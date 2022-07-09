@@ -6,6 +6,7 @@
 #include "base.h"
 #include "configuration.h"
 #include "semphr.h"
+#include <memory>
 #include "task.h"
 #include "timers.h"
 #include "usb.h"

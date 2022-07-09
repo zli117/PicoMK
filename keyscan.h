@@ -2,45 +2,90 @@
 #define KEYSCAN_H_
 
 #include <functional>
+#include <map>
 #include <memory>
 #include <string>
+#include <utility>
+#include <vector>
 
+#include "FreeRTOS.h"
+#include "base.h"
 #include "layout.h"
+#include "semphr.h"
 #include "utils.h"
 
 // Each registration creates at most one instance of the handler
-#define REGISTER_CUSTOM_KEYCODE_HANDLER(KEYCODE, CLS)            \
-  status register_##CLS = RegisterCustomKeycodeHandler(          \
-      (KEYCODE), []() -> std::unique_ptr<CustomKeycodeHandler> { \
-        return std::make_unique<CLS>();                          \
-      });
+#define REGISTER_CUSTOM_KEYCODE_HANDLER(KEYCODE, CAN_OVERRIDE, CLS)  \
+  status register_##KEYCODE = KeyScan::RegisterCustomKeycodeHandler( \
+      (KEYCODE), (CAN_OVERRIDE),                                     \
+      []() -> CustomKeycodeHandler* { return new CLS(); });
+
+class KeyScan;
 
 class CustomKeycodeHandler {
  public:
   virtual void ProcessKeyState(Keycode kc, bool is_pressed) = 0;
+  virtual void SetOuterClass(KeyScan* keyscan) { key_scan_ = keyscan; }
   virtual std::string GetName() const = 0;
+
+ protected:
+  KeyScan* key_scan_;
 };
 
-using CustomKeycodeHandlerCreator =
-    std::function<std::unique_ptr<CustomKeycodeHandler>()>;
+class KeyScan : public GenericInputDevice {
+ public:
+  using CustomKeycodeHandlerCreator = std::function<CustomKeycodeHandler*()>;
 
-// Not threadsafe. Should only be called at C++ initialization time.
-status RegisterCustomKeycodeHandler(uint8_t keycode,
-                                    CustomKeycodeHandlerCreator creator);
+  static std::shared_ptr<KeyScan> Create(const Configuration* config);
 
-status KeyScanInit();
+  void Tick() override;
+  void OnUpdateConfig() override {}
+  void SetConfigMode(bool is_config_mode) override;
 
-status StartKeyScanTask();
+  static status RegisterCustomKeycodeHandler(
+      uint8_t keycode, bool overridable, CustomKeycodeHandlerCreator creator);
 
-// Keyscan APIs. Threadsafe.
+  Status SetLayerStatus(uint8_t layer, bool active);
+  Status ToggleLayerStatus(uint8_t layer);
+  std::vector<uint8_t> GetActiveLayers();
 
-status SetLayerStatus(uint8_t layer, bool active);
-status ToggleLayerStatus(uint8_t layer);
+  void SetMouseButtonState(uint8_t mouse_key, bool is_pressed);
 
-// From high layers to low layers
-std::vector<uint8_t> GetActiveLayers();
+ protected:
+  struct DebounceTimer {
+    uint8_t tick_count : 7;
+    uint8_t pressed : 1;
 
-status PressThenReleaseKey(Keycode kc);
-status SendStandardKeycode(uint8_t keycode);
+    DebounceTimer() : tick_count(0), pressed(0) {}
+  };
+
+  class HandlerRegistry {
+   public:
+    static status RegisterHandler(uint8_t keycode, bool overridable,
+                                  CustomKeycodeHandlerCreator creator);
+    static CustomKeycodeHandler* RegisteredHandlerFactory(uint8_t keycode,
+                                                          KeyScan* outer);
+
+   private:
+    static HandlerRegistry* GetRegistry();
+
+    std::map<uint8_t, std::pair<bool, CustomKeycodeHandlerCreator>>
+        custom_handlers_;
+    std::map<uint8_t, CustomKeycodeHandler*> handler_singletons_;
+  };
+
+  KeyScan();
+
+  virtual void SinkGPIODelay();
+
+  void NotifyOutput(const std::vector<uint8_t>& pressed_keycode);
+
+  std::vector<DebounceTimer> debounce_timer_;
+  std::vector<bool> active_layers_;
+  SemaphoreHandle_t semaphore_;
+  bool is_config_mode_;
+
+  static std::shared_ptr<KeyScan> singleton_;
+};
 
 #endif /* KEYSCAN_H_ */

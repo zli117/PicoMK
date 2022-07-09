@@ -24,13 +24,13 @@ class GenericOutputDevice : virtual public GenericDevice {
   virtual void FinalizeInputTickOutput() = 0;
 };
 
-class  KeyboardOutputDevice : virtual public GenericOutputDevice {
+class KeyboardOutputDevice : virtual public GenericOutputDevice {
  public:
   virtual void SendKeycode(uint8_t keycode) = 0;
   virtual void SendKeycode(const std::vector<uint8_t>& keycode) = 0;
 };
 
-class  MouseOutputDevice : virtual public GenericOutputDevice {
+class MouseOutputDevice : virtual public GenericOutputDevice {
  public:
   virtual void MouseKeycode(uint8_t keycode) = 0;
   virtual void MouseMovement(int8_t x, int8_t y) = 0;
@@ -57,18 +57,22 @@ class LEDOutputDevice : public GenericOutputDevice {
   virtual void SetFixedColor(uint8_t r, uint8_t g, uint8_t b) = 0;
 };
 
+class ConfigModifier;
+
 class GenericInputDevice : virtual public GenericDevice {
  public:
-  virtual void AddKeyboardOutput( KeyboardOutputDevice* device);
-  virtual void AddMouseOutput( MouseOutputDevice* device);
+  virtual void AddKeyboardOutput(KeyboardOutputDevice* device);
+  virtual void AddMouseOutput(MouseOutputDevice* device);
   virtual void AddScreenOutput(ScreenOutputDevice* device);
   virtual void AddLEDOutput(LEDOutputDevice* device);
+  virtual void AddConfigModifier(ConfigModifier* device);
 
  protected:
-  std::vector< KeyboardOutputDevice*> usb_keyboard_output_;
-  std::vector< MouseOutputDevice*> usb_mouse_output_;
+  std::vector<KeyboardOutputDevice*> keyboard_output_;
+  std::vector<MouseOutputDevice*> mouse_output_;
   std::vector<ScreenOutputDevice*> screen_output_;
   std::vector<LEDOutputDevice*> led_output_;
+  std::vector<ConfigModifier*> config_modifier_;
 };
 
 class ConfigModifier : public GenericOutputDevice, public GenericInputDevice {
@@ -80,11 +84,10 @@ class ConfigModifier : public GenericOutputDevice, public GenericInputDevice {
 
 using GenericInputDeviceCreator =
     std::function<std::shared_ptr<GenericInputDevice>(const Configuration*)>;
-using  KeyboardOutputDeviceCreator =
-    std::function<std::shared_ptr< KeyboardOutputDevice>(
-        const Configuration*)>;
-using  MouseOutputDeviceCreator =
-    std::function<std::shared_ptr< MouseOutputDevice>(const Configuration*)>;
+using KeyboardOutputDeviceCreator =
+    std::function<std::shared_ptr<KeyboardOutputDevice>(const Configuration*)>;
+using MouseOutputDeviceCreator =
+    std::function<std::shared_ptr<MouseOutputDevice>(const Configuration*)>;
 using ScreenOutputDeviceCreator =
     std::function<std::shared_ptr<ScreenOutputDevice>(const Configuration*)>;
 using LEDOutputDeviceCreator =
@@ -96,10 +99,10 @@ class DeviceRegistry {
  public:
   static Status RegisterInputDevice(uint8_t key, bool weak,
                                     GenericInputDeviceCreator func);
-  static Status RegisterKeyboardOutputDevice(
-      uint8_t key, bool weak,  KeyboardOutputDeviceCreator func);
+  static Status RegisterKeyboardOutputDevice(uint8_t key, bool weak,
+                                             KeyboardOutputDeviceCreator func);
   static Status RegisterMouseOutputDevice(uint8_t key, bool weak,
-                                              MouseOutputDeviceCreator func);
+                                          MouseOutputDeviceCreator func);
   static Status RegisterScreenOutputDevice(uint8_t key, bool weak,
                                            ScreenOutputDeviceCreator func);
   static Status RegisterLEDOutputDevice(uint8_t key, bool weak,
@@ -113,17 +116,19 @@ class DeviceRegistry {
       Configuration* config);
 
  private:
-  static std::map<uint8_t, std::pair<bool, GenericInputDeviceCreator>>
+  static DeviceRegistry* GetRegistry();
+
+  std::map<uint8_t, std::pair<bool, GenericInputDeviceCreator>>
       input_creators_;
-  static std::map<uint8_t, std::pair<bool,  KeyboardOutputDeviceCreator>>
-      usb_keyboard_creators_;
-  static std::map<uint8_t, std::pair<bool,  MouseOutputDeviceCreator>>
-      usb_mouse_creators_;
-  static std::map<uint8_t, std::pair<bool, ScreenOutputDeviceCreator>>
+  std::map<uint8_t, std::pair<bool, KeyboardOutputDeviceCreator>>
+      keyboard_creators_;
+  std::map<uint8_t, std::pair<bool, MouseOutputDeviceCreator>>
+      mouse_creators_;
+  std::map<uint8_t, std::pair<bool, ScreenOutputDeviceCreator>>
       screen_output_creators_;
-  static std::map<uint8_t, std::pair<bool, LEDOutputDeviceCreator>>
+  std::map<uint8_t, std::pair<bool, LEDOutputDeviceCreator>>
       led_output_creators_;
-  static std::map<uint8_t, std::pair<bool, ConfigModifierCreator>>
+  std::map<uint8_t, std::pair<bool, ConfigModifierCreator>>
       config_modifier_creators_;
 };
 

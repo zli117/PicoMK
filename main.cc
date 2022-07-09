@@ -5,6 +5,7 @@
 // #include "hardware/i2c.h"
 // #include "hardware/watchdog.h"
 #include "keyscan.h"
+#include "runner.h"
 #include "layout.h"
 #include "peripheral.h"
 #include "pico/stdlib.h"
@@ -37,21 +38,24 @@ int main() {
   // gpio_set_function(I2C_SCL, GPIO_FUNC_I2C);
   // gpio_pull_up(I2C_SDA);
   // gpio_pull_up(I2C_SCL);
-  USBInit();
-  StartUSBTask();
+  // USBInit();
+  // StartUSBTask();
 
-  if (KeyScanInit() != OK) {
-    LOG_ERROR("Failed to initialize key scan");
-  }
-  if (StartKeyScanTask() != OK) {
-    LOG_ERROR("Failed to start key scan task");
-  }
-  if (PeripheralInit() != OK) {
-    LOG_ERROR("Failed to initialize peripheral task");
-  }
-  if (StartPeripheralTask() != OK) {
-    LOG_ERROR("Failed to start peripheral task");
-  }
+  // if (KeyScanInit() != OK) {
+  //   LOG_ERROR("Failed to initialize key scan");
+  // }
+  // if (StartKeyScanTask() != OK) {
+  //   LOG_ERROR("Failed to start key scan task");
+  // }
+  // if (PeripheralInit() != OK) {
+  //   LOG_ERROR("Failed to initialize peripheral task");
+  // }
+  // if (StartPeripheralTask() != OK) {
+  //   LOG_ERROR("Failed to start peripheral task");
+  // }
+
+  RunnerInit();
+  RunnerStart();
 
   vTaskStartScheduler();
 

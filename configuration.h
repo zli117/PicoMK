@@ -25,10 +25,12 @@ class Configuration {
       const std::vector<std::pair<uint16_t, uint8_t>>& profile);
 
  private:
-  Configuration();
-
+  Configuration() = default;
+  
   std::vector<std::pair<uint16_t, uint8_t>> joystick_x_profile_;
   std::vector<std::pair<uint16_t, uint8_t>> joystick_y_profile_;
+
+  static Configuration* singleton_;
 };
 
 #endif /* CONFIGURATION_H_ */

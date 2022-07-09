@@ -23,7 +23,7 @@ pico_sdk_init()
 
 # Add executable. Default name is the project name, version 0.1
 
-add_executable(firmware main.cc layout.cc keyscan.cc usb.cc joystick.cc peripheral.cc runner.cc base.cc)
+add_executable(firmware main.cc layout.cc keyscan.cc usb.cc joystick.cc peripheral.cc runner.cc base.cc configuration.cc)
 
 pico_set_program_name(firmware "Pico Keyboard Firmware")
 pico_set_program_version(firmware "0.1")
