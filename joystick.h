@@ -14,10 +14,12 @@ class CenteringPotentialMeterDriver {
                                 bool flip_dir);
 
   // Translate the raw ADC readings to USB offsets, from -127 to 127
-  int8_t GetValue();
+  int16_t GetValue();
 
-  // Get samples and other stuffs
-  void Tick();
+  void SetMappedValue(int8_t mapped);
+
+  void SetCalibrationSamples(uint32_t calibration_samples);
+  void SetCalibrationThreshold(uint32_t calibration_threshold);
 
  protected:
   uint8_t adc_;
@@ -26,6 +28,13 @@ class CenteringPotentialMeterDriver {
   uint32_t buffer_idx_;
   int32_t sum_;
   bool flip_dir_;
+
+  uint16_t last_value_;
+  uint32_t calibration_samples_;
+  uint32_t calibration_threshold_;
+  uint32_t calibration_sum_;
+  uint32_t calibration_zero_count_;
+  uint32_t calibration_count_;
 };
 
 #endif /* JOYSTICK_H_ */

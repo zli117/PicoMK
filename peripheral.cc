@@ -9,142 +9,99 @@
 #include "tusb.h"
 #include "usb.h"
 
-static TaskHandle_t peripheral_task_handle = NULL;
-static TimerHandle_t timer_handle = NULL;
-static SemaphoreHandle_t semaphore = NULL;
+JoystickInputDeivce::JoystickInputDeivce(const Configuration* config,
+                                         uint8_t x_adc_pin, uint8_t y_adc_pin,
+                                         size_t buffer_size, bool flip_x_dir,
+                                         bool flip_y_dir)
+    : config_(config),
+      x_(x_adc_pin, buffer_size, flip_x_dir),
+      y_(y_adc_pin, buffer_size, flip_y_dir),
+      divider_(1),
+      counter_(0),
+      is_config_mode_(false) {
+  semaphore_ = xSemaphoreCreateBinary();
+  xSemaphoreGive(semaphore_);
+  OnUpdateConfig();
+}
 
-#if CONFIG_ENABLE_JOYSTICK
+void JoystickInputDeivce::Tick() {
+  // We still sample at the normal frequency, but only report when counter
+  // reaches divider.
+  const int8_t x_val = TranslateReading(profile_x_, x_.GetValue());
+  const int8_t y_val = TranslateReading(profile_x_, y_.GetValue());
+  x_.SetMappedValue(x_val);
+  y_.SetMappedValue(y_val);
 
-static CenteringPotentialMeterDriver* x_pot = NULL;
-static CenteringPotentialMeterDriver* y_pot = NULL;
-
-#endif /* CONFIG_ENABLE_JOYSTICK */
-
-// Variables needs lock protection
-
-static uint8_t mouse_button_state = 0;
-
-#if CONFIG_ENABLE_JOYSTICK
-
-static JoystickMode joystick_mode = MOUSE;
-
-#endif /* CONFIG_ENABLE_JOYSTICK */
-
-// API
-
-status SetMouseButtonState(BuiltInCustomKeyCode mouse_key, bool is_pressed) {
-  if (mouse_key > MSE_FORWARD) {
-    return ERROR;
+  if (counter_++ < divider_) {
+    return;
   }
+  counter_ = 0;
 
-  xSemaphoreTake(semaphore, portMAX_DELAY);
-  if (is_pressed) {
-    mouse_button_state |= (1 << mouse_key);
+  bool is_profile;
+  {
+    LockSemaphore lock(semaphore_);
+    is_profile = is_config_mode_;
+  }
+  if (is_profile) {
+    for (auto* config_modifier : config_modifier_) {
+      if (y_val > 0) {
+        config_modifier->Up();
+      } else if (y_val < 0) {
+        config_modifier->Down();
+      }
+    }
   } else {
-    mouse_button_state &= ~(1 << mouse_key);
-  }
-  xSemaphoreGive(semaphore);
-  return OK;
-}
-
-status SetJoystickMode(JoystickMode mode) {
-#if CONFIG_ENABLE_JOYSTICK
-  xSemaphoreTake(semaphore, portMAX_DELAY);
-  joystick_mode = mode;
-  xSemaphoreGive(semaphore);
-#endif /* CONFIG_ENABLE_JOYSTICK */
-  return OK;
-}
-
-extern "C" void PeripheralTask(void* parameter);
-extern "C" void PeripheralTimerCallback(TimerHandle_t xTimer);
-
-status PeripheralInit() {
-#if CONFIG_ENABLE_JOYSTICK
-  x_pot = new CenteringPotentialMeterDriver(CONFIG_JOYSTICK_GPIO_X,
-                                            CONFIG_JOYSTICK_SMOOTH_BUFFER_LEN,
-                                            CONFIG_JOYSTICK_FLIP_X_DIR);
-  y_pot = new CenteringPotentialMeterDriver(CONFIG_JOYSTICK_GPIO_Y,
-                                            CONFIG_JOYSTICK_SMOOTH_BUFFER_LEN,
-                                            CONFIG_JOYSTICK_FLIP_Y_DIR);
-#endif /* CONFIG_ENABLE_JOYSTICK */
-
-  semaphore = xSemaphoreCreateBinary();
-  xSemaphoreGive(semaphore);
-  return OK;
-}
-
-status StartPeripheralTask() {
-  BaseType_t status =
-      xTaskCreate(&PeripheralTask, "peripheral_task", CONFIG_TASK_STACK_SIZE,
-                  NULL, CONFIG_TASK_PRIORITY, &peripheral_task_handle);
-  if (status != pdPASS || peripheral_task_handle == NULL) {
-    return ERROR;
-  }
-  timer_handle = xTimerCreate("peripheral_timer", CONFIG_SCAN_TICKS,
-                              pdTRUE,  // Auto reload
-                              NULL, PeripheralTimerCallback);
-
-  if (timer_handle == NULL) {
-    return ERROR;
-  }
-  if (xTimerStart(timer_handle, 0) != pdPASS) {
-    return ERROR;
-  }
-
-  return OK;
-}
-
-extern "C" void PeripheralTimerCallback(TimerHandle_t xTimer) {
-  xTaskNotifyGive(peripheral_task_handle);
-}
-
-extern "C" void PeripheralTask(void* parameter) {
-  (void)parameter;
-
-  while (true) {
-    xTaskNotifyWait(/*do not clear notification on enter*/ 0,
-                    /*clear notification on exit*/ 0xffffffff,
-                    /*pulNotificationValue=*/NULL, portMAX_DELAY);
-
-    xSemaphoreTake(semaphore, portMAX_DELAY);
-    const uint8_t mouse_buttons = mouse_button_state;
-
-#if CONFIG_ENABLE_JOYSTICK
-    const JoystickMode js_mode = joystick_mode;
-#endif /* CONFIG_ENABLE_JOYSTICK */
-    xSemaphoreGive(semaphore);
-
-    int8_t x = 0;
-    int8_t y = 0;
-    int8_t horizontal = 0;
-    int8_t vertical = 0;
-
-#if CONFIG_ENABLE_JOYSTICK
-    x_pot->Tick();
-    y_pot->Tick();
-    switch (js_mode) {
-      case MOUSE: {
-        x = x_pot->GetValue();
-        y = y_pot->GetValue();
-        break;
-      }
-      case XY_SCROLL: {
-        horizontal = x_pot->GetValue();
-        vertical = y_pot->GetValue();
-        break;
-      }
-      default:
-        LOG_ERROR("Unsupported joystick mode (%d)", js_mode);
-        break;
+    LOG_DEBUG("Mouse movement: %d, %d", x_val, y_val);
+    for (auto* mouse_output : mouse_output_) {
+      mouse_output->MouseMovement(x_val, y_val);
     }
-#endif /* CONFIG_ENABLE_JOYSTICK */
-
-    if (!tud_hid_n_ready(ITF_MOUSE)) {
-      continue;
-    }
-
-    tud_hid_n_mouse_report(ITF_MOUSE, /*report_id=*/0, mouse_buttons, x, y,
-                           vertical, horizontal);
   }
 }
+
+void JoystickInputDeivce::OnUpdateConfig() {
+  profile_x_.clear();
+  profile_y_.clear();
+  profile_x_.push_back(std::make_pair(0, 0));
+  profile_y_.push_back(std::make_pair(0, 0));
+  profile_x_.insert(profile_x_.end(), config_->GetJoystickXProfile()->begin(),
+                    config_->GetJoystickXProfile()->end());
+  profile_y_.insert(profile_y_.end(), config_->GetJoystickYProfile()->begin(),
+                    config_->GetJoystickYProfile()->end());
+  divider_ = config_->GetJoystickScanDivider();
+  x_.SetCalibrationSamples(config_->GetJoystickCalibrationSamples());
+  x_.SetCalibrationThreshold(config_->GetJoystickCalibrationThreshold());
+  y_.SetCalibrationSamples(config_->GetJoystickCalibrationSamples());
+  y_.SetCalibrationThreshold(config_->GetJoystickCalibrationThreshold());
+}
+
+void JoystickInputDeivce::SetConfigMode(bool is_config_mode) {
+  LockSemaphore lock(semaphore_);
+  is_config_mode_ = is_config_mode;
+}
+
+int8_t JoystickInputDeivce::TranslateReading(
+    const std::vector<std::pair<uint16_t, uint8_t>>& profile, int16_t reading) {
+  const uint16_t abs = reading < 0 ? -reading : reading;
+  const int8_t sign = reading < 0 ? -1 : 1;
+
+  // Use dumb for loop instead of std::lower_bound to save binary size. Assuming
+  // profile is already sorted.
+  for (size_t i = 1; i < profile.size(); ++i) {
+    if (abs < profile[i].first && abs >= profile[i - 1].first) {
+      return profile[i - 1].second * sign;
+    }
+  }
+  return profile.back().second * sign;
+}
+
+#if CONFIG_ENABLE_JOYSTICK
+
+static Status registered = DeviceRegistry::RegisterInputDevice(
+    2, true, [](const Configuration* config) {
+      return std::make_shared<JoystickInputDeivce>(
+          config, CONFIG_JOYSTICK_GPIO_X, CONFIG_JOYSTICK_GPIO_Y,
+          CONFIG_JOYSTICK_SMOOTH_BUFFER_LEN, CONFIG_JOYSTICK_FLIP_X_DIR,
+          CONFIG_JOYSTICK_FLIP_Y_DIR);
+    });
+
+#endif /* CONFIG_ENABLE_JOYSTICK */

@@ -7,6 +7,11 @@ Configuration* Configuration::singleton_ = NULL;
 Configuration* Configuration::GetConfig() {
   if (singleton_ == NULL) {
     singleton_ = new Configuration();
+    singleton_->SetJoystickXProfile({{20, 1},{700, 2}, {1000, 3}, {2000, 7}});
+    singleton_->SetJoystickYProfile({{20, 1},{700, 2}, {1000, 3}, {2000, 7}});
+    singleton_->SetJoystickScanDivider(5);
+    singleton_->SetJoystickCalibrationSamples(1000);
+    singleton_->SetJoystickCalibrationThreshold(500);
   }
   return singleton_;
 }
