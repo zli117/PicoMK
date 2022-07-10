@@ -123,7 +123,6 @@ void JoystickInputDeivce::Tick() {
       }
     }
   } else {
-    LOG_DEBUG("Mouse movement: %d, %d", x_val, y_val);
     for (auto* mouse_output : mouse_output_) {
       mouse_output->MouseMovement(x_val, y_val);
     }

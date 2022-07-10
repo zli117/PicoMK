@@ -4,6 +4,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <string>
 #include <utility>
 #include <vector>
 
@@ -40,13 +41,29 @@ class MouseOutputDevice : virtual public GenericOutputDevice {
 
 class ScreenOutputDevice : public GenericOutputDevice {
  public:
-  enum Alignment { LEFT, CENTER, RIGHT };
+  enum Mode { ADD = 0, SUBTRACT, INVERT };
+  enum Font { F5X8, F8X8, F12X16, F16X32 };
 
-  virtual void SelectRow(uint8_t row) = 0;
-  virtual void DrawText(const std::string& string, Alignment align) = 0;
-  virtual void Draw8Bits(uint8_t bits) = 0;
-  virtual void Draw16Bits(uint8_t bits) = 0;
-  virtual void SetRowHighlight(bool highlight) = 0;
+  class CustomFont {
+   public:
+    // Follows the format that the first two bytes are per character size
+    // (width x height)
+    virtual const uint8_t* GetFont() const = 0;
+  };
+
+  virtual size_t GetNumRows() const = 0;
+  virtual size_t GetNumCols() const = 0;
+  virtual void SetPixel(size_t row, size_t col, Mode mode) = 0;
+  virtual void DrawLine(size_t start_row, size_t start_col, size_t end_row,
+                        size_t end_col, Mode mode) = 0;
+  virtual void DrawRect(size_t start_row, size_t start_col, size_t end_row,
+                        size_t end_col, bool fill, Mode mode) = 0;
+  virtual void DrawText(size_t row, size_t col, const std::string& text,
+                        Font font, Mode mode) = 0;
+  virtual void DrawText(size_t row, size_t col, const std::string& text,
+                        const CustomFont& font, Mode mode) = 0;
+  virtual void DrawBuffer(const std::vector<uint8_t>& buffer, size_t start_row,
+                          size_t start_col, size_t end_row, size_t end_col) = 0;
 };
 
 class LEDOutputDevice : public GenericOutputDevice {
@@ -115,11 +132,6 @@ class DeviceRegistry {
       Configuration* config,
       std::vector<std::shared_ptr<GenericInputDevice>>* input_devices,
       std::vector<std::shared_ptr<GenericOutputDevice>>* output_devices);
-
-//   static std::vector<std::shared_ptr<GenericInputDevice>> GetAllInputDevices(
-//       Configuration* config);
-//   static std::vector<std::shared_ptr<GenericOutputDevice>> GetAllOutputDevices(
-//       Configuration* config);
 
  private:
   static DeviceRegistry* GetRegistry();

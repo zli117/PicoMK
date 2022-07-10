@@ -376,7 +376,7 @@ void USBKeyboardOutput::SetConfigMode(bool is_config_mode) {
 }
 
 void USBKeyboardOutput::StartOfInputTick() {
-  // No need to lock as Tick() only reads active_buffer_.
+  // No need to lock as Tick() does not modify reads active_buffer_.
   const uint8_t buf_idx = (active_buffer_ + 1) % 2;
   std::fill(double_buffer_[buf_idx].begin(), double_buffer_[buf_idx].end(), 0);
 }

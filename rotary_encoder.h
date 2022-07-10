@@ -5,7 +5,7 @@
 #include "base.h"
 #include "semphr.h"
 
-class RotaryEncoder : public GenericInputDevice, public KeyboardOutputDevice {
+class RotaryEncoder : public GenericInputDevice {
  public:
   RotaryEncoder();
   RotaryEncoder(uint8_t pin_a, uint8_t pin_b, uint8_t resolution);
@@ -13,13 +13,6 @@ class RotaryEncoder : public GenericInputDevice, public KeyboardOutputDevice {
   void Tick() override;
   void OnUpdateConfig() override {}
   void SetConfigMode(bool is_config_mode) override;
-
-  void StartOfInputTick() override {}
-  void FinalizeInputTickOutput() override {}
-
-  void SendKeycode(uint8_t keycode) override {}
-  void SendKeycode(const std::vector<uint8_t>& keycode) override {}
-  void ActiveLayers(const std::vector<bool>& layers) override {}
 
  protected:
   virtual void HandleMovement(bool dir);

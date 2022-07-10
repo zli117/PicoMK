@@ -127,36 +127,3 @@ Status DeviceRegistry::GetAllDevices(
   }
   return OK;
 }
-
-// std::vector<std::shared_ptr<GenericInputDevice>>
-// DeviceRegistry::GetAllInputDevices(Configuration* config) {
-//   std::vector<std::shared_ptr<GenericInputDevice>> output;
-//   for (const auto [key, value] : GetRegistry()->input_creators_) {
-//     output.push_back(value.second(config));
-//   }
-//   for (const auto [key, value] : GetRegistry()->config_modifier_creators_) {
-//     output.push_back(value.second(config));
-//   }
-//   return output;
-// }
-
-// std::vector<std::shared_ptr<GenericOutputDevice>>
-// DeviceRegistry::GetAllOutputDevices(Configuration* config) {
-//   std::vector<std::shared_ptr<GenericOutputDevice>> output;
-//   for (const auto [key, value] : GetRegistry()->keyboard_creators_) {
-//     output.push_back(value.second(config));
-//   }
-//   for (const auto [key, value] : GetRegistry()->mouse_creators_) {
-//     output.push_back(value.second(config));
-//   }
-//   for (const auto [key, value] : GetRegistry()->screen_output_creators_) {
-//     output.push_back(value.second(config));
-//   }
-//   for (const auto [key, value] : GetRegistry()->led_output_creators_) {
-//     output.push_back(value.second(config));
-//   }
-//   for (const auto [key, value] : GetRegistry()->config_modifier_creators_) {
-//     output.push_back(value.second(config));
-//   }
-//   return output;
-// }

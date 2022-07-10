@@ -6,6 +6,7 @@
 #include "FreeRTOS.h"
 #include "base.h"
 #include "configuration.h"
+#include "hardware/timer.h"
 #include "semphr.h"
 #include "task.h"
 #include "timers.h"
@@ -96,6 +97,7 @@ extern "C" void InputDeviceTask(void* parameter) {
     xTaskNotifyWait(/*do not clear notification on enter*/ 0,
                     /*clear notification on exit*/ 0xffffffff,
                     /*pulNotificationValue=*/NULL, portMAX_DELAY);
+    const uint64_t start_time = time_us_64();
     for (auto output_device : output_devices) {
       output_device->StartOfInputTick();
     }
@@ -107,6 +109,8 @@ extern "C" void InputDeviceTask(void* parameter) {
     for (auto output_device : output_devices) {
       output_device->FinalizeInputTickOutput();
     }
+    const uint64_t end_time = time_us_64();
+    LOG_DEBUG("Input task per iteration takes %d us", end_time - start_time);
   }
 }
 
@@ -123,9 +127,12 @@ extern "C" void OutputDeviceTask(void* parameter) {
     xTaskNotifyWait(/*do not clear notification on enter*/ 0,
                     /*clear notification on exit*/ 0xffffffff,
                     /*pulNotificationValue=*/NULL, portMAX_DELAY);
+    const uint64_t start_time = time_us_64();
     for (auto output_device : output_devices) {
       output_device->Tick();
     }
+    const uint64_t end_time = time_us_64();
+    LOG_DEBUG("Output task per iteration takes %d us", end_time - start_time);
   }
 }
 
