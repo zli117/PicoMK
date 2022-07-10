@@ -11,13 +11,9 @@
 #include "config.h"
 #include "hardware/gpio.h"
 #include "layout.h"
-#include "peripheral.h"
 #include "pico/stdlib.h"
 #include "semphr.h"
-#include "task.h"
-#include "timers.h"
 #include "tusb.h"
-#include "usb.h"
 #include "utils.h"
 
 class MouseButtonHandler : public CustomKeycodeHandler {

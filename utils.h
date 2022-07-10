@@ -6,6 +6,7 @@
 #include <string>
 
 #include "FreeRTOS.h"
+#include "config.h"
 #include "semphr.h"
 
 // TODO: rename this

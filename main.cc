@@ -4,13 +4,8 @@
 // #include "hardware/clocks.h"
 // #include "hardware/i2c.h"
 // #include "hardware/watchdog.h"
-#include "keyscan.h"
 #include "runner.h"
-#include "layout.h"
-#include "peripheral.h"
 #include "pico/stdlib.h"
-#include "task.h"
-#include "usb.h"
 #include "utils.h"
 
 // I2C defines
