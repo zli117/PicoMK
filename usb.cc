@@ -441,21 +441,23 @@ void USBMouseOutput::MouseKeycode(uint8_t keycode) {
     return;
   }
 
-  double_buffer_[active_buffer_][0] |= (1 << keycode);
+  double_buffer_[(active_buffer_ + 1) % 2][0] |= (1 << keycode);
 }
 
 void USBMouseOutput::MouseMovement(int8_t x, int8_t y) {
-  double_buffer_[active_buffer_][1] = x;
-  double_buffer_[active_buffer_][2] = y;
+  double_buffer_[(active_buffer_ + 1) % 2][1] = x;
+  double_buffer_[(active_buffer_ + 1) % 2][2] = y;
 }
 
 void USBMouseOutput::Pan(int8_t x, int8_t y) {
-  double_buffer_[active_buffer_][3] = x;
-  double_buffer_[active_buffer_][4] = y;
+  double_buffer_[(active_buffer_ + 1) % 2][3] = x;
+  double_buffer_[(active_buffer_ + 1) % 2][4] = y;
 }
 
 USBMouseOutput::USBMouseOutput()
     : USBOutputAddIn(), active_buffer_(0), is_config_mode_(false) {}
+
+// Registration
 
 static Status usb_keyboard_out = DeviceRegistry::RegisterKeyboardOutputDevice(
     2, true, [](const Configuration *) -> std::shared_ptr<USBKeyboardOutput> {
