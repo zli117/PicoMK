@@ -209,10 +209,6 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
 }
 }
 
-// Semaphore for data accessed between USB task and other tasks. Should not be
-// used between callbacks.
-static SemaphoreHandle_t semaphore = NULL;
-
 // Request callbacks
 
 extern "C" uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
@@ -226,12 +222,7 @@ extern "C" void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
                                       uint8_t const *buffer, uint16_t bufsize) {
 }
 
-static bool is_boot_protocol[ITF_TOTAL] = {0};
-
 extern "C" void tud_hid_set_protocol_cb(uint8_t instance, uint8_t protocol) {
-  xSemaphoreTake(semaphore, /*xBlockTime=*/1);
-  is_boot_protocol[instance] = protocol == HID_PROTOCOL_BOOT;
-  xSemaphoreGive(semaphore);
 }
 
 extern "C" bool tud_hid_set_idle_cb(uint8_t instance, uint8_t idle_rate) {
@@ -252,13 +243,9 @@ extern "C" void tud_resume_cb(void) {}
 
 extern "C" void USBTask(void *parameter);
 
-bool IsBootProtocol(uint8_t interface) {
-  // Get semaphore and wait for at most 1 tick. This is for other tasks to call.
-  xSemaphoreTake(semaphore, /*xBlockTime=*/1);
-  const bool is_boot = interface < ITF_TOTAL && is_boot_protocol[interface];
-  xSemaphoreGive(semaphore);
-  return is_boot;
-}
+// Semaphore for data accessed between USB task and other tasks. Should not be
+// used between callbacks.
+static SemaphoreHandle_t semaphore = NULL;
 
 #if CONFIG_DEBUG_ENABLE_USB_SERIAL
 
@@ -266,7 +253,7 @@ extern "C" {
 static void stdio_usb_out_chars(const char *buf, int length) {
   static uint64_t last_avail_time;
 
-  xSemaphoreTake(semaphore, portMAX_DELAY);
+  LockSemaphore lock(semaphore);
 
   if (tud_cdc_connected()) {
     for (int i = 0; i < length;) {
@@ -291,7 +278,6 @@ static void stdio_usb_out_chars(const char *buf, int length) {
     // reset our timeout
     last_avail_time = 0;
   }
-  xSemaphoreGive(semaphore);
 }
 
 stdio_driver_t stdio_usb = {

@@ -75,9 +75,11 @@ void KeyScan::SetMouseButtonState(uint8_t mouse_key, bool is_pressed) {
 }
 
 void KeyScan::Tick() {
-  xSemaphoreTake(semaphore_, portMAX_DELAY);
-  bool is_config_mode = is_config_mode_;
-  xSemaphoreGive(semaphore_);
+  bool is_config_mode;
+  {
+    LockSemaphore lock(semaphore_);
+    is_config_mode = is_config_mode_;
+  }
   const std::vector<uint8_t> active_layers = GetActiveLayers();
 
   // Set all sink GPIOs to HIGH
@@ -137,9 +139,8 @@ void KeyScan::Tick() {
 }
 
 void KeyScan::SetConfigMode(bool is_config_mode) {
-  xSemaphoreTake(semaphore_, portMAX_DELAY);
+  LockSemaphore lock(semaphore_);
   is_config_mode_ = is_config_mode;
-  xSemaphoreGive(semaphore_);
 }
 
 status KeyScan::RegisterCustomKeycodeHandler(
@@ -172,7 +173,7 @@ KeyScan::KeyScan() : is_config_mode_(false) {
 }
 
 Status KeyScan::SetLayerStatus(uint8_t layer, bool active) {
-  xSemaphoreTake(semaphore_, portMAX_DELAY);
+  LockSemaphore lock(semaphore_);
   if (layer > active_layers_.size()) {
     return ERROR;
   }
@@ -180,12 +181,11 @@ Status KeyScan::SetLayerStatus(uint8_t layer, bool active) {
     return OK;
   }
   active_layers_[layer] = active;
-  xSemaphoreGive(semaphore_);
   return OK;
 }
 
 Status KeyScan::ToggleLayerStatus(uint8_t layer) {
-  xSemaphoreTake(semaphore_, portMAX_DELAY);
+  LockSemaphore lock(semaphore_);
   if (layer > active_layers_.size()) {
     return ERROR;
   }
@@ -193,19 +193,17 @@ Status KeyScan::ToggleLayerStatus(uint8_t layer) {
     return OK;
   }
   active_layers_[layer] = !active_layers_[layer];
-  xSemaphoreGive(semaphore_);
   return OK;
 }
 
 std::vector<uint8_t> KeyScan::GetActiveLayers() {
+  LockSemaphore lock(semaphore_);
   std::vector<uint8_t> output;
-  xSemaphoreTake(semaphore_, portMAX_DELAY);
   for (int16_t i = active_layers_.size() - 1; i >= 0; --i) {
     if (active_layers_[i]) {
       output.push_back(i);
     }
   }
-  xSemaphoreGive(semaphore_);
   return output;
 }
 
