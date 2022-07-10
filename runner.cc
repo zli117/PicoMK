@@ -1,12 +1,12 @@
 #include "runner.h"
 
+#include <memory>
 #include <vector>
 
 #include "FreeRTOS.h"
 #include "base.h"
 #include "configuration.h"
 #include "semphr.h"
-#include <memory>
 #include "task.h"
 #include "timers.h"
 #include "usb.h"
@@ -23,8 +23,10 @@ static TimerHandle_t output_timer_handle = NULL;
 
 Status RunnerInit() {
   config = Configuration::GetConfig();
-  input_devices = DeviceRegistry::GetAllInputDevices(config);
-  output_devices = DeviceRegistry::GetAllOutputDevices(config);
+  if (DeviceRegistry::GetAllDevices(config, &input_devices, &output_devices) !=
+      OK) {
+    return ERROR;
+  }
   if (USBInit() != OK) {
     return ERROR;
   }

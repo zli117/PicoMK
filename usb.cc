@@ -2,6 +2,8 @@
 
 #include <stdint.h>
 
+#include <algorithm>
+
 #include "FreeRTOS.h"
 #include "config.h"
 #include "pico/stdio.h"
@@ -258,23 +260,6 @@ bool IsBootProtocol(uint8_t interface) {
   return is_boot;
 }
 
-status USBInit() {
-  semaphore = xSemaphoreCreateBinary();
-  xSemaphoreGive(semaphore);
-  return OK;
-}
-
-static TaskHandle_t usb_task_handle = NULL;
-
-status StartUSBTask() {
-  BaseType_t status = xTaskCreate(&USBTask, "usb_task", CONFIG_TASK_STACK_SIZE,
-                                  NULL, CONFIG_TASK_PRIORITY, &usb_task_handle);
-  if (status != pdPASS || usb_task_handle == NULL) {
-    return ERROR;
-  }
-  return OK;
-}
-
 #if CONFIG_DEBUG_ENABLE_USB_SERIAL
 
 extern "C" {
@@ -320,6 +305,23 @@ stdio_driver_t stdio_usb = {
 
 #endif /* CONFIG_DEBUG_ENABLE_USB_SERIAL */
 
+status USBInit() {
+  semaphore = xSemaphoreCreateBinary();
+  xSemaphoreGive(semaphore);
+  return OK;
+}
+
+static TaskHandle_t usb_task_handle = NULL;
+
+status StartUSBTask() {
+  BaseType_t status = xTaskCreate(&USBTask, "usb_task", CONFIG_TASK_STACK_SIZE,
+                                  NULL, CONFIG_TASK_PRIORITY, &usb_task_handle);
+  if (status != pdPASS || usb_task_handle == NULL) {
+    return ERROR;
+  }
+  return OK;
+}
+
 extern "C" void USBTask(void *parameter) {
   (void)parameter;
 
@@ -333,3 +335,147 @@ extern "C" void USBTask(void *parameter) {
     tud_task();
   }
 }
+
+USBOutputAddIn::USBOutputAddIn() {
+  semaphore_ = xSemaphoreCreateBinary();
+  xSemaphoreGive(semaphore_);
+}
+
+void USBOutputAddIn::SetIdle(uint8_t idle_rate) {
+  LockSemaphore lock(semaphore_);
+  idle_rate_ = idle_rate;
+}
+
+void USBOutputAddIn::SetBoot(bool is_boot_protocol) {
+  LockSemaphore lock(semaphore_);
+  is_boot_protocol_ = is_boot_protocol;
+}
+
+std::shared_ptr<USBKeyboardOutput> USBKeyboardOutput::GetUSBKeyboardOutput() {
+  static std::shared_ptr<USBKeyboardOutput> singleton = NULL;
+  if (singleton == NULL) {
+    singleton = std::shared_ptr<USBKeyboardOutput>(new USBKeyboardOutput());
+  }
+  return singleton;
+}
+
+void USBKeyboardOutput::Tick() {
+  LockSemaphore lock(semaphore_);
+  if (is_config_mode_) {
+    // Don't report key strokes to host if in config mode
+    return;
+  }
+  if (!tud_hid_n_ready(ITF_KEYBOARD)) {
+    return;
+  }
+  auto &buffer = double_buffer_[active_buffer_];
+  tud_hid_n_report(ITF_KEYBOARD, /*report_id=*/0, buffer.data(), buffer.size());
+}
+
+void USBKeyboardOutput::SetConfigMode(bool is_config_mode) {
+  LockSemaphore lock(semaphore_);
+  is_config_mode_ = is_config_mode;
+}
+
+void USBKeyboardOutput::StartOfInputTick() {
+  // No need to lock as Tick() only reads active_buffer_.
+  const uint8_t buf_idx = (active_buffer_ + 1) % 2;
+  std::fill(double_buffer_[buf_idx].begin(), double_buffer_[buf_idx].end(), 0);
+}
+
+void USBKeyboardOutput::FinalizeInputTickOutput() {
+  LockSemaphore lock(semaphore_);
+  active_buffer_ = (active_buffer_ + 1) % 2;
+  boot_protocol_kc_count_ = 0;
+}
+
+void USBKeyboardOutput::SendKeycode(uint8_t keycode) {
+  auto &buffer = double_buffer_[(active_buffer_ + 1) % 2];
+  buffer[keycode / 8 + 8] |= (1 << (keycode % 8));
+  if (boot_protocol_kc_count_ < 6) {
+    buffer[2 + (boot_protocol_kc_count_)++] = keycode;
+  } else if (buffer[2] != 0x01) {
+    for (size_t i = 2; i < 8; ++i) {
+      buffer[i] = 0x01;  // ErrorRollOver
+    }
+  }
+}
+
+void USBKeyboardOutput::SendKeycode(const std::vector<uint8_t> &keycode) {
+  for (auto code : keycode) {
+    SendKeycode(code);
+  }
+}
+
+std::shared_ptr<USBMouseOutput> USBMouseOutput::GetUSBMouseOutput() {
+  static std::shared_ptr<USBMouseOutput> singleton = NULL;
+  if (singleton == NULL) {
+    singleton = std::shared_ptr<USBMouseOutput>(new USBMouseOutput());
+  }
+  return singleton;
+}
+
+USBKeyboardOutput::USBKeyboardOutput()
+    : USBOutputAddIn(),
+      active_buffer_(0),
+      boot_protocol_kc_count_(0),
+      is_config_mode_(false) {}
+
+void USBMouseOutput::Tick() {
+  LockSemaphore lock(semaphore_);
+  if (is_config_mode_) {
+    // Don't report key strokes to host if in config mode
+    return;
+  }
+  if (!tud_hid_n_ready(ITF_MOUSE)) {
+    return;
+  }
+  auto &buffer = double_buffer_[active_buffer_];
+  tud_hid_n_mouse_report(ITF_MOUSE, /*report_id=*/0, buffer[0], buffer[1],
+                         buffer[2], buffer[3], buffer[4]);
+}
+
+void USBMouseOutput::SetConfigMode(bool is_config_mode) {
+  LockSemaphore lock(semaphore_);
+  is_config_mode_ = is_config_mode;
+}
+
+void USBMouseOutput::StartOfInputTick() {
+  const uint8_t buf_idx = (active_buffer_ + 1) % 2;
+  std::fill(double_buffer_[buf_idx].begin(), double_buffer_[buf_idx].end(), 0);
+}
+
+void USBMouseOutput::FinalizeInputTickOutput() {
+  LockSemaphore lock(semaphore_);
+  active_buffer_ = (active_buffer_ + 1) % 2;
+}
+
+void USBMouseOutput::MouseKeycode(uint8_t keycode) {
+  if (keycode > MSE_FORWARD) {
+    return;
+  }
+
+  double_buffer_[active_buffer_][0] |= (1 << keycode);
+}
+
+void USBMouseOutput::MouseMovement(int8_t x, int8_t y) {
+  double_buffer_[active_buffer_][1] = x;
+  double_buffer_[active_buffer_][2] = y;
+}
+
+void USBMouseOutput::Pan(int8_t x, int8_t y) {
+  double_buffer_[active_buffer_][3] = x;
+  double_buffer_[active_buffer_][4] = y;
+}
+
+USBMouseOutput::USBMouseOutput()
+    : USBOutputAddIn(), active_buffer_(0), is_config_mode_(false) {}
+
+static Status usb_keyboard_out = DeviceRegistry::RegisterKeyboardOutputDevice(
+    2, true, [](const Configuration *) -> std::shared_ptr<USBKeyboardOutput> {
+      return USBKeyboardOutput::GetUSBKeyboardOutput();
+    });
+static Status usb_mouse_out = DeviceRegistry::RegisterMouseOutputDevice(
+    2, true, [](const Configuration *) -> std::shared_ptr<USBMouseOutput> {
+      return USBMouseOutput::GetUSBMouseOutput();
+    });

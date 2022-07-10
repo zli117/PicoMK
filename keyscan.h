@@ -84,8 +84,6 @@ class KeyScan : public GenericInputDevice {
   std::vector<bool> active_layers_;
   SemaphoreHandle_t semaphore_;
   bool is_config_mode_;
-
-  static std::shared_ptr<KeyScan> singleton_;
 };
 
 #endif /* KEYSCAN_H_ */

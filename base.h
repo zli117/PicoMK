@@ -110,20 +110,23 @@ class DeviceRegistry {
   static Status RegisterConfigModifier(uint8_t key, bool weak,
                                        ConfigModifierCreator func);
 
-  static std::vector<std::shared_ptr<GenericInputDevice>> GetAllInputDevices(
-      Configuration* config);
-  static std::vector<std::shared_ptr<GenericOutputDevice>> GetAllOutputDevices(
-      Configuration* config);
+  static Status GetAllDevices(
+      Configuration* config,
+      std::vector<std::shared_ptr<GenericInputDevice>>* input_devices,
+      std::vector<std::shared_ptr<GenericOutputDevice>>* output_devices);
+
+//   static std::vector<std::shared_ptr<GenericInputDevice>> GetAllInputDevices(
+//       Configuration* config);
+//   static std::vector<std::shared_ptr<GenericOutputDevice>> GetAllOutputDevices(
+//       Configuration* config);
 
  private:
   static DeviceRegistry* GetRegistry();
 
-  std::map<uint8_t, std::pair<bool, GenericInputDeviceCreator>>
-      input_creators_;
+  std::map<uint8_t, std::pair<bool, GenericInputDeviceCreator>> input_creators_;
   std::map<uint8_t, std::pair<bool, KeyboardOutputDeviceCreator>>
       keyboard_creators_;
-  std::map<uint8_t, std::pair<bool, MouseOutputDeviceCreator>>
-      mouse_creators_;
+  std::map<uint8_t, std::pair<bool, MouseOutputDeviceCreator>> mouse_creators_;
   std::map<uint8_t, std::pair<bool, ScreenOutputDeviceCreator>>
       screen_output_creators_;
   std::map<uint8_t, std::pair<bool, LEDOutputDeviceCreator>>

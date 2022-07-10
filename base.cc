@@ -49,71 +49,114 @@ Status DeviceRegistry::RegisterInputDevice(uint8_t key, bool weak,
 
 Status DeviceRegistry::RegisterKeyboardOutputDevice(
     uint8_t key, bool weak, KeyboardOutputDeviceCreator func) {
-  return RegisterCreatorFunction(key, weak, func, &GetRegistry()->keyboard_creators_);
+  return RegisterCreatorFunction(key, weak, func,
+                                 &GetRegistry()->keyboard_creators_);
 }
 
 Status DeviceRegistry::RegisterMouseOutputDevice(
     uint8_t key, bool weak, MouseOutputDeviceCreator func) {
-  return RegisterCreatorFunction(key, weak, func, &GetRegistry()->mouse_creators_);
+  return RegisterCreatorFunction(key, weak, func,
+                                 &GetRegistry()->mouse_creators_);
 }
 
 Status DeviceRegistry::RegisterScreenOutputDevice(
     uint8_t key, bool weak, ScreenOutputDeviceCreator func) {
-  return RegisterCreatorFunction(key, weak, func, &GetRegistry()->screen_output_creators_);
+  return RegisterCreatorFunction(key, weak, func,
+                                 &GetRegistry()->screen_output_creators_);
 }
 
 Status DeviceRegistry::RegisterLEDOutputDevice(uint8_t key, bool weak,
                                                LEDOutputDeviceCreator func) {
-  return RegisterCreatorFunction(key, weak, func, &GetRegistry()->led_output_creators_);
+  return RegisterCreatorFunction(key, weak, func,
+                                 &GetRegistry()->led_output_creators_);
 }
 
 Status DeviceRegistry::RegisterConfigModifier(uint8_t key, bool weak,
                                               ConfigModifierCreator func) {
-  return RegisterCreatorFunction(key, weak, func, &GetRegistry()->config_modifier_creators_);
+  return RegisterCreatorFunction(key, weak, func,
+                                 &GetRegistry()->config_modifier_creators_);
 }
 
-// std::map<uint8_t, std::pair<bool, GenericInputDeviceCreator>>
-//     DeviceRegistry::input_creators_;
-// std::map<uint8_t, std::pair<bool, KeyboardOutputDeviceCreator>>
-//     DeviceRegistry::keyboard_creators_;
-// std::map<uint8_t, std::pair<bool, MouseOutputDeviceCreator>>
-//     DeviceRegistry::mouse_creators_;
-// std::map<uint8_t, std::pair<bool, ScreenOutputDeviceCreator>>
-//     DeviceRegistry::screen_output_creators_;
-// std::map<uint8_t, std::pair<bool, LEDOutputDeviceCreator>>
-//     DeviceRegistry::led_output_creators_;
-// std::map<uint8_t, std::pair<bool, ConfigModifierCreator>>
-//     DeviceRegistry::config_modifier_creators_;
-
-std::vector<std::shared_ptr<GenericInputDevice>>
-DeviceRegistry::GetAllInputDevices(Configuration* config) {
-  std::vector<std::shared_ptr<GenericInputDevice>> output;
+Status DeviceRegistry::GetAllDevices(
+    Configuration* config,
+    std::vector<std::shared_ptr<GenericInputDevice>>* input_devices,
+    std::vector<std::shared_ptr<GenericOutputDevice>>* output_devices) {
+  input_devices->clear();
+  output_devices->clear();
   for (const auto [key, value] : GetRegistry()->input_creators_) {
-    output.push_back(value.second(config));
+    input_devices->push_back(value.second(config));
   }
   for (const auto [key, value] : GetRegistry()->config_modifier_creators_) {
-    output.push_back(value.second(config));
+    input_devices->push_back(value.second(config));
   }
-  return output;
-}
 
-std::vector<std::shared_ptr<GenericOutputDevice>>
-DeviceRegistry::GetAllOutputDevices(Configuration* config) {
-  std::vector<std::shared_ptr<GenericOutputDevice>> output;
   for (const auto [key, value] : GetRegistry()->keyboard_creators_) {
-    output.push_back(value.second(config));
+    auto output_device = value.second(config);
+    output_devices->push_back(output_device);
+    for (auto input_device : *input_devices) {
+      input_device->AddKeyboardOutput(output_device.get());
+    }
   }
   for (const auto [key, value] : GetRegistry()->mouse_creators_) {
-    output.push_back(value.second(config));
+    auto output_device = value.second(config);
+    output_devices->push_back(output_device);
+    for (auto input_device : *input_devices) {
+      input_device->AddMouseOutput(output_device.get());
+    }
   }
   for (const auto [key, value] : GetRegistry()->screen_output_creators_) {
-    output.push_back(value.second(config));
+    auto output_device = value.second(config);
+    output_devices->push_back(output_device);
+    for (auto input_device : *input_devices) {
+      input_device->AddScreenOutput(output_device.get());
+    }
   }
   for (const auto [key, value] : GetRegistry()->led_output_creators_) {
-    output.push_back(value.second(config));
+    auto output_device = value.second(config);
+    output_devices->push_back(output_device);
+    for (auto input_device : *input_devices) {
+      input_device->AddLEDOutput(output_device.get());
+    }
   }
   for (const auto [key, value] : GetRegistry()->config_modifier_creators_) {
-    output.push_back(value.second(config));
+    auto output_device = value.second(config);
+    output_devices->push_back(output_device);
+    for (auto input_device : *input_devices) {
+      input_device->AddConfigModifier(output_device.get());
+    }
   }
-  return output;
+  return OK;
 }
+
+// std::vector<std::shared_ptr<GenericInputDevice>>
+// DeviceRegistry::GetAllInputDevices(Configuration* config) {
+//   std::vector<std::shared_ptr<GenericInputDevice>> output;
+//   for (const auto [key, value] : GetRegistry()->input_creators_) {
+//     output.push_back(value.second(config));
+//   }
+//   for (const auto [key, value] : GetRegistry()->config_modifier_creators_) {
+//     output.push_back(value.second(config));
+//   }
+//   return output;
+// }
+
+// std::vector<std::shared_ptr<GenericOutputDevice>>
+// DeviceRegistry::GetAllOutputDevices(Configuration* config) {
+//   std::vector<std::shared_ptr<GenericOutputDevice>> output;
+//   for (const auto [key, value] : GetRegistry()->keyboard_creators_) {
+//     output.push_back(value.second(config));
+//   }
+//   for (const auto [key, value] : GetRegistry()->mouse_creators_) {
+//     output.push_back(value.second(config));
+//   }
+//   for (const auto [key, value] : GetRegistry()->screen_output_creators_) {
+//     output.push_back(value.second(config));
+//   }
+//   for (const auto [key, value] : GetRegistry()->led_output_creators_) {
+//     output.push_back(value.second(config));
+//   }
+//   for (const auto [key, value] : GetRegistry()->config_modifier_creators_) {
+//     output.push_back(value.second(config));
+//   }
+//   return output;
+// }

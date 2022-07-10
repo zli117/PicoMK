@@ -58,13 +58,12 @@ class LayerButtonHandler : public CustomKeycodeHandler {
 
 REGISTER_CUSTOM_KEYCODE_HANDLER(LAYER_SWITCH, true, LayerButtonHandler);
 
-std::shared_ptr<KeyScan> KeyScan::singleton_;
-
 std::shared_ptr<KeyScan> KeyScan::Create(const Configuration* config) {
-  if (singleton_ == NULL) {
-    singleton_ = std::shared_ptr<KeyScan>(new KeyScan());
+  static std::shared_ptr<KeyScan> singleton = NULL;
+  if (singleton == NULL) {
+    singleton = std::shared_ptr<KeyScan>(new KeyScan());
   }
-  return singleton_;
+  return singleton;
 }
 
 void KeyScan::SetMouseButtonState(uint8_t mouse_key, bool is_pressed) {
@@ -251,11 +250,6 @@ CustomKeycodeHandler* KeyScan::HandlerRegistry::RegisteredHandlerFactory(
 }
 
 void KeyScan::NotifyOutput(const std::vector<uint8_t>& pressed_keycode) {
-  printf("Key pressed: ");
-  for (uint8_t keycode : pressed_keycode) {
-    printf("%x ", keycode);
-  }
-  printf("\n");
   for (auto* output : keyboard_output_) {
     output->SendKeycode(pressed_keycode);
   }
