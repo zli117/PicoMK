@@ -28,6 +28,7 @@ class KeyboardOutputDevice : virtual public GenericOutputDevice {
  public:
   virtual void SendKeycode(uint8_t keycode) = 0;
   virtual void SendKeycode(const std::vector<uint8_t>& keycode) = 0;
+  virtual void ActiveLayers(const std::vector<bool>& layers) = 0;
 };
 
 class MouseOutputDevice : virtual public GenericOutputDevice {

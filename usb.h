@@ -12,18 +12,6 @@
 #include "semphr.h"
 #include "utils.h"
 
-enum InterfaceID {
-  ITF_KEYBOARD = 0,
-  ITF_MOUSE,
-
-#if CONFIG_DEBUG_ENABLE_USB_SERIAL
-  ITF_CDC_CTRL,
-  ITF_CDC_DATA,
-#endif /* CONFIG_DEBUG_ENABLE_USB_SERIAL */
-
-  ITF_TOTAL,
-};
-
 status USBInit();
 
 status StartUSBTask();
@@ -54,6 +42,7 @@ class USBKeyboardOutput : public KeyboardOutputDevice, public USBOutputAddIn {
 
   void SendKeycode(uint8_t keycode) override;
   void SendKeycode(const std::vector<uint8_t>& keycode) override;
+  void ActiveLayers(const std::vector<bool>&) override {}
 
  protected:
   USBKeyboardOutput();
