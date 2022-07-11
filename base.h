@@ -39,7 +39,7 @@ class MouseOutputDevice : virtual public GenericOutputDevice {
   virtual void Pan(int8_t x, int8_t y) = 0;
 };
 
-class ScreenOutputDevice : public GenericOutputDevice {
+class ScreenOutputDevice : virtual public GenericOutputDevice {
  public:
   enum Mode { ADD = 0, SUBTRACT, INVERT };
   enum Font { F5X8, F8X8, F12X16, F16X32 };
@@ -66,7 +66,7 @@ class ScreenOutputDevice : public GenericOutputDevice {
                           size_t start_col, size_t end_row, size_t end_col) = 0;
 };
 
-class LEDOutputDevice : public GenericOutputDevice {
+class LEDOutputDevice : virtual public GenericOutputDevice {
  public:
   virtual void NextAnimation() = 0;
   virtual void PreviousAnimation() = 0;
@@ -115,23 +115,24 @@ using ConfigModifierCreator =
 
 class DeviceRegistry {
  public:
-  static Status RegisterInputDevice(uint8_t key, bool weak,
+  static Status RegisterInputDevice(uint8_t key,
                                     GenericInputDeviceCreator func);
-  static Status RegisterKeyboardOutputDevice(uint8_t key, bool weak,
+  static Status RegisterKeyboardOutputDevice(uint8_t key, bool slow,
                                              KeyboardOutputDeviceCreator func);
-  static Status RegisterMouseOutputDevice(uint8_t key, bool weak,
+  static Status RegisterMouseOutputDevice(uint8_t key, bool slow,
                                           MouseOutputDeviceCreator func);
-  static Status RegisterScreenOutputDevice(uint8_t key, bool weak,
+  static Status RegisterScreenOutputDevice(uint8_t key, bool slow,
                                            ScreenOutputDeviceCreator func);
-  static Status RegisterLEDOutputDevice(uint8_t key, bool weak,
+  static Status RegisterLEDOutputDevice(uint8_t key, bool slow,
                                         LEDOutputDeviceCreator func);
-  static Status RegisterConfigModifier(uint8_t key, bool weak,
+  static Status RegisterConfigModifier(uint8_t key, bool slow,
                                        ConfigModifierCreator func);
 
   static Status GetAllDevices(
       Configuration* config,
       std::vector<std::shared_ptr<GenericInputDevice>>* input_devices,
-      std::vector<std::shared_ptr<GenericOutputDevice>>* output_devices);
+      std::vector<std::shared_ptr<GenericOutputDevice>>* output_devices,
+      std::vector<std::shared_ptr<GenericOutputDevice>>* slow_output_devices);
 
  private:
   static DeviceRegistry* GetRegistry();

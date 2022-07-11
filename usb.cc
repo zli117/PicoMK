@@ -234,8 +234,7 @@ extern "C" void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
                                       uint8_t const *buffer, uint16_t bufsize) {
 }
 
-extern "C" void tud_hid_set_protocol_cb(uint8_t instance, uint8_t protocol) {
-}
+extern "C" void tud_hid_set_protocol_cb(uint8_t instance, uint8_t protocol) {}
 
 extern "C" bool tud_hid_set_idle_cb(uint8_t instance, uint8_t idle_rate) {
   return false;
@@ -472,10 +471,10 @@ USBMouseOutput::USBMouseOutput()
 // Registration
 
 static Status usb_keyboard_out = DeviceRegistry::RegisterKeyboardOutputDevice(
-    2, true, [](const Configuration *) -> std::shared_ptr<USBKeyboardOutput> {
+    2, false, [](const Configuration *) -> std::shared_ptr<USBKeyboardOutput> {
       return USBKeyboardOutput::GetUSBKeyboardOutput();
     });
 static Status usb_mouse_out = DeviceRegistry::RegisterMouseOutputDevice(
-    2, true, [](const Configuration *) -> std::shared_ptr<USBMouseOutput> {
+    2, false, [](const Configuration *) -> std::shared_ptr<USBMouseOutput> {
       return USBMouseOutput::GetUSBMouseOutput();
     });

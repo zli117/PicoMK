@@ -168,7 +168,7 @@ int8_t JoystickInputDeivce::TranslateReading(
 #if CONFIG_ENABLE_JOYSTICK
 
 static Status registered = DeviceRegistry::RegisterInputDevice(
-    2, true, [](const Configuration* config) {
+    2, [](const Configuration* config) {
       return std::make_shared<JoystickInputDeivce>(
           config, CONFIG_JOYSTICK_GPIO_X, CONFIG_JOYSTICK_GPIO_Y,
           CONFIG_JOYSTICK_SMOOTH_BUFFER_LEN, CONFIG_JOYSTICK_FLIP_X_DIR,

@@ -65,6 +65,6 @@ void RotaryEncoder::HandleMovement(bool dir) {
 }
 
 static Status registered = DeviceRegistry::RegisterInputDevice(
-    3, true, [](const Configuration* config) {
+    3, [](const Configuration* config) {
       return std::make_shared<RotaryEncoder>(19, 22, 2);
     });

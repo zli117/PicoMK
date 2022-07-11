@@ -246,8 +246,9 @@ CustomKeycodeHandler* KeyScan::HandlerRegistry::RegisteredHandlerFactory(
 void KeyScan::NotifyOutput(const std::vector<uint8_t>& pressed_keycode) {
   for (auto* output : keyboard_output_) {
     output->SendKeycode(pressed_keycode);
+    output->ActiveLayers(active_layers_);
   }
 }
 
 static Status registered =
-    DeviceRegistry::RegisterInputDevice(1, true, KeyScan::Create);
+    DeviceRegistry::RegisterInputDevice(1, KeyScan::Create);

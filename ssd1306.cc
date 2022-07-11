@@ -2,6 +2,7 @@
 
 #include "hardware/gpio.h"
 #include "hardware/i2c.h"
+#include "hardware/timer.h"
 #include "pico-ssd1306/shapeRenderer/ShapeRenderer.h"
 #include "pico-ssd1306/textRenderer/12x16_font.h"
 #include "pico-ssd1306/textRenderer/16x32_font.h"
@@ -9,13 +10,16 @@
 #include "pico-ssd1306/textRenderer/8x8_font.h"
 #include "pico-ssd1306/textRenderer/TextRenderer.h"
 
+// Debug
+#include "hardware/timer.h"
+
 using pico_ssd1306::Size;
 using pico_ssd1306::SSD1306;
 using pico_ssd1306::WriteMode;
 
 SSD1306Display::SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin,
                                uint8_t scl_pin, uint8_t i2c_addr,
-                               NumRows num_rows)
+                               NumRows num_rows, bool flip)
     : i2c_(i2c),
       sda_pin_(sda_pin),
       scl_pin_(scl_pin),
@@ -24,35 +28,50 @@ SSD1306Display::SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin,
       num_cols_(128),
       buffer_idx_(0),
       is_config_mode_(false) {
-  i2c_init(i2c_, 1000000);
+  i2c_init(i2c_, 400 * 1000);
   gpio_set_function(sda_pin_, GPIO_FUNC_I2C);
   gpio_set_function(scl_pin_, GPIO_FUNC_I2C);
   gpio_pull_up(sda_pin_);
   gpio_pull_up(scl_pin_);
 
+  busy_wait_ms(250);
+
   display_ = std::make_unique<SSD1306>(
       i2c_, i2c_addr_, num_rows_ == 64 ? Size::W128xH64 : Size::W128xH32);
+  if (flip) {
+    display_->setOrientation(0);
+  }
 
   semaphore_ = xSemaphoreCreateBinary();
   xSemaphoreGive(semaphore_);
-  double_buffer_[0][0] = pico_ssd1306::SSD1306_STARTLINE;
-  double_buffer_[1][0] = pico_ssd1306::SSD1306_STARTLINE;
+
+  busy_wait_ms(250);
 }
 
 void SSD1306Display::Tick() {
-  LockSemaphore lock(semaphore_);
+  const uint64_t start_time = time_us_64();
 
-  // Manually send the buffer to avoid the extra copy
+  // Manually send the buffer to avoid blocking other tasks
 
-  CMD(pico_ssd1306::SSD1306_PAGEADDR);  // Set page address from min to max
+  CMD(pico_ssd1306::SSD1306_PAGEADDR);
   CMD(0x00);
   CMD(0x07);
-  CMD(pico_ssd1306::SSD1306_COLUMNADDR);  // Set column address from min to max
+  CMD(pico_ssd1306::SSD1306_COLUMNADDR);
   CMD(0x00);
   CMD(127);
 
-  i2c_write_blocking(i2c_, i2c_addr_, double_buffer_[buffer_idx_].data(),
-                     double_buffer_[buffer_idx_].size(), false);
+  std::array<uint8_t, FRAMEBUFFER_SIZE + 1> local_copy;
+  {
+    LockSemaphore lock(semaphore_);
+    std::copy(double_buffer_[buffer_idx_].begin(),
+              double_buffer_[buffer_idx_].end(), local_copy.begin() + 1);
+  }
+  local_copy[0] = pico_ssd1306::SSD1306_STARTLINE;
+
+  i2c_write_blocking(i2c_, i2c_addr_, local_copy.data(), local_copy.size(),
+                     false);
+
+  const uint64_t end_time = time_us_64();
 }
 
 void SSD1306Display::SetConfigMode(bool is_config_mode) {
@@ -63,9 +82,8 @@ void SSD1306Display::SetConfigMode(bool is_config_mode) {
 void SSD1306Display::StartOfInputTick() {
   // No need to lock as Tick() does not modify reads buffer_idx_.
   const uint8_t buf_idx = (buffer_idx_ + 1) % 2;
-  std::fill(double_buffer_[buf_idx].begin() + 1, double_buffer_[buf_idx].end(),
-            0);
-  display_->setBuffer(double_buffer_[buf_idx].data() + 1);
+  std::fill(double_buffer_[buf_idx].begin(), double_buffer_[buf_idx].end(), 0);
+  display_->setBuffer(double_buffer_[buf_idx].data());
 }
 
 void SSD1306Display::FinalizeInputTickOutput() {
@@ -84,8 +102,10 @@ void SSD1306Display::ActiveLayers(const std::vector<bool>& layers) {
     return;
   }
   for (size_t i = 0; i < layers.size(); ++i) {
-    DrawRect(/*start_row=*/1, 1 + i * 8, /*end_row=*/7, 7 + i * 8,
-             /*fill=*/true, ADD);
+    if (layers[i]) {
+      DrawRect(/*start_row=*/1, 1 + i * 8, /*end_row=*/7, 7 + i * 8,
+               /*fill=*/true, ADD);
+    }
   }
 }
 
@@ -161,11 +181,12 @@ void SSD1306Display::CMD(uint8_t cmd) {
   i2c_write_blocking(i2c_, i2c_addr_, data, 2, false);
 }
 
+static std::shared_ptr<SSD1306Display> singleton;
+
 static std::shared_ptr<SSD1306Display> GetSSD1306Display(const Configuration*) {
-  static std::shared_ptr<SSD1306Display> singleton;
   if (singleton == NULL) {
     singleton = std::make_shared<SSD1306Display>(i2c0, 20, 21, 0x3C,
-                                                 SSD1306Display::R_64);
+                                                 SSD1306Display::R_64, true);
   }
   return singleton;
 }
