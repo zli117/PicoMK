@@ -14,13 +14,15 @@
 
 class GenericDevice {
  public:
-  virtual void Tick() = 0;
   virtual void OnUpdateConfig() = 0;
   virtual void SetConfigMode(bool is_config_mode) = 0;
 };
 
 class GenericOutputDevice : virtual public GenericDevice {
  public:
+  // OutputTick is called from a different task than the rest methods.
+  virtual void OutputTick() = 0;
+
   virtual void StartOfInputTick() = 0;
   virtual void FinalizeInputTickOutput() = 0;
 };
@@ -29,7 +31,7 @@ class KeyboardOutputDevice : virtual public GenericOutputDevice {
  public:
   virtual void SendKeycode(uint8_t keycode) = 0;
   virtual void SendKeycode(const std::vector<uint8_t>& keycode) = 0;
-  virtual void ActiveLayers(const std::vector<bool>& layers) = 0;
+  virtual void ChangeActiveLayers(const std::vector<bool>& layers) = 0;
 };
 
 class MouseOutputDevice : virtual public GenericOutputDevice {
@@ -42,7 +44,7 @@ class MouseOutputDevice : virtual public GenericOutputDevice {
 class ScreenOutputDevice : virtual public GenericOutputDevice {
  public:
   enum Mode { ADD = 0, SUBTRACT, INVERT };
-  enum Font { F5X8, F8X8, F12X16, F16X32 };
+  enum Font { F5X8 = 0, F8X8, F12X16, F16X32 };
 
   class CustomFont {
    public:
@@ -79,6 +81,10 @@ class ConfigModifier;
 
 class GenericInputDevice : virtual public GenericDevice {
  public:
+  // Everything is called from the same task, including methods in base class.
+
+  virtual void InputLoopStart() = 0; 
+  virtual void InputTick() = 0;
   virtual void AddKeyboardOutput(KeyboardOutputDevice* device);
   virtual void AddMouseOutput(MouseOutputDevice* device);
   virtual void AddScreenOutput(ScreenOutputDevice* device);

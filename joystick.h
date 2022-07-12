@@ -47,7 +47,8 @@ class JoystickInputDeivce : public GenericInputDevice {
                       uint8_t y_adc_pin, size_t buffer_size, bool flip_x_dir,
                       bool flip_y_dir);
 
-  void Tick() override;
+  void InputLoopStart() override {}
+  void InputTick() override;
   void OnUpdateConfig() override;
   void SetConfigMode(bool is_config_mode) override;
 
@@ -65,7 +66,7 @@ class JoystickInputDeivce : public GenericInputDevice {
   uint8_t counter_;
   bool is_config_mode_;
 
-  SemaphoreHandle_t semaphore_;
+  // SemaphoreHandle_t semaphore_;
 };
 
 #endif /* JOYSTICK_H_ */

@@ -356,7 +356,7 @@ std::shared_ptr<USBKeyboardOutput> USBKeyboardOutput::GetUSBKeyboardOutput() {
   return singleton;
 }
 
-void USBKeyboardOutput::Tick() {
+void USBKeyboardOutput::OutputTick() {
   LockSemaphore lock(semaphore_);
   if (is_config_mode_) {
     // Don't report key strokes to host if in config mode
@@ -364,6 +364,9 @@ void USBKeyboardOutput::Tick() {
   }
   if (!tud_hid_n_ready(ITF_KEYBOARD)) {
     return;
+  }
+  if (tud_suspended() && has_key_output_) {
+    tud_remote_wakeup();
   }
   auto &buffer = double_buffer_[active_buffer_];
   tud_hid_n_report(ITF_KEYBOARD, /*report_id=*/0, buffer.data(), buffer.size());
@@ -383,6 +386,7 @@ void USBKeyboardOutput::StartOfInputTick() {
 void USBKeyboardOutput::FinalizeInputTickOutput() {
   LockSemaphore lock(semaphore_);
   active_buffer_ = (active_buffer_ + 1) % 2;
+  has_key_output_ = boot_protocol_kc_count_ > 0;
   boot_protocol_kc_count_ = 0;
 }
 
@@ -416,9 +420,10 @@ USBKeyboardOutput::USBKeyboardOutput()
     : USBOutputAddIn(),
       active_buffer_(0),
       boot_protocol_kc_count_(0),
-      is_config_mode_(false) {}
+      is_config_mode_(false),
+      has_key_output_(false) {}
 
-void USBMouseOutput::Tick() {
+void USBMouseOutput::OutputTick() {
   LockSemaphore lock(semaphore_);
   if (is_config_mode_) {
     // Don't report key strokes to host if in config mode

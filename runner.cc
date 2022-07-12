@@ -25,6 +25,10 @@ static TimerHandle_t output_timer_handle = NULL;
 static TaskHandle_t slow_output_task_handle = NULL;
 static TimerHandle_t slow_output_timer_handle = NULL;
 
+static SemaphoreHandle_t semaphore;
+static bool is_config_mode;
+static bool update_config_flag;
+
 Status RunnerInit() {
   config = Configuration::GetConfig();
   if (DeviceRegistry::GetAllDevices(config, &input_devices, &output_devices,
@@ -34,6 +38,12 @@ Status RunnerInit() {
   if (USBInit() != OK) {
     return ERROR;
   }
+
+  is_config_mode = false;
+  update_config_flag = false;
+
+  semaphore = xSemaphoreCreateBinary();
+  xSemaphoreGive(semaphore);
   return OK;
 }
 
@@ -72,9 +82,9 @@ Status RunnerStart() {
 
   // Start slow output device task
 
-  status = xTaskCreate(
-      &SlowOutputDeviceTask, "slow_output_device_task", CONFIG_TASK_STACK_SIZE,
-      NULL, CONFIG_TASK_PRIORITY - 1, &slow_output_task_handle);
+  status = xTaskCreate(&SlowOutputDeviceTask, "slow_output_device_task",
+                       CONFIG_TASK_STACK_SIZE, NULL, CONFIG_TASK_PRIORITY - 1,
+                       &slow_output_task_handle);
   if (status != pdPASS || slow_output_task_handle == NULL) {
     return ERROR;
   }
@@ -117,6 +127,27 @@ Status RunnerStart() {
 extern "C" void InputDeviceTask(void* parameter) {
   (void)parameter;
 
+  bool local_is_config_mode = false;
+
+  // Pre loop run
+  for (auto output_device : output_devices) {
+    output_device->StartOfInputTick();
+  }
+  for (auto output_device : slow_output_devices) {
+    output_device->StartOfInputTick();
+  }
+
+  for (auto input_device : input_devices) {
+    input_device->InputLoopStart();
+  }
+
+  for (auto output_device : output_devices) {
+    output_device->FinalizeInputTickOutput();
+  }
+  for (auto output_device : slow_output_devices) {
+    output_device->FinalizeInputTickOutput();
+  }
+
   while (true) {
     // Wait for the timer callback to wake it up. Running this outside the timer
     // context to avoid overflowing the timer task.
@@ -124,6 +155,38 @@ extern "C" void InputDeviceTask(void* parameter) {
                     /*clear notification on exit*/ 0xffffffff,
                     /*pulNotificationValue=*/NULL, portMAX_DELAY);
     const uint64_t start_time = time_us_64();
+    bool should_change_config_mode;
+    bool should_update_config;
+    {
+      LockSemaphore lock(semaphore);
+      should_change_config_mode = local_is_config_mode != is_config_mode;
+      should_update_config = update_config_flag;
+      update_config_flag = false;
+    }
+    if (should_change_config_mode) {
+      local_is_config_mode = !local_is_config_mode;
+      for (auto device : output_devices) {
+        device->SetConfigMode(local_is_config_mode);
+      }
+      for (auto device : input_devices) {
+        device->SetConfigMode(local_is_config_mode);
+      }
+      for (auto device : slow_output_devices) {
+        device->SetConfigMode(local_is_config_mode);
+      }
+    }
+    if (should_update_config) {
+      for (auto device : output_devices) {
+        device->OnUpdateConfig();
+      }
+      for (auto device : input_devices) {
+        device->OnUpdateConfig();
+      }
+      for (auto device : slow_output_devices) {
+        device->OnUpdateConfig();
+      }
+    }
+
     for (auto output_device : output_devices) {
       output_device->StartOfInputTick();
     }
@@ -132,7 +195,7 @@ extern "C" void InputDeviceTask(void* parameter) {
     }
 
     for (auto input_device : input_devices) {
-      input_device->Tick();
+      input_device->InputTick();
     }
 
     for (auto output_device : output_devices) {
@@ -161,7 +224,7 @@ extern "C" void OutputDeviceTask(void* parameter) {
                     /*pulNotificationValue=*/NULL, portMAX_DELAY);
     const uint64_t start_time = time_us_64();
     for (auto output_device : output_devices) {
-      output_device->Tick();
+      output_device->OutputTick();
     }
     const uint64_t end_time = time_us_64();
     LOG_DEBUG("Output task per iteration takes %d us", end_time - start_time);
@@ -183,7 +246,7 @@ extern "C" void SlowOutputDeviceTask(void* parameter) {
                     /*pulNotificationValue=*/NULL, portMAX_DELAY);
     const uint64_t start_time = time_us_64();
     for (auto output_device : slow_output_devices) {
-      output_device->Tick();
+      output_device->OutputTick();
     }
     const uint64_t end_time = time_us_64();
     LOG_DEBUG("Slow output task per iteration takes %d us",
@@ -195,20 +258,12 @@ extern "C" void SlowOutputDeviceTimerCallback(TimerHandle_t xTimer) {
   xTaskNotifyGive(slow_output_task_handle);
 }
 
-void SetConfigModeAllDevice(bool is_config_mode) {
-  for (auto device : input_devices) {
-    device->SetConfigMode(is_config_mode);
-  }
-  for (auto device : output_devices) {
-    device->SetConfigMode(is_config_mode);
-  }
+void SetConfigMode(bool is_config) {
+  LockSemaphore lock(semaphore);
+  is_config_mode = is_config;
 }
 
 void NotifyConfigChange() {
-  for (auto device : input_devices) {
-    device->OnUpdateConfig();
-  }
-  for (auto device : output_devices) {
-    device->OnUpdateConfig();
-  }
+  LockSemaphore lock(semaphore);
+  update_config_flag = true;
 }

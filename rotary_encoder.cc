@@ -20,12 +20,9 @@ RotaryEncoder::RotaryEncoder(uint8_t pin_a, uint8_t pin_b, uint8_t resolution)
   gpio_disable_pulls(pin_a_);
   gpio_disable_pulls(pin_b_);
   a_state_ = gpio_get(pin_a_);
-
-  semaphore_ = xSemaphoreCreateBinary();
-  xSemaphoreGive(semaphore_);
 }
 
-void RotaryEncoder::Tick() {
+void RotaryEncoder::InputTick() {
   const bool a_state = gpio_get(pin_a_);
   if (a_state != a_state_) {
     const bool b_state = gpio_get(pin_b_);
@@ -44,7 +41,6 @@ void RotaryEncoder::Tick() {
 }
 
 void RotaryEncoder::SetConfigMode(bool is_config_mode) {
-  LockSemaphore lock(semaphore_);
   is_config_ = is_config_mode;
 }
 

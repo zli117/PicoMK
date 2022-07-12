@@ -10,24 +10,25 @@
 #include "pico-ssd1306/ssd1306.h"
 #include "semphr.h"
 
-class SSD1306Display : virtual public KeyboardOutputDevice,
-                       virtual public ScreenOutputDevice {
+class SSD1306Display : virtual public ScreenOutputDevice,
+                       virtual public KeyboardOutputDevice {
  public:
   enum NumRows { R_32 = 32, R_64 = 64 };
 
   SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin, uint8_t scl_pin,
-                 uint8_t i2c_addr, NumRows num_rows, bool flip);
+                 uint8_t i2c_addr, NumRows num_rows, bool flip,
+                 uint32_t sleep_s);
 
-  void Tick() override;
+  void OutputTick() override;
   void OnUpdateConfig() override {}
-  void SetConfigMode(bool is_config_mode) override;
+  void SetConfigMode(bool is_config_mode) override {}
 
   void StartOfInputTick() override;
   void FinalizeInputTickOutput() override;
 
-  void SendKeycode(uint8_t keycode) override {}
-  void SendKeycode(const std::vector<uint8_t>& keycode) override {}
-  void ActiveLayers(const std::vector<bool>& layers) override;
+  void SendKeycode(uint8_t) override {}
+  void SendKeycode(const std::vector<uint8_t>&) override {}
+  void ChangeActiveLayers(const std::vector<bool>& layers) override;
 
   size_t GetNumRows() const override { return num_rows_; }
   size_t GetNumCols() const override { return num_cols_; }
@@ -52,15 +53,18 @@ class SSD1306Display : virtual public KeyboardOutputDevice,
   const uint8_t i2c_addr_;
   const size_t num_rows_;
   const size_t num_cols_;
+  const uint32_t sleep_s_;
 
   // pico_ssd1306::SSD1306 currently has memory leak issue. See
   // https://github.com/Harbys/pico-ssd1306/issues/8
   std::unique_ptr<pico_ssd1306::SSD1306> display_;
 
-  // The first byte is startline command (0x40)
   std::array<std::array<uint8_t, FRAMEBUFFER_SIZE>, 2> double_buffer_;
   uint8_t buffer_idx_;
-  bool is_config_mode_;
+  bool buffer_changed_;
+  bool send_buffer_;
+  uint32_t last_active_s_;
+  bool sleep_;
 
   SemaphoreHandle_t semaphore_;
 };

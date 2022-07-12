@@ -70,12 +70,11 @@ void KeyScan::SetMouseButtonState(uint8_t mouse_key, bool is_pressed) {
   }
 }
 
-void KeyScan::Tick() {
-  bool is_config_mode;
-  {
-    LockSemaphore lock(semaphore_);
-    is_config_mode = is_config_mode_;
-  }
+void KeyScan::InputLoopStart() {
+  LayerChanged();
+}
+
+void KeyScan::InputTick() {
   const std::vector<uint8_t> active_layers = GetActiveLayers();
 
   // Set all sink GPIOs to HIGH
@@ -95,7 +94,7 @@ void KeyScan::Tick() {
           debounce_timer_[sink * GetNumSourceGPIOs() + source];
 
       // gpio_get returns true when no button is pressed (because of pull up)
-      // and  false when a button is pressed.
+      // and false when a button is pressed.
       const bool pressed = !gpio_get(GetSourceGPIO(source));
       if (pressed != d_timer.pressed) {
         d_timer.tick_count += CONFIG_SCAN_TICKS;
@@ -135,7 +134,6 @@ void KeyScan::Tick() {
 }
 
 void KeyScan::SetConfigMode(bool is_config_mode) {
-  LockSemaphore lock(semaphore_);
   is_config_mode_ = is_config_mode;
 }
 
@@ -163,37 +161,28 @@ KeyScan::KeyScan() : is_config_mode_(false) {
 
   active_layers_.resize(GetKeyboardNumLayers());
   active_layers_[0] = true;
-
-  semaphore_ = xSemaphoreCreateBinary();
-  xSemaphoreGive(semaphore_);
 }
 
 Status KeyScan::SetLayerStatus(uint8_t layer, bool active) {
-  LockSemaphore lock(semaphore_);
   if (layer > active_layers_.size()) {
     return ERROR;
   }
   if (layer == 0) {
     return OK;
   }
+  if (active_layers_[layer] == active) {
+    return OK;
+  }
   active_layers_[layer] = active;
+  LayerChanged();
   return OK;
 }
 
 Status KeyScan::ToggleLayerStatus(uint8_t layer) {
-  LockSemaphore lock(semaphore_);
-  if (layer > active_layers_.size()) {
-    return ERROR;
-  }
-  if (layer == 0) {
-    return OK;
-  }
-  active_layers_[layer] = !active_layers_[layer];
-  return OK;
+  return SetLayerStatus(layer, !active_layers_[layer]);
 }
 
 std::vector<uint8_t> KeyScan::GetActiveLayers() {
-  LockSemaphore lock(semaphore_);
   std::vector<uint8_t> output;
   for (int16_t i = active_layers_.size() - 1; i >= 0; --i) {
     if (active_layers_[i]) {
@@ -246,7 +235,12 @@ CustomKeycodeHandler* KeyScan::HandlerRegistry::RegisteredHandlerFactory(
 void KeyScan::NotifyOutput(const std::vector<uint8_t>& pressed_keycode) {
   for (auto* output : keyboard_output_) {
     output->SendKeycode(pressed_keycode);
-    output->ActiveLayers(active_layers_);
+  }
+}
+
+void KeyScan::LayerChanged() {
+  for (auto* output : keyboard_output_) {
+    output->ChangeActiveLayers(active_layers_);
   }
 }
 

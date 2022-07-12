@@ -6,7 +6,7 @@
 Status RunnerInit();
 Status RunnerStart();
 
-void SetConfigModeAllDevice(bool is_config_mode);
+void SetConfigMode(bool is_config);
 void NotifyConfigChange();
 
 #endif /* RUNNER_H_ */

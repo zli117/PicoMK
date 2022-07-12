@@ -10,7 +10,8 @@ class RotaryEncoder : public GenericInputDevice {
   RotaryEncoder();
   RotaryEncoder(uint8_t pin_a, uint8_t pin_b, uint8_t resolution);
   
-  void Tick() override;
+  void InputLoopStart() override {}
+  void InputTick() override;
   void OnUpdateConfig() override {}
   void SetConfigMode(bool is_config_mode) override;
 
@@ -25,7 +26,7 @@ class RotaryEncoder : public GenericInputDevice {
   bool dir_;
   bool is_config_;
 
-  SemaphoreHandle_t semaphore_;
+  // SemaphoreHandle_t semaphore_;
 };
 
 #endif /* ROTARY_ENCODER_H_ */

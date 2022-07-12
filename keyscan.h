@@ -38,7 +38,8 @@ class KeyScan : public GenericInputDevice {
 
   static std::shared_ptr<KeyScan> Create(const Configuration* config);
 
-  void Tick() override;
+  void InputLoopStart() override;
+  void InputTick() override;
   void OnUpdateConfig() override {}
   void SetConfigMode(bool is_config_mode) override;
 
@@ -78,11 +79,12 @@ class KeyScan : public GenericInputDevice {
 
   virtual void SinkGPIODelay();
 
-  void NotifyOutput(const std::vector<uint8_t>& pressed_keycode);
+  virtual void NotifyOutput(const std::vector<uint8_t>& pressed_keycode);
+  virtual void LayerChanged();
 
   std::vector<DebounceTimer> debounce_timer_;
   std::vector<bool> active_layers_;
-  SemaphoreHandle_t semaphore_;
+  // SemaphoreHandle_t semaphore_;
   bool is_config_mode_;
 };
 

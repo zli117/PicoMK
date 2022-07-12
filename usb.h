@@ -33,7 +33,7 @@ class USBKeyboardOutput : public KeyboardOutputDevice, public USBOutputAddIn {
  public:
   static std::shared_ptr<USBKeyboardOutput> GetUSBKeyboardOutput();
 
-  void Tick() override;
+  void OutputTick() override;
   void OnUpdateConfig() override {}
   void SetConfigMode(bool is_config_mode) override;
 
@@ -42,7 +42,7 @@ class USBKeyboardOutput : public KeyboardOutputDevice, public USBOutputAddIn {
 
   void SendKeycode(uint8_t keycode) override;
   void SendKeycode(const std::vector<uint8_t>& keycode) override;
-  void ActiveLayers(const std::vector<bool>&) override {}
+  void ChangeActiveLayers(const std::vector<bool>&) override {}
 
  protected:
   USBKeyboardOutput();
@@ -51,13 +51,14 @@ class USBKeyboardOutput : public KeyboardOutputDevice, public USBOutputAddIn {
   uint8_t active_buffer_;
   uint8_t boot_protocol_kc_count_;
   bool is_config_mode_;
+  bool has_key_output_;
 };
 
 class USBMouseOutput : public MouseOutputDevice, public USBOutputAddIn {
  public:
   static std::shared_ptr<USBMouseOutput> GetUSBMouseOutput();
 
-  void Tick() override;
+  void OutputTick() override;
   void OnUpdateConfig() override {}
   void SetConfigMode(bool is_config_mode) override;
 

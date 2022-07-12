@@ -91,12 +91,10 @@ JoystickInputDeivce::JoystickInputDeivce(const Configuration* config,
       divider_(1),
       counter_(0),
       is_config_mode_(false) {
-  semaphore_ = xSemaphoreCreateBinary();
-  xSemaphoreGive(semaphore_);
   OnUpdateConfig();
 }
 
-void JoystickInputDeivce::Tick() {
+void JoystickInputDeivce::InputTick() {
   // We still sample at the normal frequency, but only report when counter
   // reaches divider.
   const int8_t x_val = TranslateReading(profile_x_, x_.GetValue());
@@ -109,12 +107,7 @@ void JoystickInputDeivce::Tick() {
   }
   counter_ = 0;
 
-  bool is_profile;
-  {
-    LockSemaphore lock(semaphore_);
-    is_profile = is_config_mode_;
-  }
-  if (is_profile) {
+  if (is_config_mode_) {
     for (auto* config_modifier : config_modifier_) {
       if (y_val > 0) {
         config_modifier->Up();
@@ -146,7 +139,6 @@ void JoystickInputDeivce::OnUpdateConfig() {
 }
 
 void JoystickInputDeivce::SetConfigMode(bool is_config_mode) {
-  LockSemaphore lock(semaphore_);
   is_config_mode_ = is_config_mode;
 }
 
