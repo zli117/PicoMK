@@ -198,7 +198,7 @@ void SSD1306Display::CMD(uint8_t cmd) {
 
 static std::shared_ptr<SSD1306Display> singleton;
 
-static std::shared_ptr<SSD1306Display> GetSSD1306Display(const Configuration*) {
+static std::shared_ptr<SSD1306Display> GetSSD1306Display() {
   if (singleton == NULL) {
     singleton = std::make_shared<SSD1306Display>(
         i2c0, 20, 21, 0x3C, SSD1306Display::R_64, true, 120);

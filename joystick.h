@@ -43,27 +43,28 @@ class CenteringPotentialMeterDriver {
 
 class JoystickInputDeivce : public GenericInputDevice {
  public:
-  JoystickInputDeivce(const Configuration* config, uint8_t x_adc_pin,
-                      uint8_t y_adc_pin, size_t buffer_size, bool flip_x_dir,
-                      bool flip_y_dir);
+  JoystickInputDeivce(uint8_t x_adc_pin, uint8_t y_adc_pin, size_t buffer_size,
+                      bool flip_x_dir, bool flip_y_dir);
 
   void InputLoopStart() override {}
   void InputTick() override;
-  void OnUpdateConfig() override;
   void SetConfigMode(bool is_config_mode) override;
+  std::pair<std::string, std::unique_ptr<Config>> CreateDefaultConfig()
+      override;
+  void OnUpdateConfig(const Config* config) override;
 
  protected:
-  int8_t TranslateReading(
-      const std::vector<std::pair<uint16_t, uint8_t>>& profile,
-      int16_t reading);
+  int8_t GetSpeed(const std::vector<std::pair<uint16_t, uint16_t>>& profile,
+                   int16_t reading);
 
-  const Configuration* config_;
+  Status ParseProfileConfig(const ConfigList& list,
+                            std::vector<std::pair<uint16_t, uint16_t>>* output);
+
   CenteringPotentialMeterDriver x_;
   CenteringPotentialMeterDriver y_;
-  std::vector<std::pair<uint16_t, uint8_t>> profile_x_;
-  std::vector<std::pair<uint16_t, uint8_t>> profile_y_;
+  std::vector<std::pair<uint16_t, uint16_t>> profile_x_;
+  std::vector<std::pair<uint16_t, uint16_t>> profile_y_;
   uint8_t divider_;
-  uint8_t counter_;
   bool is_config_mode_;
 
   // SemaphoreHandle_t semaphore_;

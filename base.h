@@ -4,6 +4,7 @@
 #include <functional>
 #include <map>
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -14,8 +15,12 @@
 
 class GenericDevice {
  public:
-  virtual void OnUpdateConfig() = 0;
-  virtual void SetConfigMode(bool is_config_mode) = 0;
+  virtual void OnUpdateConfig(const Config* config){};
+  virtual void SetConfigMode(bool is_config_mode){};
+  virtual std::pair<std::string, std::unique_ptr<Config>>
+  CreateDefaultConfig() {
+    return std::make_pair<std::string, std::unique_ptr<Config>>("", NULL);
+  }
 };
 
 class GenericOutputDevice : virtual public GenericDevice {
@@ -84,7 +89,7 @@ class GenericInputDevice : virtual public GenericDevice {
  public:
   // Everything is called from the same task, including methods in base class.
 
-  virtual void InputLoopStart() = 0; 
+  virtual void InputLoopStart() = 0;
   virtual void InputTick() = 0;
   virtual void AddKeyboardOutput(KeyboardOutputDevice* device);
   virtual void AddMouseOutput(MouseOutputDevice* device);
@@ -105,20 +110,29 @@ class ConfigModifier : public GenericOutputDevice, public GenericInputDevice {
   virtual void Up() = 0;
   virtual void Down() = 0;
   virtual void Select() = 0;
+
+  // At most one config modifier allowed
+  void AddConfigModifier(ConfigModifier* device) override final {}
+
+  // No config for config modifier
+  std::pair<std::string, std::unique_ptr<Config>> CreateDefaultConfig()
+      override final {
+    return GenericDevice::CreateDefaultConfig();
+  }
 };
 
 using GenericInputDeviceCreator =
-    std::function<std::shared_ptr<GenericInputDevice>(const Configuration*)>;
+    std::function<std::shared_ptr<GenericInputDevice>()>;
 using KeyboardOutputDeviceCreator =
-    std::function<std::shared_ptr<KeyboardOutputDevice>(const Configuration*)>;
+    std::function<std::shared_ptr<KeyboardOutputDevice>()>;
 using MouseOutputDeviceCreator =
-    std::function<std::shared_ptr<MouseOutputDevice>(const Configuration*)>;
+    std::function<std::shared_ptr<MouseOutputDevice>()>;
 using ScreenOutputDeviceCreator =
-    std::function<std::shared_ptr<ScreenOutputDevice>(const Configuration*)>;
+    std::function<std::shared_ptr<ScreenOutputDevice>()>;
 using LEDOutputDeviceCreator =
-    std::function<std::shared_ptr<LEDOutputDevice>(const Configuration*)>;
+    std::function<std::shared_ptr<LEDOutputDevice>()>;
 using ConfigModifierCreator =
-    std::function<std::shared_ptr<ConfigModifier>(Configuration*)>;
+    std::function<std::shared_ptr<ConfigModifier>(ConfigObject* global_config)>;
 
 class DeviceRegistry {
  public:
@@ -132,16 +146,20 @@ class DeviceRegistry {
                                            ScreenOutputDeviceCreator func);
   static Status RegisterLEDOutputDevice(uint8_t key, bool slow,
                                         LEDOutputDeviceCreator func);
-  static Status RegisterConfigModifier(uint8_t key, bool slow,
-                                       ConfigModifierCreator func);
+  static Status RegisterConfigModifier(ConfigModifierCreator func);
 
   static Status GetAllDevices(
-      Configuration* config,
       std::vector<std::shared_ptr<GenericInputDevice>>* input_devices,
       std::vector<std::shared_ptr<GenericOutputDevice>>* output_devices,
       std::vector<std::shared_ptr<GenericOutputDevice>>* slow_output_devices);
 
  private:
+  DeviceRegistry() : initialized_(false) {}
+
+  void AddConfig(GenericDevice* device);
+
+  void InitializeAllDevices();
+
   static DeviceRegistry* GetRegistry();
 
   std::map<uint8_t, std::pair<bool, GenericInputDeviceCreator>> input_creators_;
@@ -152,8 +170,15 @@ class DeviceRegistry {
       screen_output_creators_;
   std::map<uint8_t, std::pair<bool, LEDOutputDeviceCreator>>
       led_output_creators_;
-  std::map<uint8_t, std::pair<bool, ConfigModifierCreator>>
-      config_modifier_creators_;
+  std::optional<ConfigModifierCreator> config_modifier_creator_;
+
+  bool initialized_;
+  std::vector<std::shared_ptr<GenericInputDevice>> input_devices_;
+  std::vector<std::shared_ptr<GenericOutputDevice>> output_devices_;
+  std::vector<std::shared_ptr<GenericOutputDevice>> slow_output_devices_;
+
+  ConfigObject global_config_;
+  std::map<GenericDevice*, std::pair<std::string, Config*>> device_to_config_;
 };
 
 #endif /* BASE_H_ */

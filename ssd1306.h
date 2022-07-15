@@ -20,8 +20,6 @@ class SSD1306Display : virtual public ScreenOutputDevice,
                  uint32_t sleep_s);
 
   void OutputTick() override;
-  void OnUpdateConfig() override {}
-  void SetConfigMode(bool is_config_mode) override {}
 
   void StartOfInputTick() override;
   void FinalizeInputTickOutput() override;

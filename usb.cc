@@ -482,10 +482,10 @@ USBMouseOutput::USBMouseOutput()
 // Registration
 
 static Status usb_keyboard_out = DeviceRegistry::RegisterKeyboardOutputDevice(
-    2, false, [](const Configuration *) -> std::shared_ptr<USBKeyboardOutput> {
+    2, false, []() -> std::shared_ptr<USBKeyboardOutput> {
       return USBKeyboardOutput::GetUSBKeyboardOutput();
     });
 static Status usb_mouse_out = DeviceRegistry::RegisterMouseOutputDevice(
-    2, false, [](const Configuration *) -> std::shared_ptr<USBMouseOutput> {
+    2, false, []() -> std::shared_ptr<USBMouseOutput> {
       return USBMouseOutput::GetUSBMouseOutput();
     });

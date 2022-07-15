@@ -40,7 +40,6 @@ class KeyScan : public GenericInputDevice {
 
   void InputLoopStart() override;
   void InputTick() override;
-  void OnUpdateConfig() override {}
   void SetConfigMode(bool is_config_mode) override;
 
   static status RegisterCustomKeycodeHandler(

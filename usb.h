@@ -34,7 +34,6 @@ class USBKeyboardOutput : public KeyboardOutputDevice, public USBOutputAddIn {
   static std::shared_ptr<USBKeyboardOutput> GetUSBKeyboardOutput();
 
   void OutputTick() override;
-  void OnUpdateConfig() override {}
   void SetConfigMode(bool is_config_mode) override;
 
   void StartOfInputTick() override;
@@ -61,7 +60,6 @@ class USBMouseOutput : public MouseOutputDevice, public USBOutputAddIn {
   static std::shared_ptr<USBMouseOutput> GetUSBMouseOutput();
 
   void OutputTick() override;
-  void OnUpdateConfig() override {}
   void SetConfigMode(bool is_config_mode) override;
 
   void StartOfInputTick() override;
