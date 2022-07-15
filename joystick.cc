@@ -85,8 +85,7 @@ void CenteringPotentialMeterDriver::SetMappedValue(int8_t mapped) {
 
 JoystickInputDeivce::JoystickInputDeivce(uint8_t x_adc_pin, uint8_t y_adc_pin,
                                          size_t buffer_size, bool flip_x_dir,
-                                         bool flip_y_dir,
-                                         uint8_t ticks_between_scan)
+                                         bool flip_y_dir)
     : x_(x_adc_pin, buffer_size, flip_x_dir),
       y_(y_adc_pin, buffer_size, flip_y_dir),
       divider_(1),
@@ -115,7 +114,7 @@ void JoystickInputDeivce::InputTick() {
   }
 }
 
-std::pair<std::string, std::unique_ptr<Config>>
+std::pair<std::string, std::shared_ptr<Config>>
 JoystickInputDeivce::CreateDefaultConfig() {
   auto config = CONFIG_OBJECT(
       CONFIG_OBJECT_ELEM("speed_divider", CONFIG_INT(5, 1, 100)),
@@ -138,7 +137,7 @@ JoystickInputDeivce::CreateDefaultConfig() {
               CONFIG_PAIR(CONFIG_INT(2000, 0, 2048),
                           CONFIG_INT(280, 40, 1000)))));
 
-  return {"joystick", std::move(config)};
+  return {"joystick", config};
 }
 
 Status JoystickInputDeivce::ParseProfileConfig(

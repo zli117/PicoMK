@@ -36,7 +36,7 @@ class KeyScan : public GenericInputDevice {
  public:
   using CustomKeycodeHandlerCreator = std::function<CustomKeycodeHandler*()>;
 
-  static std::shared_ptr<KeyScan> Create(const Configuration* config);
+  KeyScan();
 
   void InputLoopStart() override;
   void InputTick() override;
@@ -73,8 +73,6 @@ class KeyScan : public GenericInputDevice {
         custom_handlers_;
     std::map<uint8_t, CustomKeycodeHandler*> handler_singletons_;
   };
-
-  KeyScan();
 
   virtual void SinkGPIODelay();
 

@@ -49,7 +49,7 @@ class JoystickInputDeivce : public GenericInputDevice {
   void InputLoopStart() override {}
   void InputTick() override;
   void SetConfigMode(bool is_config_mode) override;
-  std::pair<std::string, std::unique_ptr<Config>> CreateDefaultConfig()
+  std::pair<std::string, std::shared_ptr<Config>> CreateDefaultConfig()
       override;
   void OnUpdateConfig(const Config* config) override;
 

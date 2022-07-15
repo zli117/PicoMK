@@ -8,7 +8,6 @@
 #include <vector>
 
 #include "FreeRTOS.h"
-#include "config.h"
 #include "hardware/gpio.h"
 #include "layout.h"
 #include "pico/stdlib.h"
@@ -54,14 +53,6 @@ class LayerButtonHandler : public CustomKeycodeHandler {
 
 REGISTER_CUSTOM_KEYCODE_HANDLER(LAYER_SWITCH, true, LayerButtonHandler);
 
-std::shared_ptr<KeyScan> KeyScan::Create(const Configuration* config) {
-  static std::shared_ptr<KeyScan> singleton = NULL;
-  if (singleton == NULL) {
-    singleton = std::shared_ptr<KeyScan>(new KeyScan());
-  }
-  return singleton;
-}
-
 void KeyScan::SetMouseButtonState(uint8_t mouse_key, bool is_pressed) {
   for (auto output : mouse_output_) {
     if (is_pressed) {
@@ -70,9 +61,7 @@ void KeyScan::SetMouseButtonState(uint8_t mouse_key, bool is_pressed) {
   }
 }
 
-void KeyScan::InputLoopStart() {
-  LayerChanged();
-}
+void KeyScan::InputLoopStart() { LayerChanged(); }
 
 void KeyScan::InputTick() {
   const std::vector<uint8_t> active_layers = GetActiveLayers();
@@ -244,5 +233,5 @@ void KeyScan::LayerChanged() {
   }
 }
 
-static Status registered =
-    DeviceRegistry::RegisterInputDevice(1, KeyScan::Create);
+static Status registered = DeviceRegistry::RegisterInputDevice(
+    1, []() { return std::shared_ptr<KeyScan>(new KeyScan()); });

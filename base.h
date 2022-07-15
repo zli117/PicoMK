@@ -17,9 +17,9 @@ class GenericDevice {
  public:
   virtual void OnUpdateConfig(const Config* config){};
   virtual void SetConfigMode(bool is_config_mode){};
-  virtual std::pair<std::string, std::unique_ptr<Config>>
+  virtual std::pair<std::string, std::shared_ptr<Config>>
   CreateDefaultConfig() {
-    return std::make_pair<std::string, std::unique_ptr<Config>>("", NULL);
+    return std::make_pair<std::string, std::shared_ptr<Config>>("", NULL);
   }
 };
 
@@ -115,7 +115,7 @@ class ConfigModifier : public GenericOutputDevice, public GenericInputDevice {
   void AddConfigModifier(ConfigModifier* device) override final {}
 
   // No config for config modifier
-  std::pair<std::string, std::unique_ptr<Config>> CreateDefaultConfig()
+  std::pair<std::string, std::shared_ptr<Config>> CreateDefaultConfig()
       override final {
     return GenericDevice::CreateDefaultConfig();
   }
@@ -153,12 +153,16 @@ class DeviceRegistry {
       std::vector<std::shared_ptr<GenericOutputDevice>>* output_devices,
       std::vector<std::shared_ptr<GenericOutputDevice>>* slow_output_devices);
 
+  static void UpdateConfig();
+
  private:
   DeviceRegistry() : initialized_(false) {}
 
   void AddConfig(GenericDevice* device);
 
   void InitializeAllDevices();
+
+  void UpdateConfigImpl();
 
   static DeviceRegistry* GetRegistry();
 

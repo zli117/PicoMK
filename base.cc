@@ -185,9 +185,7 @@ void DeviceRegistry::InitializeAllDevices() {
     }
   }
 
-  for (auto& [device, config] : device_to_config_) {
-    device->OnUpdateConfig(config.second);
-  }
+  UpdateConfigImpl();
 
   initialized_ = true;
 }
@@ -201,12 +199,27 @@ Status DeviceRegistry::GetAllDevices(
     registry.InitializeAllDevices();
   }
 
-  std::copy(registry.input_devices_.begin(), registry.input_devices_.end(),
-            input_devices->begin());
-  std::copy(registry.output_devices_.begin(), registry.output_devices_.end(),
-            output_devices->begin());
-  std::copy(registry.slow_output_devices_.begin(),
-            registry.slow_output_devices_.end(), slow_output_devices->begin());
+  input_devices->clear();
+  output_devices->clear();
+  slow_output_devices->clear();
+
+  for (const auto device : registry.input_devices_) {
+    input_devices->push_back(device);
+  }
+  for (const auto device : registry.output_devices_) {
+    output_devices->push_back(device);
+  }
+  for (const auto device : registry.slow_output_devices_) {
+    slow_output_devices->push_back(device);
+  }
 
   return OK;
 }
+
+void DeviceRegistry::UpdateConfigImpl() {
+  for (auto& [device, config] : device_to_config_) {
+    device->OnUpdateConfig(config.second);
+  }
+}
+
+void DeviceRegistry::UpdateConfig() { GetRegistry()->UpdateConfigImpl(); }

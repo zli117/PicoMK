@@ -10,55 +10,56 @@
 #include <vector>
 
 #define CONFIG_OBJECT(...) \
-  (std::unique_ptr<ConfigObject>(new ConfigObject({__VA_ARGS__})))
+  (std::shared_ptr<ConfigObject>(new ConfigObject({__VA_ARGS__})))
 
 #define CONFIG_OBJECT_ELEM(name, value) \
   { (name), (value) }
 
 #define CONFIG_LIST(...) \
-  (std::unique_ptr<ConfigList>(new ConfigList({__VA_ARGS__})))
+  (std::shared_ptr<ConfigList>(new ConfigList({__VA_ARGS__})))
 
 #define CONFIG_PAIR(first, second) \
-  (std::unique_ptr<ConfigPair>(new ConfigPair((first), (second))))
+  (std::shared_ptr<ConfigPair>(new ConfigPair((first), (second))))
 
 #define CONFIG_INT(value, min, max) \
-  (std::unique_ptr<ConfigInt>(new ConfigInt((value), (min), (max))))
+  (std::shared_ptr<ConfigInt>(new ConfigInt((value), (min), (max))))
 
 #define CONFIG_FLOAT(value, min, max) \
-  (std::unique_ptr<ConfigFloat>(new ConfigFloat((value), (min), (max))))
+  (std::shared_ptr<ConfigFloat>(new ConfigFloat((value), (min), (max))))
 
 class Config {
  public:
   enum Type {
-    OBJECT = 0,
+    INVALID = 0,
+    OBJECT,
     LIST,
     STRING,
     INTEGER,
     FLOAT,
   };
-  virtual Type GetType() const = 0;
+  virtual Type GetType() const { return INVALID; };
 };
 
 class ConfigObject : public Config {
  public:
   Type GetType() const override final { return OBJECT; }
   ConfigObject() = default;
-  ConfigObject(const std::map<std::string, std::unique_ptr<Config>>& members)
+  ConfigObject(const std::map<std::string, std::shared_ptr<Config>>& members)
       : members_(members) {}
   ConfigObject(std::initializer_list<
-               std::pair<const std::string, std::unique_ptr<Config>>>
+               std::pair<const std::string, std::shared_ptr<Config>>>
                    l)
       : members_(l) {}
 
-  std::map<std::string, std::unique_ptr<Config>>* GetMembers() {
+  std::map<std::string, std::shared_ptr<Config>>* GetMembers() {
     return &members_;
   }
-  const std::map<std::string, std::unique_ptr<Config>>* GetMembers() const {
+  const std::map<std::string, std::shared_ptr<Config>>* GetMembers() const {
     return &members_;
   }
 
  private:
-  std::map<std::string, std::unique_ptr<Config>> members_;
+  std::map<std::string, std::shared_ptr<Config>> members_;
 };
 
 class ConfigList : public Config {
@@ -66,19 +67,19 @@ class ConfigList : public Config {
   Type GetType() const override final { return LIST; }
 
   ConfigList() = default;
-  ConfigList(const std::vector<std::unique_ptr<Config>>& list) : list_(list) {}
-  ConfigList(std::initializer_list<std::unique_ptr<Config>> l) : list_(l) {}
+  ConfigList(const std::vector<std::shared_ptr<Config>>& list) : list_(list) {}
+  ConfigList(std::initializer_list<std::shared_ptr<Config>> l) : list_(l) {}
 
-  std::vector<std::unique_ptr<Config>>* GetList() { return &list_; }
-  const std::vector<std::unique_ptr<Config>>* GetList() const { return &list_; }
+  std::vector<std::shared_ptr<Config>>* GetList() { return &list_; }
+  const std::vector<std::shared_ptr<Config>>* GetList() const { return &list_; }
 
  private:
-  std::vector<std::unique_ptr<Config>> list_;
+  std::vector<std::shared_ptr<Config>> list_;
 };
 
 class ConfigPair : public ConfigList {
  public:
-  ConfigPair(std::unique_ptr<Config> first, std::unique_ptr<Config> second)
+  ConfigPair(std::shared_ptr<Config> first, std::shared_ptr<Config> second)
       : ConfigList({std::move(first), std::move(second)}) {}
 };
 
@@ -118,52 +119,54 @@ class ConfigFloat : public Config {
   const float resolution_;
 };
 
-class Configuration {
- public:
-  static Configuration* GetConfig();
+// class Configuration {
+//  public:
+//   static Configuration* GetConfig();
 
-  // Joystick X, Y accelaration profile
-  inline const std::vector<std::pair<uint16_t, uint8_t>>* GetJoystickXProfile()
-      const {
-    return &joystick_x_profile_;
-  }
-  inline const std::vector<std::pair<uint16_t, uint8_t>>* GetJoystickYProfile()
-      const {
-    return &joystick_y_profile_;
-  }
-  inline uint8_t GetJoystickScanDivider() const {
-    return joystick_scan_frequency_divider_;
-  }
-  inline uint32_t GetJoystickCalibrationSamples() const {
-    return joystick_calibration_samples_;
-  }
-  inline uint32_t GetJoystickCalibrationThreshold() const {
-    return joystick_calibration_threshold_;
-  }
-  void SetJoystickXProfile(
-      const std::vector<std::pair<uint16_t, uint8_t>>& profile);
-  void SetJoystickYProfile(
-      const std::vector<std::pair<uint16_t, uint8_t>>& profile);
-  void SetJoystickScanDivider(uint8_t divider) {
-    joystick_scan_frequency_divider_ = divider;
-  }
-  void SetJoystickCalibrationSamples(uint32_t calibration_samples) {
-    joystick_calibration_samples_ = calibration_samples;
-  }
-  void SetJoystickCalibrationThreshold(uint32_t calibration_threshold) {
-    joystick_calibration_threshold_ = calibration_threshold;
-  }
+//   // Joystick X, Y accelaration profile
+//   inline const std::vector<std::pair<uint16_t, uint8_t>>*
+//   GetJoystickXProfile()
+//       const {
+//     return &joystick_x_profile_;
+//   }
+//   inline const std::vector<std::pair<uint16_t, uint8_t>>*
+//   GetJoystickYProfile()
+//       const {
+//     return &joystick_y_profile_;
+//   }
+//   inline uint8_t GetJoystickScanDivider() const {
+//     return joystick_scan_frequency_divider_;
+//   }
+//   inline uint32_t GetJoystickCalibrationSamples() const {
+//     return joystick_calibration_samples_;
+//   }
+//   inline uint32_t GetJoystickCalibrationThreshold() const {
+//     return joystick_calibration_threshold_;
+//   }
+//   void SetJoystickXProfile(
+//       const std::vector<std::pair<uint16_t, uint8_t>>& profile);
+//   void SetJoystickYProfile(
+//       const std::vector<std::pair<uint16_t, uint8_t>>& profile);
+//   void SetJoystickScanDivider(uint8_t divider) {
+//     joystick_scan_frequency_divider_ = divider;
+//   }
+//   void SetJoystickCalibrationSamples(uint32_t calibration_samples) {
+//     joystick_calibration_samples_ = calibration_samples;
+//   }
+//   void SetJoystickCalibrationThreshold(uint32_t calibration_threshold) {
+//     joystick_calibration_threshold_ = calibration_threshold;
+//   }
 
- private:
-  Configuration() = default;
+//  private:
+//   Configuration() = default;
 
-  std::vector<std::pair<uint16_t, uint8_t>> joystick_x_profile_;
-  std::vector<std::pair<uint16_t, uint8_t>> joystick_y_profile_;
-  uint8_t joystick_scan_frequency_divider_;
-  uint32_t joystick_calibration_samples_;
-  uint32_t joystick_calibration_threshold_;
+//   std::vector<std::pair<uint16_t, uint8_t>> joystick_x_profile_;
+//   std::vector<std::pair<uint16_t, uint8_t>> joystick_y_profile_;
+//   uint8_t joystick_scan_frequency_divider_;
+//   uint32_t joystick_calibration_samples_;
+//   uint32_t joystick_calibration_threshold_;
 
-  static Configuration* singleton_;
-};
+//   static Configuration* singleton_;
+// };
 
 #endif /* CONFIGURATION_H_ */

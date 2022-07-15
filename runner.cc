@@ -13,7 +13,6 @@
 #include "usb.h"
 #include "utils.h"
 
-static Configuration* config;
 static std::vector<std::shared_ptr<GenericInputDevice>> input_devices;
 static std::vector<std::shared_ptr<GenericOutputDevice>> output_devices;
 static std::vector<std::shared_ptr<GenericOutputDevice>> slow_output_devices;
@@ -30,8 +29,7 @@ static bool is_config_mode;
 static bool update_config_flag;
 
 Status RunnerInit() {
-  config = Configuration::GetConfig();
-  if (DeviceRegistry::GetAllDevices(config, &input_devices, &output_devices,
+  if (DeviceRegistry::GetAllDevices(&input_devices, &output_devices,
                                     &slow_output_devices) != OK) {
     return ERROR;
   }
@@ -176,15 +174,7 @@ extern "C" void InputDeviceTask(void* parameter) {
       }
     }
     if (should_update_config) {
-      for (auto device : output_devices) {
-        device->OnUpdateConfig();
-      }
-      for (auto device : input_devices) {
-        device->OnUpdateConfig();
-      }
-      for (auto device : slow_output_devices) {
-        device->OnUpdateConfig();
-      }
+      DeviceRegistry::UpdateConfig();
     }
 
     for (auto output_device : output_devices) {
