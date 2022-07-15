@@ -42,6 +42,7 @@ class USBKeyboardOutput : public KeyboardOutputDevice, public USBOutputAddIn {
 
   void SendKeycode(uint8_t keycode) override;
   void SendKeycode(const std::vector<uint8_t>& keycode) override;
+  void SendConsumerKeycode(uint16_t keycode) override;
   void ChangeActiveLayers(const std::vector<bool>&) override {}
 
  protected:
@@ -50,6 +51,7 @@ class USBKeyboardOutput : public KeyboardOutputDevice, public USBOutputAddIn {
   std::array<std::array<uint8_t, 8 + 256 / 8>, 2> double_buffer_;
   uint8_t active_buffer_;
   uint8_t boot_protocol_kc_count_;
+  uint16_t consumer_keycode_;
   bool is_config_mode_;
   bool has_key_output_;
 };
@@ -75,6 +77,19 @@ class USBMouseOutput : public MouseOutputDevice, public USBOutputAddIn {
   std::array<std::array<uint8_t, 5>, 2> double_buffer_;
   uint8_t active_buffer_;
   bool is_config_mode_;
+};
+
+enum InterfaceID {
+  ITF_KEYBOARD = 0,
+  ITF_MOUSE,
+  ITF_CONSUMER,
+
+#if CONFIG_DEBUG_ENABLE_USB_SERIAL
+  ITF_CDC_CTRL,
+  ITF_CDC_DATA,
+#endif /* CONFIG_DEBUG_ENABLE_USB_SERIAL */
+
+  ITF_TOTAL,
 };
 
 #endif /* USB_H_ */

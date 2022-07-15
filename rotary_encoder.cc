@@ -55,12 +55,14 @@ void RotaryEncoder::HandleMovement(bool dir) {
     }
   } else {
     for (auto* keyboard_out : keyboard_output_) {
-      keyboard_out->SendKeycode(dir ? HID_KEY_VOLUME_UP : HID_KEY_VOLUME_DOWN);
+      keyboard_out->SendConsumerKeycode(
+          dir ? HID_USAGE_CONSUMER_VOLUME_INCREMENT
+              : HID_USAGE_CONSUMER_VOLUME_DECREMENT);
     }
   }
 }
 
-static Status registered = DeviceRegistry::RegisterInputDevice(
-    3, [](const Configuration* config) {
+static Status registered =
+    DeviceRegistry::RegisterInputDevice(3, [](const Configuration* config) {
       return std::make_shared<RotaryEncoder>(19, 22, 2);
     });

@@ -28,6 +28,7 @@ class SSD1306Display : virtual public ScreenOutputDevice,
 
   void SendKeycode(uint8_t) override {}
   void SendKeycode(const std::vector<uint8_t>&) override {}
+  void SendConsumerKeycode(uint16_t keycode) override {}
   void ChangeActiveLayers(const std::vector<bool>& layers) override;
 
   size_t GetNumRows() const override { return num_rows_; }

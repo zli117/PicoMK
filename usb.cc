@@ -14,18 +14,6 @@
 #include "tusb.h"
 #include "utils.h"
 
-enum InterfaceID {
-  ITF_KEYBOARD = 0,
-  ITF_MOUSE,
-
-#if CONFIG_DEBUG_ENABLE_USB_SERIAL
-  ITF_CDC_CTRL,
-  ITF_CDC_DATA,
-#endif /* CONFIG_DEBUG_ENABLE_USB_SERIAL */
-
-  ITF_TOTAL,
-};
-
 ////////////////////////////////////////////////////////////////////////////////
 // USB descriptors
 ////////////////////////////////////////////////////////////////////////////////
@@ -102,6 +90,7 @@ uint8_t const desc_hid_keyboard_report[] = {
 
 // Use the standard mouse report descriptor.
 uint8_t const desc_hid_mouse_report[] = {TUD_HID_REPORT_DESC_MOUSE()};
+uint8_t const desc_hid_consumer_report[] = {TUD_HID_REPORT_DESC_CONSUMER()};
 
 // Configuration descripter and all the interface, HID, endpoint descriptors.
 // This is required by the USB protocol that all the
@@ -111,10 +100,9 @@ uint8_t const desc_hid_mouse_report[] = {TUD_HID_REPORT_DESC_MOUSE()};
 
 #if CONFIG_DEBUG_ENABLE_USB_SERIAL
 #define DESC_CONFIG_TOTAL_LEN \
-  (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_HID_DESC_LEN + TUD_CDC_DESC_LEN)
+  (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN * 3 + TUD_CDC_DESC_LEN)
 #else
-#define DESC_CONFIG_TOTAL_LEN \
-  (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN + TUD_HID_DESC_LEN)
+#define DESC_CONFIG_TOTAL_LEN (TUD_CONFIG_DESC_LEN + TUD_HID_DESC_LEN * 3)
 #endif /* CONFIG_DEBUG_ENABLE_USB_SERIAL */
 
 uint8_t const desc_configuration[] = {
@@ -134,15 +122,22 @@ uint8_t const desc_configuration[] = {
                        CONFIG_USB_POLL_MS),     // Pulling interval
     TUD_HID_DESCRIPTOR(ITF_MOUSE,               // bInterfaceNumber
                        5,                       // iInterface (string idx)
-                       HID_ITF_PROTOCOL_MOUSE,  // Boot keyboard protocol
+                       HID_ITF_PROTOCOL_MOUSE,  // Boot mouse protocol
                        sizeof(desc_hid_mouse_report),  // Mouse HID size
                        ENDPOINT_IN_ADDR(ITF_MOUSE),    // Endpoint address
                        CFG_TUD_HID_EP_BUFSIZE,         // Endpoint buffer size
                        CONFIG_USB_POLL_MS),            // Pulling interval
+    TUD_HID_DESCRIPTOR(ITF_CONSUMER,                   // bInterfaceNumber
+                       6,                      // iInterface (string idx)
+                       HID_ITF_PROTOCOL_NONE,  // Non boot
+                       sizeof(desc_hid_consumer_report),  // Mouse HID size
+                       ENDPOINT_IN_ADDR(ITF_CONSUMER),    // Endpoint address
+                       CFG_TUD_HID_EP_BUFSIZE,  // Endpoint buffer size
+                       CONFIG_USB_POLL_MS),     // Pulling interval
 
 #if CONFIG_DEBUG_ENABLE_USB_SERIAL
     TUD_CDC_DESCRIPTOR(ITF_CDC_CTRL,  // bInterfaceNumber
-                       6,             // iInterface (string idx)
+                       7,             // iInterface (string idx)
                        ENDPOINT_IN_ADDR(ITF_CDC_CTRL),  // Notification endpoint
                        CONFIG_DEBUG_USB_SERIAL_CDC_CMD_MAX_SIZE,  // Buffer size
                        ENDPOINT_OUT_ADDR(ITF_CDC_DATA),  // Avoid conflict
@@ -158,7 +153,8 @@ char const *string_desc_arr[] = {
     CONFIG_USB_SERIAL,        // 3: Serial number
     "Keyboard",               // 4: Keyboard interface
     "Mouse",                  // 5: Mouse interface
-    "Serial",                 // 6: CDC
+    "Consumer",               // 6: Consumer interface
+    "Serial",                 // 7: CDC interface
 };
 
 ////////////////////////////////////////////////////////////////////////////////
@@ -178,6 +174,8 @@ uint8_t const *tud_hid_descriptor_report_cb(uint8_t instance) {
       return desc_hid_keyboard_report;
     case ITF_MOUSE:
       return desc_hid_mouse_report;
+    case ITF_CONSUMER:
+      return desc_hid_consumer_report;
     default:
       // Shouldn't reach here, unless something is horribly wrong.
       return NULL;
@@ -370,6 +368,7 @@ void USBKeyboardOutput::OutputTick() {
   }
   auto &buffer = double_buffer_[active_buffer_];
   tud_hid_n_report(ITF_KEYBOARD, /*report_id=*/0, buffer.data(), buffer.size());
+  tud_hid_n_report(ITF_CONSUMER, /*report_id=*/0, &consumer_keycode_, 2);
 }
 
 void USBKeyboardOutput::SetConfigMode(bool is_config_mode) {
@@ -381,6 +380,8 @@ void USBKeyboardOutput::StartOfInputTick() {
   // No need to lock as Tick() does not modify reads active_buffer_.
   const uint8_t buf_idx = (active_buffer_ + 1) % 2;
   std::fill(double_buffer_[buf_idx].begin(), double_buffer_[buf_idx].end(), 0);
+  LockSemaphore lock(semaphore_);
+  consumer_keycode_ = 0;
 }
 
 void USBKeyboardOutput::FinalizeInputTickOutput() {
@@ -406,6 +407,11 @@ void USBKeyboardOutput::SendKeycode(const std::vector<uint8_t> &keycode) {
   for (auto code : keycode) {
     SendKeycode(code);
   }
+}
+
+void USBKeyboardOutput::SendConsumerKeycode(uint16_t keycode) {
+  LockSemaphore lock(semaphore_);
+  consumer_keycode_ = keycode;
 }
 
 std::shared_ptr<USBMouseOutput> USBMouseOutput::GetUSBMouseOutput() {
