@@ -29,10 +29,11 @@ static bool is_config_mode;
 static bool update_config_flag;
 
 Status RunnerInit() {
-  if (DeviceRegistry::GetAllDevices(&input_devices, &output_devices,
-                                    &slow_output_devices) != OK) {
-    return ERROR;
-  }
+  input_devices = DeviceRegistry::GetInputDevices();
+  output_devices = DeviceRegistry::GetOutputDevices(
+      /*is_slow=*/false);
+  slow_output_devices = DeviceRegistry::GetOutputDevices(
+      /*is_slow=*/true);
   volatile size_t output_size = output_devices.size();
   volatile size_t slowoutput_size = slow_output_devices.size();
   volatile size_t input_size = input_devices.size();

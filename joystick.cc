@@ -77,7 +77,6 @@ void CenteringPotentialMeterDriver::SetMappedValue(int16_t mapped) {
   if (calibration_count_ >= calibration_samples_) {
     if (calibration_zero_count_ >= calibration_threshold_) {
       origin_ = calibration_sum_ / calibration_zero_count_;
-      printf("Set origin: %d\n", origin_);
     }
     calibration_count_ = 0;
     calibration_zero_count_ = 0;
@@ -123,15 +122,15 @@ void JoystickInputDeivce::InputTick() {
   counter_ = (counter_ + 1) % report_n_scan_;
 
   if (is_config_mode_) {
-    for (auto* config_modifier : config_modifier_) {
+    if (config_modifier_ != NULL) {
       if (y_report_speed > 0) {
-        config_modifier->Up();
+        config_modifier_->Up();
       } else if (y_report_speed < 0) {
-        config_modifier->Down();
+        config_modifier_->Down();
       }
     }
   } else {
-    for (auto* mouse_output : mouse_output_) {
+    for (auto mouse_output : *mouse_output_) {
       mouse_output->MouseMovement(x_report_speed, y_report_speed);
     }
   }
@@ -142,7 +141,7 @@ JoystickInputDeivce::CreateDefaultConfig() {
   auto config = CONFIG_OBJECT(
       CONFIG_OBJECT_ELEM("report_n_scan", CONFIG_INT(5, 1, 100)),
       CONFIG_OBJECT_ELEM("calib_samples", CONFIG_INT(1000, 0, INT32_MAX)),
-      CONFIG_OBJECT_ELEM("calib_threshold", CONFIG_INT(500, 0, INT32_MAX)),
+      CONFIG_OBJECT_ELEM("calib_threshold", CONFIG_INT(400, 0, INT32_MAX)),
       CONFIG_OBJECT_ELEM(
           "x_profile",
           CONFIG_LIST(

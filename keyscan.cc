@@ -54,7 +54,7 @@ class LayerButtonHandler : public CustomKeycodeHandler {
 REGISTER_CUSTOM_KEYCODE_HANDLER(LAYER_SWITCH, true, LayerButtonHandler);
 
 void KeyScan::SetMouseButtonState(uint8_t mouse_key, bool is_pressed) {
-  for (auto output : mouse_output_) {
+  for (auto output : *mouse_output_) {
     if (is_pressed) {
       output->MouseKeycode(mouse_key);
     }
@@ -222,13 +222,13 @@ CustomKeycodeHandler* KeyScan::HandlerRegistry::RegisteredHandlerFactory(
 }
 
 void KeyScan::NotifyOutput(const std::vector<uint8_t>& pressed_keycode) {
-  for (auto* output : keyboard_output_) {
+  for (auto output : *keyboard_output_) {
     output->SendKeycode(pressed_keycode);
   }
 }
 
 void KeyScan::LayerChanged() {
-  for (auto* output : keyboard_output_) {
+  for (auto output : *keyboard_output_) {
     output->ChangeActiveLayers(active_layers_);
   }
 }

@@ -33,7 +33,6 @@ class Config {
     INVALID = 0,
     OBJECT,
     LIST,
-    STRING,
     INTEGER,
     FLOAT,
   };

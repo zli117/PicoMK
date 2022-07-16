@@ -42,6 +42,10 @@ class SSD1306Display : virtual public ScreenOutputDevice,
                 const CustomFont& font, Mode mode) override;
   void DrawBuffer(const std::vector<uint8_t>& buffer, size_t start_row,
                   size_t start_col, size_t end_row, size_t end_col) override {}
+  void Clear() override {
+    display_->clear();
+    buffer_changed_ = true;
+  }
 
  protected:
   void CMD(uint8_t cmd);

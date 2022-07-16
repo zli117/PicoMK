@@ -15,21 +15,33 @@
 
 class GenericDevice {
  public:
+  virtual void SetTag(uint8_t tag) { tag_ = tag; }
+  virtual uint8_t GetTag() { return tag_; }
+
   virtual void OnUpdateConfig(const Config* config){};
   virtual void SetConfigMode(bool is_config_mode){};
   virtual std::pair<std::string, std::shared_ptr<Config>>
   CreateDefaultConfig() {
     return std::make_pair<std::string, std::shared_ptr<Config>>("", NULL);
   }
+
+ protected:
+  uint8_t tag_;
 };
 
 class GenericOutputDevice : virtual public GenericDevice {
  public:
+  virtual void SetSlow(bool slow) { slow_ = slow; }
+  virtual bool IsSlow() { return slow_; }
+
   // OutputTick is called from a different task than the rest methods.
   virtual void OutputTick() = 0;
 
   virtual void StartOfInputTick() = 0;
   virtual void FinalizeInputTickOutput() = 0;
+
+ protected:
+  bool slow_;
 };
 
 class KeyboardOutputDevice : virtual public GenericOutputDevice {
@@ -72,6 +84,7 @@ class ScreenOutputDevice : virtual public GenericOutputDevice {
                         const CustomFont& font, Mode mode) = 0;
   virtual void DrawBuffer(const std::vector<uint8_t>& buffer, size_t start_row,
                           size_t start_col, size_t end_row, size_t end_col) = 0;
+  virtual void Clear() = 0;
 };
 
 class LEDOutputDevice : virtual public GenericOutputDevice {
@@ -91,28 +104,34 @@ class GenericInputDevice : virtual public GenericDevice {
 
   virtual void InputLoopStart() = 0;
   virtual void InputTick() = 0;
-  virtual void AddKeyboardOutput(KeyboardOutputDevice* device);
-  virtual void AddMouseOutput(MouseOutputDevice* device);
-  virtual void AddScreenOutput(ScreenOutputDevice* device);
-  virtual void AddLEDOutput(LEDOutputDevice* device);
-  virtual void AddConfigModifier(ConfigModifier* device);
+  virtual void SetKeyboardOutputs(
+      const std::vector<std::shared_ptr<KeyboardOutputDevice>>* devices);
+  virtual void SetMouseOutputs(
+      const std::vector<std::shared_ptr<MouseOutputDevice>>* device);
+  virtual void SetScreenOutputs(
+      const std::vector<std::shared_ptr<ScreenOutputDevice>>* device);
+  virtual void SetLEDOutputs(
+      const std::vector<std::shared_ptr<LEDOutputDevice>>* device);
+  virtual void SetConfigModifier(
+      std::shared_ptr<ConfigModifier> config_modifier);
 
  protected:
-  std::vector<KeyboardOutputDevice*> keyboard_output_;
-  std::vector<MouseOutputDevice*> mouse_output_;
-  std::vector<ScreenOutputDevice*> screen_output_;
-  std::vector<LEDOutputDevice*> led_output_;
-  std::vector<ConfigModifier*> config_modifier_;
+  const std::vector<std::shared_ptr<KeyboardOutputDevice>>* keyboard_output_;
+  const std::vector<std::shared_ptr<MouseOutputDevice>>* mouse_output_;
+  const std::vector<std::shared_ptr<ScreenOutputDevice>>* screen_output_;
+  const std::vector<std::shared_ptr<LEDOutputDevice>>* led_output_;
+  std::shared_ptr<ConfigModifier> config_modifier_;
 };
 
-class ConfigModifier : public GenericOutputDevice, public GenericInputDevice {
+class ConfigModifier : virtual public GenericOutputDevice,
+                       virtual public GenericInputDevice {
  public:
   virtual void Up() = 0;
   virtual void Down() = 0;
   virtual void Select() = 0;
 
-  // At most one config modifier allowed
-  void AddConfigModifier(ConfigModifier* device) override final {}
+  void SetConfigModifier(
+      const std::shared_ptr<ConfigModifier> config_modifier) override final {}
 
   // No config for config modifier
   std::pair<std::string, std::shared_ptr<Config>> CreateDefaultConfig()
@@ -148,10 +167,9 @@ class DeviceRegistry {
                                         LEDOutputDeviceCreator func);
   static Status RegisterConfigModifier(ConfigModifierCreator func);
 
-  static Status GetAllDevices(
-      std::vector<std::shared_ptr<GenericInputDevice>>* input_devices,
-      std::vector<std::shared_ptr<GenericOutputDevice>>* output_devices,
-      std::vector<std::shared_ptr<GenericOutputDevice>>* slow_output_devices);
+  static std::vector<std::shared_ptr<GenericInputDevice>> GetInputDevices();
+  static std::vector<std::shared_ptr<GenericOutputDevice>> GetOutputDevices(
+      bool is_slow);
 
   static void UpdateConfig();
 
@@ -178,8 +196,11 @@ class DeviceRegistry {
 
   bool initialized_;
   std::vector<std::shared_ptr<GenericInputDevice>> input_devices_;
-  std::vector<std::shared_ptr<GenericOutputDevice>> output_devices_;
-  std::vector<std::shared_ptr<GenericOutputDevice>> slow_output_devices_;
+  std::vector<std::shared_ptr<KeyboardOutputDevice>> keyboard_devices_;
+  std::vector<std::shared_ptr<MouseOutputDevice>> mouse_devices_;
+  std::vector<std::shared_ptr<ScreenOutputDevice>> screen_devices_;
+  std::vector<std::shared_ptr<LEDOutputDevice>> led_devices_;
+  std::shared_ptr<ConfigModifier> config_modifier_;
 
   ConfigObject global_config_;
   std::map<GenericDevice*, std::pair<std::string, Config*>> device_to_config_;

@@ -2,21 +2,25 @@
 
 #include <algorithm>
 
-void GenericInputDevice::AddKeyboardOutput(KeyboardOutputDevice* device) {
-  keyboard_output_.push_back(device);
+void GenericInputDevice::SetKeyboardOutputs(
+    const std::vector<std::shared_ptr<KeyboardOutputDevice>>* devices) {
+  keyboard_output_ = devices;
 }
-void GenericInputDevice::AddMouseOutput(MouseOutputDevice* device) {
-  mouse_output_.push_back(device);
+void GenericInputDevice::SetMouseOutputs(
+    const std::vector<std::shared_ptr<MouseOutputDevice>>* device) {
+  mouse_output_ = device;
 }
-void GenericInputDevice::AddScreenOutput(ScreenOutputDevice* device) {
-  screen_output_.push_back(device);
+void GenericInputDevice::SetScreenOutputs(
+    const std::vector<std::shared_ptr<ScreenOutputDevice>>* device) {
+  screen_output_ = device;
 }
-void GenericInputDevice::AddLEDOutput(LEDOutputDevice* device) {
-  led_output_.push_back(device);
+void GenericInputDevice::SetLEDOutputs(
+    const std::vector<std::shared_ptr<LEDOutputDevice>>* device) {
+  led_output_ = device;
 }
-
-void GenericInputDevice::AddConfigModifier(ConfigModifier* device) {
-  config_modifier_.push_back(device);
+void GenericInputDevice::SetConfigModifier(
+    std::shared_ptr<ConfigModifier> config_modifier) {
+  config_modifier_ = config_modifier;
 }
 
 DeviceRegistry* DeviceRegistry::GetRegistry() {
@@ -108,81 +112,74 @@ void DeviceRegistry::AddConfig(GenericDevice* device) {
 void DeviceRegistry::InitializeAllDevices() {
   if (!initialized_) {
     input_devices_.clear();
-    output_devices_.clear();
-    slow_output_devices_.clear();
-
-    for (const auto [key, value] : input_creators_) {
-      auto device = value.second();
-      input_devices_.push_back(device);
-      AddConfig(device.get());
-    }
+    keyboard_devices_.clear();
+    mouse_devices_.clear();
+    screen_devices_.clear();
+    led_devices_.clear();
+    config_modifier_ = NULL;
 
     for (const auto [key, value] : GetRegistry()->keyboard_creators_) {
       bool slow = value.first;
       auto output_device = value.second();
-      if (slow) {
-        slow_output_devices_.push_back(output_device);
-      } else {
-        output_devices_.push_back(output_device);
-      }
+      keyboard_devices_.push_back(output_device);
+      output_device->SetTag(key);
+      output_device->SetSlow(slow);
       AddConfig(output_device.get());
-      for (auto input_device : input_devices_) {
-        input_device->AddKeyboardOutput(output_device.get());
-      }
     }
-
     for (const auto [key, value] : GetRegistry()->mouse_creators_) {
       bool slow = value.first;
       auto output_device = value.second();
-      if (slow) {
-        slow_output_devices_.push_back(output_device);
-      } else {
-        output_devices_.push_back(output_device);
-      }
+      mouse_devices_.push_back(output_device);
+      output_device->SetTag(key);
+      output_device->SetSlow(slow);
       AddConfig(output_device.get());
-      for (auto input_device : input_devices_) {
-        input_device->AddMouseOutput(output_device.get());
-      }
-    }
-    for (const auto [key, value] : GetRegistry()->led_output_creators_) {
-      bool slow = value.first;
-      auto output_device = value.second();
-      if (slow) {
-        slow_output_devices_.push_back(output_device);
-      } else {
-        output_devices_.push_back(output_device);
-      }
-      AddConfig(output_device.get());
-      for (auto input_device : input_devices_) {
-        input_device->AddLEDOutput(output_device.get());
-      }
     }
     for (const auto [key, value] : GetRegistry()->screen_output_creators_) {
       bool slow = value.first;
       auto output_device = value.second();
-      if (slow) {
-        slow_output_devices_.push_back(output_device);
-      } else {
-        output_devices_.push_back(output_device);
-      }
+      screen_devices_.push_back(output_device);
+      output_device->SetTag(key);
+      output_device->SetSlow(slow);
       AddConfig(output_device.get());
-      for (auto input_device : input_devices_) {
-        input_device->AddScreenOutput(output_device.get());
-      }
+    }
+    for (const auto [key, value] : GetRegistry()->led_output_creators_) {
+      bool slow = value.first;
+      auto output_device = value.second();
+      led_devices_.push_back(output_device);
+      output_device->SetTag(key);
+      output_device->SetSlow(slow);
+      AddConfig(output_device.get());
+    }
+
+    Dedup(&keyboard_devices_);
+    Dedup(&mouse_devices_);
+    Dedup(&screen_devices_);
+    Dedup(&led_devices_);
+
+    if (config_modifier_creator_.has_value()) {
+      config_modifier_ = config_modifier_creator_.value()(&global_config_);
+      config_modifier_->SetTag(0xff);
+      config_modifier_->SetSlow(false);
+      config_modifier_->SetKeyboardOutputs(&keyboard_devices_);
+      config_modifier_->SetMouseOutputs(&mouse_devices_);
+      config_modifier_->SetScreenOutputs(&screen_devices_);
+      config_modifier_->SetLEDOutputs(&led_devices_);
+      input_devices_.push_back(config_modifier_);
+    }
+
+    for (const auto [key, value] : input_creators_) {
+      auto device = value.second();
+      input_devices_.push_back(device);
+      device->SetTag(key);
+      device->SetKeyboardOutputs(&keyboard_devices_);
+      device->SetMouseOutputs(&mouse_devices_);
+      device->SetScreenOutputs(&screen_devices_);
+      device->SetLEDOutputs(&led_devices_);
+      device->SetConfigModifier(config_modifier_);
+      AddConfig(device.get());
     }
 
     Dedup(&input_devices_);
-    Dedup(&output_devices_);
-    Dedup(&slow_output_devices_);
-
-    if (config_modifier_creator_.has_value()) {
-      auto device = config_modifier_creator_.value()(&global_config_);
-      input_devices_.push_back(device);
-      output_devices_.push_back(device);
-      for (auto input_device : input_devices_) {
-        input_device->AddConfigModifier(device.get());
-      }
-    }
   }
 
   UpdateConfigImpl();
@@ -190,30 +187,47 @@ void DeviceRegistry::InitializeAllDevices() {
   initialized_ = true;
 }
 
-Status DeviceRegistry::GetAllDevices(
-    std::vector<std::shared_ptr<GenericInputDevice>>* input_devices,
-    std::vector<std::shared_ptr<GenericOutputDevice>>* output_devices,
-    std::vector<std::shared_ptr<GenericOutputDevice>>* slow_output_devices) {
+std::vector<std::shared_ptr<GenericInputDevice>>
+DeviceRegistry::GetInputDevices() {
   auto& registry = *GetRegistry();
   if (!registry.initialized_) {
     registry.InitializeAllDevices();
   }
+  return registry.input_devices_;
+}
 
-  input_devices->clear();
-  output_devices->clear();
-  slow_output_devices->clear();
-
-  for (const auto device : registry.input_devices_) {
-    input_devices->push_back(device);
+std::vector<std::shared_ptr<GenericOutputDevice>>
+DeviceRegistry::GetOutputDevices(bool is_slow) {
+  auto& registry = *GetRegistry();
+  if (!registry.initialized_) {
+    registry.InitializeAllDevices();
   }
-  for (const auto device : registry.output_devices_) {
-    output_devices->push_back(device);
+  std::vector<std::shared_ptr<GenericOutputDevice>> outputs;
+  for (auto device : registry.keyboard_devices_) {
+    if (device->IsSlow() == is_slow) {
+      outputs.push_back(device);
+    }
   }
-  for (const auto device : registry.slow_output_devices_) {
-    slow_output_devices->push_back(device);
+  for (auto device : registry.mouse_devices_) {
+    if (device->IsSlow() == is_slow) {
+      outputs.push_back(device);
+    }
   }
-
-  return OK;
+  for (auto device : registry.screen_devices_) {
+    if (device->IsSlow() == is_slow) {
+      outputs.push_back(device);
+    }
+  }
+  for (auto device : registry.led_devices_) {
+    if (device->IsSlow() == is_slow) {
+      outputs.push_back(device);
+    }
+  }
+  if (!is_slow && registry.config_modifier_ != NULL) {
+    outputs.push_back(registry.config_modifier_);
+  }
+  Dedup(&outputs);
+  return outputs;
 }
 
 void DeviceRegistry::UpdateConfigImpl() {

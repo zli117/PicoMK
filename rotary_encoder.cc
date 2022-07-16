@@ -46,15 +46,15 @@ void RotaryEncoder::SetConfigMode(bool is_config_mode) {
 
 void RotaryEncoder::HandleMovement(bool dir) {
   if (is_config_) {
-    for (auto* config_out : config_modifier_) {
+    if (config_modifier_ != NULL) {
       if (dir) {
-        config_out->Up();
+        config_modifier_->Up();
       } else {
-        config_out->Down();
+        config_modifier_->Down();
       }
     }
   } else {
-    for (auto* keyboard_out : keyboard_output_) {
+    for (auto keyboard_out : *keyboard_output_) {
       keyboard_out->SendConsumerKeycode(
           dir ? HID_USAGE_CONSUMER_VOLUME_INCREMENT
               : HID_USAGE_CONSUMER_VOLUME_DECREMENT);
