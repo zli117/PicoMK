@@ -20,7 +20,7 @@ class CenteringPotentialMeterDriver {
   // Raw ADC reading
   int16_t GetValue();
 
-  void SetMappedValue(int8_t mapped);
+  void SetMappedValue(int16_t mapped);
 
   void SetCalibrationSamples(uint32_t calibration_samples);
   void SetCalibrationThreshold(uint32_t calibration_threshold);

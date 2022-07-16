@@ -65,7 +65,7 @@ void CenteringPotentialMeterDriver::SetCalibrationThreshold(
   calibration_count_ = 0;
 }
 
-void CenteringPotentialMeterDriver::SetMappedValue(int8_t mapped) {
+void CenteringPotentialMeterDriver::SetMappedValue(int16_t mapped) {
   if (calibration_samples_ * calibration_threshold_ == 0) {
     return;
   }
@@ -77,6 +77,7 @@ void CenteringPotentialMeterDriver::SetMappedValue(int8_t mapped) {
   if (calibration_count_ >= calibration_samples_) {
     if (calibration_zero_count_ >= calibration_threshold_) {
       origin_ = calibration_sum_ / calibration_zero_count_;
+      printf("Set origin: %d\n", origin_);
     }
     calibration_count_ = 0;
     calibration_zero_count_ = 0;
@@ -140,24 +141,26 @@ std::pair<std::string, std::shared_ptr<Config>>
 JoystickInputDeivce::CreateDefaultConfig() {
   auto config = CONFIG_OBJECT(
       CONFIG_OBJECT_ELEM("report_n_scan", CONFIG_INT(5, 1, 100)),
-      CONFIG_OBJECT_ELEM("calib_samples", CONFIG_INT(0, 1000, INT32_MAX)),
-      CONFIG_OBJECT_ELEM("calib_threshold", CONFIG_INT(0, 500, INT32_MAX)),
+      CONFIG_OBJECT_ELEM("calib_samples", CONFIG_INT(1000, 0, INT32_MAX)),
+      CONFIG_OBJECT_ELEM("calib_threshold", CONFIG_INT(500, 0, INT32_MAX)),
       CONFIG_OBJECT_ELEM(
           "x_profile",
           CONFIG_LIST(
               CONFIG_PAIR(CONFIG_INT(20, 0, 2048), CONFIG_INT(40, 40, 1000)),
               CONFIG_PAIR(CONFIG_INT(700, 0, 2048), CONFIG_INT(80, 40, 1000)),
               CONFIG_PAIR(CONFIG_INT(1000, 0, 2048), CONFIG_INT(120, 40, 1000)),
+              CONFIG_PAIR(CONFIG_INT(1500, 0, 2048), CONFIG_INT(180, 40, 1000)),
               CONFIG_PAIR(CONFIG_INT(2000, 0, 2048),
-                          CONFIG_INT(280, 40, 1000)))),
+                          CONFIG_INT(300, 40, 1000)))),
       CONFIG_OBJECT_ELEM(
           "y_profile",
           CONFIG_LIST(
               CONFIG_PAIR(CONFIG_INT(20, 0, 2048), CONFIG_INT(40, 40, 1000)),
               CONFIG_PAIR(CONFIG_INT(700, 0, 2048), CONFIG_INT(80, 40, 1000)),
               CONFIG_PAIR(CONFIG_INT(1000, 0, 2048), CONFIG_INT(120, 40, 1000)),
+              CONFIG_PAIR(CONFIG_INT(1500, 0, 2048), CONFIG_INT(180, 40, 1000)),
               CONFIG_PAIR(CONFIG_INT(2000, 0, 2048),
-                          CONFIG_INT(280, 40, 1000)))));
+                          CONFIG_INT(300, 40, 1000)))));
 
   return {"joystick", config};
 }
