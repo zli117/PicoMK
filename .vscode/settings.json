@@ -88,4 +88,5 @@
     "typeinfo": "cpp",
     "optional": "cpp"
   },
+  "C_Cpp.intelliSenseEngineFallback": "Enabled",
 }

@@ -95,7 +95,7 @@ void Dedup(std::vector<std::shared_ptr<T>>* devices) {
 }
 
 void DeviceRegistry::AddConfig(GenericDevice* device) {
-  if (device_to_config_.find(device) != device_to_config_.end()) {
+  if (device_to_config_.find(device) == device_to_config_.end()) {
     auto [name, config] = device->CreateDefaultConfig();
     if (config == NULL) {
       return;

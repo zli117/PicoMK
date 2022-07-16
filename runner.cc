@@ -33,6 +33,9 @@ Status RunnerInit() {
                                     &slow_output_devices) != OK) {
     return ERROR;
   }
+  volatile size_t output_size = output_devices.size();
+  volatile size_t slowoutput_size = slow_output_devices.size();
+  volatile size_t input_size = input_devices.size();
   if (USBInit() != OK) {
     return ERROR;
   }

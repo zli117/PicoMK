@@ -3,6 +3,7 @@
 #include <algorithm>
 
 #include "FreeRTOS.h"
+#include "FreeRTOSConfig.h"
 #include "config.h"
 #include "hardware/adc.h"
 #include "semphr.h"
@@ -85,31 +86,52 @@ void CenteringPotentialMeterDriver::SetMappedValue(int8_t mapped) {
 
 JoystickInputDeivce::JoystickInputDeivce(uint8_t x_adc_pin, uint8_t y_adc_pin,
                                          size_t buffer_size, bool flip_x_dir,
-                                         bool flip_y_dir)
+                                         bool flip_y_dir,
+                                         uint8_t scan_num_ticks)
     : x_(x_adc_pin, buffer_size, flip_x_dir),
       y_(y_adc_pin, buffer_size, flip_y_dir),
-      divider_(1),
-      is_config_mode_(false) {}
+      report_n_scan_(1),
+      counter_(0),
+      x_move_(0),
+      y_move_(0),
+      is_config_mode_(false),
+      scan_num_ticks_(scan_num_ticks) {
+  profile_x_.push_back({0, 0});
+  profile_y_.push_back({0, 0});
+}
 
 void JoystickInputDeivce::InputTick() {
   // We still sample at the normal frequency, but only update member speed
   // variable when counter expires.
-  const int8_t x_speed = GetSpeed(profile_x_, x_.GetValue());
-  const int8_t y_speed = GetSpeed(profile_x_, y_.GetValue());
+  const int16_t x_speed = GetSpeed(profile_x_, x_.GetValue());
+  const int16_t y_speed = GetSpeed(profile_x_, y_.GetValue());
   x_.SetMappedValue(x_speed);
   y_.SetMappedValue(y_speed);
 
+  if (counter_ == 0) {
+    const int16_t tick_hz = configTICK_RATE_HZ;
+    x_move_ = x_speed * report_n_scan_ * scan_num_ticks_ / tick_hz;
+    y_move_ = y_speed * report_n_scan_ * scan_num_ticks_ / tick_hz;
+  }
+
+  const int8_t x_report_speed = x_move_ / (scan_num_ticks_ - counter_);
+  const int8_t y_report_speed = y_move_ / (scan_num_ticks_ - counter_);
+  x_move_ -= x_report_speed;
+  y_move_ -= y_report_speed;
+
+  counter_ = (counter_ + 1) % report_n_scan_;
+
   if (is_config_mode_) {
     for (auto* config_modifier : config_modifier_) {
-      if (y_speed > 0) {
+      if (y_report_speed > 0) {
         config_modifier->Up();
-      } else if (y_speed < 0) {
+      } else if (y_report_speed < 0) {
         config_modifier->Down();
       }
     }
   } else {
     for (auto* mouse_output : mouse_output_) {
-      mouse_output->MouseMovement(x_speed, y_speed);
+      mouse_output->MouseMovement(x_report_speed, y_report_speed);
     }
   }
 }
@@ -117,7 +139,7 @@ void JoystickInputDeivce::InputTick() {
 std::pair<std::string, std::shared_ptr<Config>>
 JoystickInputDeivce::CreateDefaultConfig() {
   auto config = CONFIG_OBJECT(
-      CONFIG_OBJECT_ELEM("speed_divider", CONFIG_INT(5, 1, 100)),
+      CONFIG_OBJECT_ELEM("report_n_scan", CONFIG_INT(5, 1, 100)),
       CONFIG_OBJECT_ELEM("calib_samples", CONFIG_INT(0, 1000, INT32_MAX)),
       CONFIG_OBJECT_ELEM("calib_threshold", CONFIG_INT(0, 500, INT32_MAX)),
       CONFIG_OBJECT_ELEM(
@@ -158,7 +180,7 @@ Status JoystickInputDeivce::ParseProfileConfig(
         pair[1]->GetType() != Config::INTEGER) {
       return ERROR;
     }
-    output->push_back(std::make_pair<uint16_t, uint8_t>(
+    output->push_back(std::make_pair<uint16_t, uint16_t>(
         ((ConfigInt*)(pair[0].get()))->GetValue(),
         ((ConfigInt*)(pair[1].get()))->GetValue()));
   }
@@ -178,16 +200,17 @@ void JoystickInputDeivce::OnUpdateConfig(const Config* config) {
 
   // Get speed divider
 
-  auto it = root_map.find("speed_divider");
+  auto it = root_map.find("report_n_scan");
   if (it == root_map.end()) {
-    LOG_ERROR("Can't find `speed_divider` in config");
+    LOG_ERROR("Can't find `report_n_scan` in config");
     return;
   }
   if (it->second->GetType() != Config::INTEGER) {
-    LOG_ERROR("`speed_divider` invalid type");
+    LOG_ERROR("`report_n_scan` invalid type");
     return;
   }
-  divider_ = ((ConfigInt*)it->second.get())->GetValue();
+  report_n_scan_ = ((ConfigInt*)it->second.get())->GetValue();
+  counter_ = 0;
 
   // Get calibration samples
 
@@ -256,7 +279,7 @@ void JoystickInputDeivce::SetConfigMode(bool is_config_mode) {
   is_config_mode_ = is_config_mode;
 }
 
-int8_t JoystickInputDeivce::GetSpeed(
+int16_t JoystickInputDeivce::GetSpeed(
     const std::vector<std::pair<uint16_t, uint16_t>>& profile,
     int16_t reading) {
   const uint16_t abs = reading < 0 ? -reading : reading;
@@ -264,15 +287,15 @@ int8_t JoystickInputDeivce::GetSpeed(
 
   // Use dumb for loop instead of std::lower_bound to save binary size. Assuming
   // profile is already sorted.
-  uint16_t speed = profile.back().second * sign;
+  int16_t speed = profile.back().second * sign;
   for (size_t i = 1; i < profile.size(); ++i) {
     if (abs < profile[i].first && abs >= profile[i - 1].first) {
-      speed =  profile[i - 1].second * sign;
+      speed = profile[i - 1].second * sign;
       break;
     }
   }
 
-  return speed / divider_;
+  return speed;
 }
 
 #if CONFIG_ENABLE_JOYSTICK
@@ -281,7 +304,7 @@ static Status registered = DeviceRegistry::RegisterInputDevice(2, []() {
   return std::make_shared<JoystickInputDeivce>(
       CONFIG_JOYSTICK_GPIO_X, CONFIG_JOYSTICK_GPIO_Y,
       CONFIG_JOYSTICK_SMOOTH_BUFFER_LEN, CONFIG_JOYSTICK_FLIP_X_DIR,
-      CONFIG_JOYSTICK_FLIP_Y_DIR);
+      CONFIG_JOYSTICK_FLIP_Y_DIR, CONFIG_SCAN_TICKS);
 });
 
 #endif /* CONFIG_ENABLE_JOYSTICK */

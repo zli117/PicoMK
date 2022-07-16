@@ -41,10 +41,10 @@ class CenteringPotentialMeterDriver {
   uint32_t calibration_count_;
 };
 
-class JoystickInputDeivce : public GenericInputDevice {
+class JoystickInputDeivce : virtual public GenericInputDevice {
  public:
   JoystickInputDeivce(uint8_t x_adc_pin, uint8_t y_adc_pin, size_t buffer_size,
-                      bool flip_x_dir, bool flip_y_dir);
+                      bool flip_x_dir, bool flip_y_dir, uint8_t scan_num_ticks);
 
   void InputLoopStart() override {}
   void InputTick() override;
@@ -54,7 +54,7 @@ class JoystickInputDeivce : public GenericInputDevice {
   void OnUpdateConfig(const Config* config) override;
 
  protected:
-  int8_t GetSpeed(const std::vector<std::pair<uint16_t, uint16_t>>& profile,
+  int16_t GetSpeed(const std::vector<std::pair<uint16_t, uint16_t>>& profile,
                    int16_t reading);
 
   Status ParseProfileConfig(const ConfigList& list,
@@ -64,8 +64,12 @@ class JoystickInputDeivce : public GenericInputDevice {
   CenteringPotentialMeterDriver y_;
   std::vector<std::pair<uint16_t, uint16_t>> profile_x_;
   std::vector<std::pair<uint16_t, uint16_t>> profile_y_;
-  uint8_t divider_;
+  int16_t report_n_scan_;
+  uint8_t counter_;
+  int16_t x_move_;
+  int16_t y_move_;
   bool is_config_mode_;
+  const int16_t scan_num_ticks_;
 
   // SemaphoreHandle_t semaphore_;
 };
