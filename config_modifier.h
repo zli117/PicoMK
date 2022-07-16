@@ -28,7 +28,9 @@ class ConfigUIBase {
 class ListUI : public ConfigUIBase {
  public:
   ListUI(ConfigModifiersImpl* config_modifier, ScreenOutputDevice* screen)
-      : ConfigUIBase(config_modifier, screen) {}
+      : ConfigUIBase(config_modifier, screen),
+        current_highlight_(0),
+        draw_start_(0) {}
 
   void OnUp() override;
   void OnDown() override;

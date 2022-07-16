@@ -11,6 +11,7 @@
 #include "hardware/gpio.h"
 #include "layout.h"
 #include "pico/stdlib.h"
+#include "runner.h"
 #include "semphr.h"
 #include "tusb.h"
 #include "utils.h"
@@ -37,6 +38,7 @@ class LayerButtonHandler : public CustomKeycodeHandler {
     const uint8_t layer = kc.custom_info & 0x3f;
     if (is_pressed) {
       if (toggle) {
+        LOG_INFO("Toggle layer %d", layer);
         key_scan_->ToggleLayerStatus(layer);
       } else {
         key_scan_->SetLayerStatus(layer, true);
@@ -53,6 +55,39 @@ class LayerButtonHandler : public CustomKeycodeHandler {
 
 REGISTER_CUSTOM_KEYCODE_HANDLER(LAYER_SWITCH, true, LayerButtonHandler);
 
+class EnterConfigHandler : public CustomKeycodeHandler {
+ public:
+  void ProcessKeyState(Keycode kc, bool is_pressed) override {
+    if (is_pressed) {
+      runner::SetConfigMode(true);
+    }
+  }
+
+  std::string GetName() const override { return "Enter config mode"; }
+};
+
+REGISTER_CUSTOM_KEYCODE_HANDLER(ENTER_CONFIG, true, EnterConfigHandler);
+
+class ConfigSelHandler : public CustomKeycodeHandler {
+ public:
+  ConfigSelHandler() : currently_pressed_(false) {}
+
+  void ProcessKeyState(Keycode kc, bool is_pressed) override {
+    if (is_pressed && !currently_pressed_) {
+      LOG_INFO("Config select");
+      key_scan_->ConfigSelect();
+    }
+    currently_pressed_ = is_pressed;
+  }
+
+  std::string GetName() const override { return "Config sel handler"; }
+
+ private:
+  bool currently_pressed_;
+};
+
+REGISTER_CUSTOM_KEYCODE_HANDLER(CONFIG_SEL, true, ConfigSelHandler);
+
 void KeyScan::SetMouseButtonState(uint8_t mouse_key, bool is_pressed) {
   for (auto output : *mouse_output_) {
     if (is_pressed) {
@@ -60,6 +95,12 @@ void KeyScan::SetMouseButtonState(uint8_t mouse_key, bool is_pressed) {
     }
   }
 }
+
+void KeyScan::ConfigUp() { config_modifier_->Up(); }
+
+void KeyScan::ConfigDown() { config_modifier_->Down(); }
+
+void KeyScan::ConfigSelect() { config_modifier_->Select(); }
 
 void KeyScan::InputLoopStart() { LayerChanged(); }
 

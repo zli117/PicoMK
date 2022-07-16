@@ -52,15 +52,15 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
     {K(K_CAPS),  K(K_GUI_L),  K(K_ALT_L), K(K_SPACE), MO(1),      MO(2),      K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
     {CK(MSE_L),  CK(MSE_M),   CK(MSE_R)}
   },
-  [1]={{[0]=CK(20)}},
-  [2]={
+  [1]={
     {K(K_MUTE),  K(K_GRAVE),  K(K_3),     K(K_4),     K(K_5),     K(K_4),     K(K_5),     K(K_6),     K(K_7),     K(K_8),     K(K_9),     K(K_0),     K(K_MINUS), K(K_EQUAL), K(K_BACKS)},
     {K(K_ESC),   K(K_TAB),    K(K_3),     K(K_4),     K(K_5),     K(K_R),     K(K_T),     K(K_Y),     K(K_U),     K(K_I),     K(K_O),     K(K_P),     K(K_BRKTL), K(K_BRKTR), K(K_BKSL)},
     {K(K_DEL),   K(K_CTR_L),  K(K_3),     K(K_4),     K(K_5),     K(K_F),     K(K_G),     K(K_H),     K(K_J),     K(K_K),     K(K_L),     K(K_SEMIC), K(K_APST),  K(K_ENTER)},
     {K(K_INS),   K(K_SFT_L),  K(K_3),     K(K_4),     K(K_5),     K(K_V),     K(K_B),     K(K_N),     K(K_M),     K(K_COMMA), K(K_PERID), K(K_SLASH), K(K_SFT_R)},
-    {K(K_CAPS),  K(K_GUI_L),  K(K_ALT_L), K(K_SPACE), ______,     ______,    K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
+    {CONFIG,     TG(2),       K(K_ALT_L), CONFIG,     ______,     ______,     K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
     {CK(MSE_L),  CK(MSE_M),   CK(MSE_R)}
   },
+  [2]={{CK(CONFIG_SEL)}}
 };
 
 // clang-format on

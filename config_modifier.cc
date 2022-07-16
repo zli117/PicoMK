@@ -13,7 +13,8 @@ void ListUI::ListDrawImpl(const std::vector<std::string>& content) {
   ScreenOutputDevice::Font font = ScreenOutputDevice::F8X8;
   screen_->Clear();
   for (size_t i = 0;
-       i < content.size() - draw_start_ && i < screen_->GetNumRows(); ++i) {
+       i < content.size() - draw_start_ && i < screen_->GetNumRows() / 8; ++i) {
+    LOG_INFO("Draw text: %s", content[i + draw_start_]);
     screen_->DrawText(i * 8, 8, content[i + draw_start_], font,
                       ScreenOutputDevice::ADD);
   }
@@ -38,7 +39,7 @@ void ListUI::OnDown() {
     return;
   }
   current_highlight_ += 1;
-  if (current_highlight_ >= draw_start_ + screen_->GetNumRows()) {
+  if (current_highlight_ >= draw_start_ + screen_->GetNumRows() / 8) {
     draw_start_ += 1;
   }
   redraw_ = true;
@@ -59,6 +60,7 @@ void HomeScreen::OnSelect() {
   if (current_highlight_ == 0) {
     config_modifier_->PushUI(std::make_shared<ConfigObjectScreen>(
         config_modifier_, screen_, global_config_object_));
+    redraw_ = true;
   }
   if (current_highlight_ == 1) {
   }
@@ -111,7 +113,7 @@ ConfigObjectScreen::ConfigObjectScreen(ConfigModifiersImpl* config_modifier,
   for (const auto& [k, v] : map) {
     keys_.push_back(k);
   }
-  std::sort(keys_.begin(), keys_.end());
+  std::sort(keys_.begin() + 1, keys_.end());
 }
 
 void ConfigObjectScreen::Draw() {
@@ -127,9 +129,11 @@ void ConfigObjectScreen::OnSelect() {
     config_modifier_->PopUI();
     return;
   }
-  const std::string& key = keys_[current_highlight_ - 1];
+  LOG_INFO("current_highlight_ : %d", current_highlight_);
+  const std::string& key = keys_[current_highlight_];
   Config* child = config_object_->GetMembers()->at(key).get();
   DispatchChild(child, config_modifier_, screen_);
+  redraw_ = true;  // This is for when we are back at this screen
 }
 
 uint32_t ConfigObjectScreen::GetListLength() { return keys_.size(); }
@@ -163,6 +167,7 @@ void ConfigListScreen::OnSelect() {
   }
   Config* child = config_list_->GetList()->at(current_highlight_ - 1).get();
   DispatchChild(child, config_modifier_, screen_);
+  redraw_ = true;  // This is for when we are back at this screen
 }
 
 uint32_t ConfigListScreen::GetListLength() { return indices_.size(); }
@@ -246,12 +251,15 @@ void ConfigModifiersImpl::SetScreenOutputs(
 }
 
 void ConfigModifiersImpl::SetConfigMode(bool is_config_mode) {
-  is_config_ = is_config_mode;
-  if (is_config_ && screen_ != NULL) {
+  if (is_config_mode && screen_ != NULL) {
     ui_stack_.clear();
     ui_stack_.push_back(
         std::make_shared<HomeScreen>(this, screen_.get(), global_config_));
     pop_ui_ = false;
+    is_config_ = is_config_mode;
+    LOG_INFO("ENTER CONFIG MODE");
+  } else if (is_config_mode) {
+    runner::SetConfigMode(false);
   }
 }
 
@@ -285,12 +293,13 @@ void ConfigModifiersImpl::PopUI() { pop_ui_ = true; }
 void ConfigModifiersImpl::EndConfig() {
   ui_stack_.clear();
   ui_stack_.shrink_to_fit();
-  SetConfigMode(false);
-  NotifyConfigChange();
+  screen_->Clear();
+  runner::SetConfigMode(false);
+  runner::NotifyConfigChange();
 }
 
 void ConfigModifiersImpl::FinalizeInputTickOutput() {
-  if (screen_ == NULL) {
+  if (screen_ == NULL || !is_config_ || ui_stack_.empty()) {
     return;
   }
   if (pop_ui_) {

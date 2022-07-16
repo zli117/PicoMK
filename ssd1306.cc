@@ -31,7 +31,8 @@ SSD1306Display::SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin,
       buffer_changed_(false),
       send_buffer_(true),
       last_active_s_(0),
-      sleep_(false) {
+      sleep_(false),
+      config_mode_(false) {
   i2c_init(i2c_, 400 * 1000);
   gpio_set_function(sda_pin_, GPIO_FUNC_I2C);
   gpio_set_function(scl_pin_, GPIO_FUNC_I2C);
@@ -55,6 +56,11 @@ SSD1306Display::SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin,
   busy_wait_ms(250);
 
   last_active_s_ = time_us_64() / 1000000;
+}
+
+void SSD1306Display::SetConfigMode(bool is_config_mode) {
+  LockSemaphore lock(semaphore_);
+  config_mode_ = is_config_mode;
 }
 
 void SSD1306Display::OutputTick() {
@@ -114,6 +120,9 @@ void SSD1306Display::FinalizeInputTickOutput() {
 }
 
 void SSD1306Display::ChangeActiveLayers(const std::vector<bool>& layers) {
+  if (config_mode_) {
+    return;
+  }
   for (size_t i = 0; i < layers.size() && i < 16; ++i) {
     DrawRect(1, i * 8 + 1, 7, i * 8 + 7, /*fill=*/true,
              layers[i] ? ADD : SUBTRACT);

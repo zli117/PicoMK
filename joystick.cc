@@ -122,13 +122,7 @@ void JoystickInputDeivce::InputTick() {
   counter_ = (counter_ + 1) % report_n_scan_;
 
   if (is_config_mode_) {
-    if (config_modifier_ != NULL) {
-      if (y_report_speed > 0) {
-        config_modifier_->Up();
-      } else if (y_report_speed < 0) {
-        config_modifier_->Down();
-      }
-    }
+    return;
   } else {
     for (auto mouse_output : *mouse_output_) {
       mouse_output->MouseMovement(x_report_speed, y_report_speed);

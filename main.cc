@@ -19,8 +19,8 @@ extern "C" void vApplicationStackOverflowHook(TaskHandle_t pxTask,
 extern "C" void vApplicationTickHook(void) {}
 
 int main() {
-  RunnerInit();
-  RunnerStart();
+  runner::RunnerInit();
+  runner::RunnerStart();
 
   vTaskStartScheduler();
 

@@ -50,6 +50,9 @@ class KeyScan : public GenericInputDevice {
   std::vector<uint8_t> GetActiveLayers();
 
   void SetMouseButtonState(uint8_t mouse_key, bool is_pressed);
+  void ConfigUp();
+  void ConfigDown();
+  void ConfigSelect();
 
  protected:
   struct DebounceTimer {

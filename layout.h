@@ -32,6 +32,8 @@ enum BuiltInCustomKeyCode {
   MSE_BACK,
   MSE_FORWARD,
   LAYER_SWITCH,
+  ENTER_CONFIG,
+  CONFIG_SEL,
   TOTAL_BUILT_IN_KC
 };
 

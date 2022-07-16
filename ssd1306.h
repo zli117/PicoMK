@@ -19,6 +19,7 @@ class SSD1306Display : virtual public ScreenOutputDevice,
                  uint8_t i2c_addr, NumRows num_rows, bool flip,
                  uint32_t sleep_s);
 
+  void SetConfigMode(bool is_config_mode) override;
   void OutputTick() override;
 
   void StartOfInputTick() override;
@@ -68,6 +69,7 @@ class SSD1306Display : virtual public ScreenOutputDevice,
   bool send_buffer_;
   uint32_t last_active_s_;
   bool sleep_;
+  bool config_mode_;
 
   SemaphoreHandle_t semaphore_;
 };

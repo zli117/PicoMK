@@ -28,6 +28,8 @@ static SemaphoreHandle_t semaphore;
 static bool is_config_mode;
 static bool update_config_flag;
 
+namespace runner {
+
 Status RunnerInit() {
   input_devices = DeviceRegistry::GetInputDevices();
   output_devices = DeviceRegistry::GetOutputDevices(
@@ -261,3 +263,5 @@ void NotifyConfigChange() {
   LockSemaphore lock(semaphore);
   update_config_flag = true;
 }
+
+}  // namespace runner

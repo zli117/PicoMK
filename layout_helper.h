@@ -27,6 +27,8 @@
 #define G(ROW, COL) \
   { .row = (ROW), .col = (COL) }
 
+#define CONFIG CK(ENTER_CONFIG)
+
 // clang-format off
 
 // Alias with shorter names. Each name should be no more than 7 characters long.
