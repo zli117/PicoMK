@@ -11,8 +11,12 @@ class ConfigModifiersImpl;
 
 class ConfigUIBase {
  public:
-  ConfigUIBase(ConfigModifiersImpl* config_modifier, ScreenOutputDevice* screen)
-      : config_modifier_(config_modifier), screen_(screen), redraw_(true) {}
+  ConfigUIBase(ConfigModifiersImpl* config_modifier, ScreenOutputDevice* screen,
+               uint8_t screen_top_margin)
+      : config_modifier_(config_modifier),
+        screen_(screen),
+        redraw_(true),
+        screen_top_margin_(screen_top_margin) {}
 
   virtual void Draw() = 0;
   virtual void OnUp() = 0;
@@ -20,15 +24,25 @@ class ConfigUIBase {
   virtual void OnSelect() = 0;
 
  protected:
+  inline uint8_t GetScreenNumRows() {
+    return (screen_->GetNumRows() - screen_top_margin_) / 8;
+  }
+
+  ScreenOutputDevice::Font GetFont() {
+    return ScreenOutputDevice::F8X8;
+  }
+
   ConfigModifiersImpl* config_modifier_;
   ScreenOutputDevice* screen_;
   bool redraw_;
+  const uint8_t screen_top_margin_;
 };
 
 class ListUI : public ConfigUIBase {
  public:
-  ListUI(ConfigModifiersImpl* config_modifier, ScreenOutputDevice* screen)
-      : ConfigUIBase(config_modifier, screen),
+  ListUI(ConfigModifiersImpl* config_modifier, ScreenOutputDevice* screen,
+         uint8_t screen_top_margin)
+      : ConfigUIBase(config_modifier, screen, screen_top_margin),
         current_highlight_(0),
         draw_start_(0) {}
 
@@ -47,8 +61,8 @@ class ListUI : public ConfigUIBase {
 class HomeScreen : public ListUI {
  public:
   HomeScreen(ConfigModifiersImpl* config_modifier, ScreenOutputDevice* screen,
-             ConfigObject* global_config_object)
-      : ListUI(config_modifier, screen),
+             ConfigObject* global_config_object, uint8_t screen_top_margin)
+      : ListUI(config_modifier, screen, screen_top_margin),
         global_config_object_(global_config_object) {}
 
   void Draw() override;
@@ -63,7 +77,8 @@ class HomeScreen : public ListUI {
 class ConfigObjectScreen : public ListUI {
  public:
   ConfigObjectScreen(ConfigModifiersImpl* config_modifier,
-                     ScreenOutputDevice* screen, ConfigObject* config_object);
+                     ScreenOutputDevice* screen, ConfigObject* config_object,
+                     uint8_t screen_top_margin);
 
   void Draw() override;
   void OnSelect() override;
@@ -78,7 +93,8 @@ class ConfigObjectScreen : public ListUI {
 class ConfigListScreen : public ListUI {
  public:
   ConfigListScreen(ConfigModifiersImpl* config_modifier,
-                   ScreenOutputDevice* screen, ConfigList* config_list);
+                   ScreenOutputDevice* screen, ConfigList* config_list,
+                   uint8_t screen_top_margin);
 
   void Draw() override;
   void OnSelect() override;
@@ -93,8 +109,10 @@ class ConfigListScreen : public ListUI {
 class ConfigIntScreen : public ConfigUIBase {
  public:
   ConfigIntScreen(ConfigModifiersImpl* config_modifier,
-                  ScreenOutputDevice* screen, ConfigInt* config_int)
-      : ConfigUIBase(config_modifier, screen), config_int_(config_int) {}
+                  ScreenOutputDevice* screen, ConfigInt* config_int,
+                  uint8_t screen_top_margin)
+      : ConfigUIBase(config_modifier, screen, screen_top_margin),
+        config_int_(config_int) {}
 
   void Draw() override;
   void OnUp() override;
@@ -108,8 +126,10 @@ class ConfigIntScreen : public ConfigUIBase {
 class ConfigFloatScreen : public ConfigUIBase {
  public:
   ConfigFloatScreen(ConfigModifiersImpl* config_modifier,
-                    ScreenOutputDevice* screen, ConfigFloat* config_float)
-      : ConfigUIBase(config_modifier, screen), config_float_(config_float) {}
+                    ScreenOutputDevice* screen, ConfigFloat* config_float,
+                    uint8_t screen_top_margin)
+      : ConfigUIBase(config_modifier, screen, screen_top_margin),
+        config_float_(config_float) {}
 
   void Draw() override;
   void OnUp() override;
@@ -122,9 +142,11 @@ class ConfigFloatScreen : public ConfigUIBase {
 
 class ConfigModifiersImpl : virtual public ConfigModifier {
  public:
-  ConfigModifiersImpl(ConfigObject* global_config, uint8_t screen_tag)
+  ConfigModifiersImpl(ConfigObject* global_config, uint8_t screen_tag,
+                      uint8_t screen_top_margin)
       : global_config_(global_config),
         screen_tag_(screen_tag),
+        screen_top_margin_(screen_top_margin),
         screen_(NULL),
         is_config_(false) {}
 
@@ -151,6 +173,7 @@ class ConfigModifiersImpl : virtual public ConfigModifier {
  protected:
   ConfigObject* const global_config_;
   const uint8_t screen_tag_;
+  const uint8_t screen_top_margin_;
   std::shared_ptr<ScreenOutputDevice> screen_;
   std::vector<std::shared_ptr<ConfigUIBase>> ui_stack_;
   bool is_config_;  // No need to lock since there's no OutputTick

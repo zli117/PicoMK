@@ -133,56 +133,10 @@ extern "C" void InputDeviceTask(void* parameter) {
 
   bool local_is_config_mode = false;
 
-  // Pre loop run
-  for (auto output_device : output_devices) {
-    output_device->StartOfInputTick();
-  }
-  for (auto output_device : slow_output_devices) {
-    output_device->StartOfInputTick();
-  }
-
-  for (auto input_device : input_devices) {
-    input_device->InputLoopStart();
-  }
-
-  for (auto output_device : output_devices) {
-    output_device->FinalizeInputTickOutput();
-  }
-  for (auto output_device : slow_output_devices) {
-    output_device->FinalizeInputTickOutput();
-  }
-
   while (true) {
-    // Wait for the timer callback to wake it up. Running this outside the timer
-    // context to avoid overflowing the timer task.
-    xTaskNotifyWait(/*do not clear notification on enter*/ 0,
-                    /*clear notification on exit*/ 0xffffffff,
-                    /*pulNotificationValue=*/NULL, portMAX_DELAY);
-    const uint64_t start_time = time_us_64();
-    bool should_change_config_mode;
-    bool should_update_config;
-    {
-      LockSemaphore lock(semaphore);
-      should_change_config_mode = local_is_config_mode != is_config_mode;
-      should_update_config = update_config_flag;
-      update_config_flag = false;
-    }
-    if (should_change_config_mode) {
-      local_is_config_mode = !local_is_config_mode;
-      for (auto device : output_devices) {
-        device->SetConfigMode(local_is_config_mode);
-      }
-      for (auto device : input_devices) {
-        device->SetConfigMode(local_is_config_mode);
-      }
-      for (auto device : slow_output_devices) {
-        device->SetConfigMode(local_is_config_mode);
-      }
-    }
-    if (should_update_config) {
-      DeviceRegistry::UpdateConfig();
-    }
+    // Initialization
 
+    DeviceRegistry::UpdateConfig();
     for (auto output_device : output_devices) {
       output_device->StartOfInputTick();
     }
@@ -191,7 +145,7 @@ extern "C" void InputDeviceTask(void* parameter) {
     }
 
     for (auto input_device : input_devices) {
-      input_device->InputTick();
+      input_device->InputLoopStart();
     }
 
     for (auto output_device : output_devices) {
@@ -200,8 +154,59 @@ extern "C" void InputDeviceTask(void* parameter) {
     for (auto output_device : slow_output_devices) {
       output_device->FinalizeInputTickOutput();
     }
-    const uint64_t end_time = time_us_64();
-    LOG_DEBUG("Input task per iteration takes %d us", end_time - start_time);
+
+    while (true) {
+      // Wait for the timer callback to wake it up. Running this outside the
+      // timer context to avoid overflowing the timer task.
+      xTaskNotifyWait(/*do not clear notification on enter*/ 0,
+                      /*clear notification on exit*/ 0xffffffff,
+                      /*pulNotificationValue=*/NULL, portMAX_DELAY);
+      const uint64_t start_time = time_us_64();
+      bool should_change_config_mode;
+      bool should_update_config;
+      {
+        LockSemaphore lock(semaphore);
+        should_change_config_mode = local_is_config_mode != is_config_mode;
+        should_update_config = update_config_flag;
+        update_config_flag = false;
+      }
+      if (should_change_config_mode) {
+        local_is_config_mode = !local_is_config_mode;
+        for (auto device : output_devices) {
+          device->SetConfigMode(local_is_config_mode);
+        }
+        for (auto device : input_devices) {
+          device->SetConfigMode(local_is_config_mode);
+        }
+        for (auto device : slow_output_devices) {
+          device->SetConfigMode(local_is_config_mode);
+        }
+      }
+      if (should_update_config) {
+        // Rerun the initialization
+        break;
+      }
+
+      for (auto output_device : output_devices) {
+        output_device->StartOfInputTick();
+      }
+      for (auto output_device : slow_output_devices) {
+        output_device->StartOfInputTick();
+      }
+
+      for (auto input_device : input_devices) {
+        input_device->InputTick();
+      }
+
+      for (auto output_device : output_devices) {
+        output_device->FinalizeInputTickOutput();
+      }
+      for (auto output_device : slow_output_devices) {
+        output_device->FinalizeInputTickOutput();
+      }
+      const uint64_t end_time = time_us_64();
+      LOG_DEBUG("Input task per iteration takes %d us", end_time - start_time);
+    }
   }
 }
 

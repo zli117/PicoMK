@@ -24,7 +24,8 @@ class KeyScan;
 
 class CustomKeycodeHandler {
  public:
-  virtual void ProcessKeyState(Keycode kc, bool is_pressed) = 0;
+  virtual void ProcessKeyState(Keycode kc, bool is_pressed, size_t sink_idx,
+                               size_t source_idx) = 0;
   virtual void SetOuterClass(KeyScan* keyscan) { key_scan_ = keyscan; }
   virtual std::string GetName() const = 0;
 

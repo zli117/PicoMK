@@ -10,9 +10,6 @@
 #include "pico-ssd1306/textRenderer/8x8_font.h"
 #include "pico-ssd1306/textRenderer/TextRenderer.h"
 
-// Debug
-#include "hardware/timer.h"
-
 using pico_ssd1306::Size;
 using pico_ssd1306::SSD1306;
 using pico_ssd1306::WriteMode;

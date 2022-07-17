@@ -16,78 +16,6 @@
 #include "tusb.h"
 #include "utils.h"
 
-class MouseButtonHandler : public CustomKeycodeHandler {
- public:
-  void ProcessKeyState(Keycode kc, bool is_pressed) override {
-    key_scan_->SetMouseButtonState(kc.keycode, is_pressed);
-  }
-
-  std::string GetName() const override { return "Mouse key handler"; }
-};
-
-REGISTER_CUSTOM_KEYCODE_HANDLER(MSE_L, true, MouseButtonHandler);
-REGISTER_CUSTOM_KEYCODE_HANDLER(MSE_R, true, MouseButtonHandler);
-REGISTER_CUSTOM_KEYCODE_HANDLER(MSE_M, true, MouseButtonHandler);
-REGISTER_CUSTOM_KEYCODE_HANDLER(MSE_BACK, true, MouseButtonHandler);
-REGISTER_CUSTOM_KEYCODE_HANDLER(MSE_FORWARD, true, MouseButtonHandler);
-
-class LayerButtonHandler : public CustomKeycodeHandler {
- public:
-  void ProcessKeyState(Keycode kc, bool is_pressed) override {
-    const bool toggle = kc.custom_info & 0x40;
-    const uint8_t layer = kc.custom_info & 0x3f;
-    if (is_pressed) {
-      if (toggle) {
-        LOG_INFO("Toggle layer %d", layer);
-        key_scan_->ToggleLayerStatus(layer);
-      } else {
-        key_scan_->SetLayerStatus(layer, true);
-      }
-    } else {
-      if (!toggle) {
-        key_scan_->SetLayerStatus(layer, false);
-      }
-    }
-  }
-
-  std::string GetName() const override { return "Layer switch key handler"; }
-};
-
-REGISTER_CUSTOM_KEYCODE_HANDLER(LAYER_SWITCH, true, LayerButtonHandler);
-
-class EnterConfigHandler : public CustomKeycodeHandler {
- public:
-  void ProcessKeyState(Keycode kc, bool is_pressed) override {
-    if (is_pressed) {
-      runner::SetConfigMode(true);
-    }
-  }
-
-  std::string GetName() const override { return "Enter config mode"; }
-};
-
-REGISTER_CUSTOM_KEYCODE_HANDLER(ENTER_CONFIG, true, EnterConfigHandler);
-
-class ConfigSelHandler : public CustomKeycodeHandler {
- public:
-  ConfigSelHandler() : currently_pressed_(false) {}
-
-  void ProcessKeyState(Keycode kc, bool is_pressed) override {
-    if (is_pressed && !currently_pressed_) {
-      LOG_INFO("Config select");
-      key_scan_->ConfigSelect();
-    }
-    currently_pressed_ = is_pressed;
-  }
-
-  std::string GetName() const override { return "Config sel handler"; }
-
- private:
-  bool currently_pressed_;
-};
-
-REGISTER_CUSTOM_KEYCODE_HANDLER(CONFIG_SEL, true, ConfigSelHandler);
-
 void KeyScan::SetMouseButtonState(uint8_t mouse_key, bool is_pressed) {
   for (auto output : *mouse_output_) {
     if (is_pressed) {
@@ -147,7 +75,7 @@ void KeyScan::InputTick() {
         auto* handler =
             HandlerRegistry::RegisteredHandlerFactory(kc.keycode, this);
         if (handler != NULL) {
-          handler->ProcessKeyState(kc, d_timer.pressed);
+          handler->ProcessKeyState(kc, d_timer.pressed, sink, source);
         } else {
           LOG_WARNING("Custom Keycode (%d) missing handler", kc.keycode);
         }
