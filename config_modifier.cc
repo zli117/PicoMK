@@ -19,7 +19,7 @@ void ListUI::ListDrawImpl(const std::vector<std::string>& content) {
   }
   const uint32_t highlight_idx = current_highlight_ - draw_start_;
   if (highlight_idx < GetScreenNumRows()) {
-    screen_->DrawText(highlight_idx * 8 + screen_top_margin_, 0, "-", font,
+    screen_->DrawText(highlight_idx * 8 + screen_top_margin_, 0, ">", font,
                       ScreenOutputDevice::ADD);
   }
 }
@@ -67,6 +67,7 @@ void HomeScreen::OnSelect() {
   if (current_highlight_ == 2) {
   }
   if (current_highlight_ == 3) {
+    DeviceRegistry::CreateDefaultConfig();
   }
   if (current_highlight_ == 4) {
     config_modifier_->EndConfig();
@@ -115,7 +116,7 @@ ConfigObjectScreen::ConfigObjectScreen(ConfigModifiersImpl* config_modifier,
     : ListUI(config_modifier, screen, screen_top_margin),
       config_object_(config_object) {
   keys_.clear();
-  keys_.push_back("< Back");
+  keys_.push_back("^ Back");
   const auto& map = *config_object->GetMembers();
   for (const auto& [k, v] : map) {
     keys_.push_back(k);
@@ -153,7 +154,7 @@ ConfigListScreen::ConfigListScreen(ConfigModifiersImpl* config_modifier,
     : ListUI(config_modifier, screen, screen_top_margin),
       config_list_(config_list) {
   indices_.clear();
-  indices_.push_back("< Back");
+  indices_.push_back("^ Back");
   const uint32_t list_size = config_list->GetList()->size();
   for (uint32_t i = 0; i < list_size; ++i) {
     indices_.push_back("[" + std::to_string(i) + "]");
@@ -267,7 +268,6 @@ void ConfigModifiersImpl::SetConfigMode(bool is_config_mode) {
         this, screen_.get(), global_config_, screen_top_margin_));
     pop_ui_ = false;
     is_config_ = is_config_mode;
-    LOG_INFO("ENTER CONFIG MODE");
   } else if (is_config_mode) {
     runner::SetConfigMode(false);
   }

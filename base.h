@@ -172,15 +172,16 @@ class DeviceRegistry {
       bool is_slow);
 
   static void UpdateConfig();
+  static void CreateDefaultConfig();
 
  private:
   DeviceRegistry() : initialized_(false) {}
 
-  void AddConfig(GenericDevice* device);
-
   void InitializeAllDevices();
 
+  void AddConfig(GenericDevice* device);
   void UpdateConfigImpl();
+  void CreateDefaultConfigImpl();
 
   static DeviceRegistry* GetRegistry();
 

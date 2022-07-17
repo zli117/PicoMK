@@ -98,17 +98,6 @@ void Dedup(std::vector<std::shared_ptr<T>>* devices) {
   std::swap(*devices, no_dup);
 }
 
-void DeviceRegistry::AddConfig(GenericDevice* device) {
-  if (device_to_config_.find(device) == device_to_config_.end()) {
-    auto [name, config] = device->CreateDefaultConfig();
-    if (config == NULL) {
-      return;
-    }
-    device_to_config_[device] = {name, config.get()};
-    (*global_config_.GetMembers())[name] = std::move(config);
-  }
-}
-
 void DeviceRegistry::InitializeAllDevices() {
   if (!initialized_) {
     input_devices_.clear();
@@ -182,6 +171,7 @@ void DeviceRegistry::InitializeAllDevices() {
     Dedup(&input_devices_);
   }
 
+  CreateDefaultConfigImpl();
   UpdateConfigImpl();
 
   initialized_ = true;
@@ -230,10 +220,46 @@ DeviceRegistry::GetOutputDevices(bool is_slow) {
   return outputs;
 }
 
+void DeviceRegistry::AddConfig(GenericDevice* device) {
+  if (device_to_config_.find(device) == device_to_config_.end()) {
+    auto [name, config] = device->CreateDefaultConfig();
+    if (config == NULL) {
+      return;
+    }
+    device_to_config_[device] = {name, config.get()};
+    (*global_config_.GetMembers())[name] = std::move(config);
+  }
+}
+
 void DeviceRegistry::UpdateConfigImpl() {
   for (auto& [device, config] : device_to_config_) {
     device->OnUpdateConfig(config.second);
   }
 }
 
+void DeviceRegistry::CreateDefaultConfigImpl() {
+  auto& map = *global_config_.GetMembers();
+  map.clear();
+  device_to_config_.clear();
+  for (const auto device : input_devices_) {
+    AddConfig(device.get());
+  }
+  for (const auto device : keyboard_devices_) {
+    AddConfig(device.get());
+  }
+  for (const auto device : mouse_devices_) {
+    AddConfig(device.get());
+  }
+  for (const auto device : screen_devices_) {
+    AddConfig(device.get());
+  }
+  for (const auto device : led_devices_) {
+    AddConfig(device.get());
+  }
+}
+
 void DeviceRegistry::UpdateConfig() { GetRegistry()->UpdateConfigImpl(); }
+
+void DeviceRegistry::CreateDefaultConfig() {
+  GetRegistry()->CreateDefaultConfigImpl();
+}
