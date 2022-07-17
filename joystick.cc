@@ -101,6 +101,10 @@ JoystickInputDeivce::JoystickInputDeivce(uint8_t x_adc_pin, uint8_t y_adc_pin,
 }
 
 void JoystickInputDeivce::InputTick() {
+  if (!enable_joystick_) {
+    return;
+  }
+
   // We still sample at the normal frequency, but only update member speed
   // variable when counter expires.
   const int16_t x_speed = GetSpeed(profile_x_, x_.GetValue());
@@ -133,6 +137,7 @@ void JoystickInputDeivce::InputTick() {
 std::pair<std::string, std::shared_ptr<Config>>
 JoystickInputDeivce::CreateDefaultConfig() {
   auto config = CONFIG_OBJECT(
+      CONFIG_OBJECT_ELEM("enable_joystick", CONFIG_INT(1, 0, 1)),
       CONFIG_OBJECT_ELEM("report_n_scan", CONFIG_INT(5, 1, 100)),
       CONFIG_OBJECT_ELEM("calib_samples", CONFIG_INT(1000, 0, INT32_MAX)),
       CONFIG_OBJECT_ELEM("calib_threshold", CONFIG_INT(400, 0, INT32_MAX)),
@@ -194,9 +199,22 @@ void JoystickInputDeivce::OnUpdateConfig(const Config* config) {
   }
   const auto& root_map = *((ConfigObject*)config)->GetMembers();
 
+  // Whether the joystick is enabled
+
+  auto it = root_map.find("enable_joystick");
+  if (it == root_map.end()) {
+    LOG_ERROR("Can't find `enable_joystick` in config");
+    return;
+  }
+  if (it->second->GetType() != Config::INTEGER) {
+    LOG_ERROR("`enable_joystick` invalid type");
+    return;
+  }
+  enable_joystick_ = ((ConfigInt*)it->second.get())->GetValue() > 0;
+
   // Get speed divider
 
-  auto it = root_map.find("report_n_scan");
+  it = root_map.find("report_n_scan");
   if (it == root_map.end()) {
     LOG_ERROR("Can't find `report_n_scan` in config");
     return;

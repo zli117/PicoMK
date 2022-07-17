@@ -6,6 +6,7 @@
 
 #include "FreeRTOS.h"
 #include "base.h"
+#include "configuration.h"
 #include "hardware/i2c.h"
 #include "pico-ssd1306/ssd1306.h"
 #include "semphr.h"
@@ -18,6 +19,10 @@ class SSD1306Display : virtual public ScreenOutputDevice,
   SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin, uint8_t scl_pin,
                  uint8_t i2c_addr, NumRows num_rows, bool flip,
                  uint32_t sleep_s);
+
+  void OnUpdateConfig(const Config* config) override;
+  std::pair<std::string, std::shared_ptr<Config>> CreateDefaultConfig()
+      override;
 
   void SetConfigMode(bool is_config_mode) override;
   void OutputTick() override;
@@ -57,7 +62,7 @@ class SSD1306Display : virtual public ScreenOutputDevice,
   const uint8_t i2c_addr_;
   const size_t num_rows_;
   const size_t num_cols_;
-  const uint32_t sleep_s_;
+  uint32_t sleep_s_;
 
   // pico_ssd1306::SSD1306 currently has memory leak issue. See
   // https://github.com/Harbys/pico-ssd1306/issues/8

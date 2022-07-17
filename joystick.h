@@ -68,6 +68,7 @@ class JoystickInputDeivce : virtual public GenericInputDevice {
   uint8_t counter_;
   int16_t x_move_;
   int16_t y_move_;
+  bool enable_joystick_;
   bool is_config_mode_;
   const int16_t scan_num_ticks_;
 

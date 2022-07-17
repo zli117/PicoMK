@@ -55,6 +55,33 @@ SSD1306Display::SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin,
   last_active_s_ = time_us_64() / 1000000;
 }
 
+std::pair<std::string, std::shared_ptr<Config>>
+SSD1306Display::CreateDefaultConfig() {
+  auto config = CONFIG_OBJECT(
+      CONFIG_OBJECT_ELEM("sleep_seconds", CONFIG_INT(20, 0, 300)));
+  return {"ssd1306", config};
+}
+
+void SSD1306Display::OnUpdateConfig(const Config* config) {
+  if (config->GetType() != Config::OBJECT) {
+    LOG_ERROR("Root config has to be an object.");
+    return;
+  }
+  const auto& root_map = *((ConfigObject*)config)->GetMembers();
+  auto it = root_map.find("sleep_s");
+  if (it == root_map.end()) {
+    LOG_ERROR("Can't find `sleep_s` in config");
+    return;
+  }
+  if (it->second->GetType() != Config::INTEGER) {
+    LOG_ERROR("`sleep_s` invalid type");
+    return;
+  }
+  sleep_s_ = ((ConfigInt*)it->second.get())->GetValue();
+  last_active_s_ = time_us_64() / 1000000;
+  ;
+}
+
 void SSD1306Display::SetConfigMode(bool is_config_mode) {
   LockSemaphore lock(semaphore_);
   config_mode_ = is_config_mode;
@@ -79,7 +106,7 @@ void SSD1306Display::OutputTick() {
     send_buffer_ = false;
   }
 
-  if (!sleep_ && curr_s - last_active_s_ >= sleep_s_) {
+  if (!sleep_ && sleep_s_ > 0 && curr_s - last_active_s_ >= sleep_s_) {
     sleep_ = true;
     CMD(pico_ssd1306::SSD1306_DISPLAY_OFF);
     return;

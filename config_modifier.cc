@@ -14,7 +14,6 @@ void ListUI::ListDrawImpl(const std::vector<std::string>& content) {
   screen_->Clear();
   for (size_t i = 0; i < content.size() - draw_start_ && i < GetScreenNumRows();
        ++i) {
-    LOG_INFO("Draw text: %s", content[i + draw_start_]);
     screen_->DrawText(i * 8 + screen_top_margin_, 8, content[i + draw_start_],
                       font, ScreenOutputDevice::ADD);
   }
@@ -116,7 +115,7 @@ ConfigObjectScreen::ConfigObjectScreen(ConfigModifiersImpl* config_modifier,
     : ListUI(config_modifier, screen, screen_top_margin),
       config_object_(config_object) {
   keys_.clear();
-  keys_.push_back("<- Back");
+  keys_.push_back("< Back");
   const auto& map = *config_object->GetMembers();
   for (const auto& [k, v] : map) {
     keys_.push_back(k);
@@ -155,7 +154,7 @@ ConfigListScreen::ConfigListScreen(ConfigModifiersImpl* config_modifier,
     : ListUI(config_modifier, screen, screen_top_margin),
       config_list_(config_list) {
   indices_.clear();
-  indices_.push_back("<- Back");
+  indices_.push_back("< Back");
   const uint32_t list_size = config_list->GetList()->size();
   for (uint32_t i = 0; i < list_size; ++i) {
     indices_.push_back("[" + std::to_string(i) + "]");
