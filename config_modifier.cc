@@ -63,6 +63,8 @@ void HomeScreen::OnSelect() {
     redraw_ = true;
   }
   if (current_highlight_ == 1) {
+    LOG_INFO("Save config to json:\n%s",
+             global_config_object_->ToJSON().c_str());
   }
   if (current_highlight_ == 2) {
   }

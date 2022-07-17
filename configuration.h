@@ -1,6 +1,7 @@
 #ifndef CONFIGURATION_H_
 #define CONFIGURATION_H_
 
+#include <cJSON/cJSON.h>
 #include <stdint.h>
 
 #include <map>
@@ -36,7 +37,8 @@ class Config {
     INTEGER,
     FLOAT,
   };
-  virtual Type GetType() const { return INVALID; };
+  virtual Type GetType() const { return INVALID; }
+  virtual cJSON* ToCJSON() const { return NULL; }
 };
 
 class ConfigObject : public Config {
@@ -57,6 +59,9 @@ class ConfigObject : public Config {
     return &members_;
   }
 
+  std::string ToJSON() const;
+  cJSON* ToCJSON() const override;
+
  private:
   std::map<std::string, std::shared_ptr<Config>> members_;
 };
@@ -71,6 +76,8 @@ class ConfigList : public Config {
 
   std::vector<std::shared_ptr<Config>>* GetList() { return &list_; }
   const std::vector<std::shared_ptr<Config>>* GetList() const { return &list_; }
+
+  cJSON* ToCJSON() const override;
 
  private:
   std::vector<std::shared_ptr<Config>> list_;
@@ -93,6 +100,8 @@ class ConfigInt : public Config {
   int32_t GetValue() const { return value_; }
   void SetValue(int32_t value) { value_ = value; }
 
+  cJSON* ToCJSON() const override;
+
  private:
   int32_t value_;
   const int32_t min_;
@@ -110,6 +119,8 @@ class ConfigFloat : public Config {
   float GetResolution() const { return resolution_; }
   float GetValue() const { return value_; }
   void SetValue(float value) { value_ = value; }
+
+  cJSON* ToCJSON() const override;
 
  private:
   float value_;

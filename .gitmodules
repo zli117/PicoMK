@@ -9,3 +9,6 @@
 [submodule "pico-ssd1306"]
 	path = pico-ssd1306
 	url = https://github.com/Harbys/pico-ssd1306
+[submodule "cJSON"]
+	path = cJSON
+	url = https://github.com/DaveGamble/cJSON.git
