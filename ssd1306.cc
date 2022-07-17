@@ -68,13 +68,13 @@ void SSD1306Display::OnUpdateConfig(const Config* config) {
     return;
   }
   const auto& root_map = *((ConfigObject*)config)->GetMembers();
-  auto it = root_map.find("sleep_s");
+  auto it = root_map.find("sleep_seconds");
   if (it == root_map.end()) {
-    LOG_ERROR("Can't find `sleep_s` in config");
+    LOG_ERROR("Can't find `sleep_seconds` in config");
     return;
   }
   if (it->second->GetType() != Config::INTEGER) {
-    LOG_ERROR("`sleep_s` invalid type");
+    LOG_ERROR("`sleep_seconds` invalid type");
     return;
   }
   sleep_s_ = ((ConfigInt*)it->second.get())->GetValue();

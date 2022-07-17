@@ -136,7 +136,6 @@ void ConfigObjectScreen::OnSelect() {
     config_modifier_->PopUI();
     return;
   }
-  LOG_INFO("current_highlight_ : %d", current_highlight_);
   const std::string& key = keys_[current_highlight_];
   Config* child = config_object_->GetMembers()->at(key).get();
   DispatchChild(child, config_modifier_, screen_, screen_top_margin_);
