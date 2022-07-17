@@ -1,7 +1,6 @@
 #ifndef CONFIGURATION_H_
 #define CONFIGURATION_H_
 
-#include <cJSON/cJSON.h>
 #include <stdint.h>
 
 #include <map>
@@ -9,6 +8,8 @@
 #include <string>
 #include <utility>
 #include <vector>
+
+#include "cJSON/cJSON.h"
 
 #define CONFIG_OBJECT(...) \
   (std::shared_ptr<ConfigObject>(new ConfigObject({__VA_ARGS__})))

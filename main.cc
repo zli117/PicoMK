@@ -1,11 +1,9 @@
 #include <stdio.h>
 
 #include "FreeRTOS.h"
-// #include "hardware/clocks.h"
-// #include "hardware/i2c.h"
-// #include "hardware/watchdog.h"
 #include "pico/stdlib.h"
 #include "runner.h"
+#include "storage.h"
 #include "utils.h"
 
 extern "C" void vApplicationMallocFailedHook(void) {
@@ -19,6 +17,7 @@ extern "C" void vApplicationStackOverflowHook(TaskHandle_t pxTask,
 extern "C" void vApplicationTickHook(void) {}
 
 int main() {
+  InitializeStorage();
   runner::RunnerInit();
   runner::RunnerStart();
 

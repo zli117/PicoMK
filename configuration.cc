@@ -1,7 +1,6 @@
 #include "configuration.h"
 
-#include <cJSON/cJSON.h>
-
+#include "cJSON/cJSON.h"
 #include "utils.h"
 
 std::string ConfigObject::ToJSON() const {
@@ -50,10 +49,6 @@ cJSON* ConfigList::ToCJSON() const {
   return root;
 }
 
-cJSON* ConfigInt::ToCJSON() const {
-  return cJSON_CreateNumber(value_);
-}
+cJSON* ConfigInt::ToCJSON() const { return cJSON_CreateNumber(value_); }
 
-cJSON* ConfigFloat::ToCJSON() const {
-  return cJSON_CreateNumber(value_);
-}
+cJSON* ConfigFloat::ToCJSON() const { return cJSON_CreateNumber(value_); }

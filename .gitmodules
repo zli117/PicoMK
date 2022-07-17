@@ -12,3 +12,6 @@
 [submodule "cJSON"]
 	path = cJSON
 	url = https://github.com/DaveGamble/cJSON.git
+[submodule "littlefs/littlefs"]
+	path = littlefs/littlefs
+	url = https://github.com/littlefs-project/littlefs.git

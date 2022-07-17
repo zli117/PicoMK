@@ -41,7 +41,11 @@ add_executable(firmware
         config_modifier.cc 
         builtin_keycode.cc
         configuration.cc
+        storage.cc
         cJSON/cJSON.c)
+
+add_compile_definitions(LFS_THREADSAFE)
+add_compile_definitions(LFS_NO_MALLOC)
 
 pico_set_program_name(firmware "Pico Keyboard Firmware")
 pico_set_program_version(firmware "0.1")
@@ -57,6 +61,7 @@ target_link_libraries(firmware
         FreeRTOS-Kernel-Heap4)
 
 add_subdirectory(pico-ssd1306)
+add_subdirectory(littlefs)
 
 # Add any user requested libraries
 target_link_libraries(firmware
@@ -65,6 +70,7 @@ target_link_libraries(firmware
         hardware_watchdog
         hardware_clocks
         pico_ssd1306
+        littlefs
         )
 
 target_include_directories(firmware PRIVATE
