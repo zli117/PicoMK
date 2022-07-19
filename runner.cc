@@ -107,9 +107,13 @@ Status RunnerStart() {
 
   // Start input device task
 
-  status =
-      xTaskCreate(&InputDeviceTask, "input_device_task", CONFIG_TASK_STACK_SIZE,
-                  NULL, CONFIG_TASK_PRIORITY, &input_task_handle);
+  // status =
+  //     xTaskCreate(&InputDeviceTask, "input_device_task",
+  //     CONFIG_TASK_STACK_SIZE,
+  //                 NULL, CONFIG_TASK_PRIORITY, &input_task_handle);
+  status = xTaskCreateAffinitySet(
+      &InputDeviceTask, "input_device_task", CONFIG_TASK_STACK_SIZE, NULL,
+      CONFIG_TASK_PRIORITY, (1 << 0), &input_task_handle);
   if (status != pdPASS || input_task_handle == NULL) {
     return ERROR;
   }

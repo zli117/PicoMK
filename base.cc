@@ -2,6 +2,9 @@
 
 #include <algorithm>
 
+#include "config.h"
+#include "storage.h"
+
 void GenericInputDevice::SetKeyboardOutputs(
     const std::vector<std::shared_ptr<KeyboardOutputDevice>>* devices) {
   keyboard_output_ = devices;
@@ -172,6 +175,15 @@ void DeviceRegistry::InitializeAllDevices() {
   }
 
   CreateDefaultConfigImpl();
+
+  // Initialize the config from flash if there's any
+  std::string config_file;
+  if (ReadFileContent(CONFIG_FLASH_JSON_FILE_NAME, &config_file) == OK &&
+      !config_file.empty() && ParseConfig(config_file, &global_config_) != OK) {
+    // Reinitialize to default
+    CreateDefaultConfigImpl();
+  }
+
   UpdateConfigImpl();
 
   initialized_ = true;
@@ -262,4 +274,13 @@ void DeviceRegistry::UpdateConfig() { GetRegistry()->UpdateConfigImpl(); }
 
 void DeviceRegistry::CreateDefaultConfig() {
   GetRegistry()->CreateDefaultConfigImpl();
+}
+
+void DeviceRegistry::SaveConfig() {
+  const std::string json = GetRegistry()->global_config_.ToJSON();
+  LOG_INFO("Save config to json:\n%s", json.c_str());
+  if (WriteStringToFile(json, CONFIG_FLASH_JSON_FILE_NAME) != OK) {
+    LOG_ERROR("Failed to save config json");
+  }
+  LOG_INFO("Done saving config");
 }

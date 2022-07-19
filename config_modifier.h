@@ -28,9 +28,7 @@ class ConfigUIBase {
     return (screen_->GetNumRows() - screen_top_margin_) / 8;
   }
 
-  ScreenOutputDevice::Font GetFont() {
-    return ScreenOutputDevice::F8X8;
-  }
+  ScreenOutputDevice::Font GetFont() { return ScreenOutputDevice::F8X8; }
 
   ConfigModifiersImpl* config_modifier_;
   ScreenOutputDevice* screen_;
@@ -63,7 +61,8 @@ class HomeScreen : public ListUI {
   HomeScreen(ConfigModifiersImpl* config_modifier, ScreenOutputDevice* screen,
              ConfigObject* global_config_object, uint8_t screen_top_margin)
       : ListUI(config_modifier, screen, screen_top_margin),
-        global_config_object_(global_config_object) {}
+        global_config_object_(global_config_object),
+        menu_items_({"Edit Config", "Save Config", "Load Default", "Exit"}) {}
 
   void Draw() override;
   void OnSelect() override;
@@ -72,6 +71,7 @@ class HomeScreen : public ListUI {
   uint32_t GetListLength() override;
 
   ConfigObject* global_config_object_;
+  std::vector<std::string> menu_items_;
 };
 
 class ConfigObjectScreen : public ListUI {

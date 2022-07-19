@@ -51,8 +51,7 @@ void HomeScreen::Draw() {
   if (!redraw_) {
     return;
   }
-  ListDrawImpl(
-      {{"Edit Config", "Save Config", "Load Config", "Load Default", "Exit"}});
+  ListDrawImpl(menu_items_);
   redraw_ = false;
 }
 
@@ -63,20 +62,18 @@ void HomeScreen::OnSelect() {
     redraw_ = true;
   }
   if (current_highlight_ == 1) {
-    LOG_INFO("Save config to json:\n%s",
-             global_config_object_->ToJSON().c_str());
+    DeviceRegistry::SaveConfig();
+    LOG_INFO("Saved");
   }
   if (current_highlight_ == 2) {
-  }
-  if (current_highlight_ == 3) {
     DeviceRegistry::CreateDefaultConfig();
   }
-  if (current_highlight_ == 4) {
+  if (current_highlight_ == 3) {
     config_modifier_->EndConfig();
   }
 }
 
-uint32_t HomeScreen::GetListLength() { return 5; }
+uint32_t HomeScreen::GetListLength() { return menu_items_.size(); }
 
 ////////////////////////////////////////////////////////////////////////////////
 

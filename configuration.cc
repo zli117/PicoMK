@@ -34,6 +34,19 @@ cJSON* ConfigObject::ToCJSON() const {
   return root;
 }
 
+Status ConfigObject::FromCJSON(const cJSON* json) {
+  if (json == NULL || !cJSON_IsObject(json)) {
+    return ERROR;
+  }
+  for (auto& [k, v] : members_) {
+    const cJSON* child = cJSON_GetObjectItemCaseSensitive(json, k.c_str());
+    if (v->FromCJSON(child) != OK) {
+      return ERROR;
+    }
+  }
+  return OK;
+}
+
 cJSON* ConfigList::ToCJSON() const {
   cJSON* root = cJSON_CreateArray();
   if (root == NULL) {
@@ -49,6 +62,54 @@ cJSON* ConfigList::ToCJSON() const {
   return root;
 }
 
+Status ConfigList::FromCJSON(const cJSON* json) {
+  if (json == NULL || !cJSON_IsArray(json) ||
+      cJSON_GetArraySize(json) != list_.size()) {
+    return ERROR;
+  }
+  for (size_t i = 0; i < list_.size(); ++i) {
+    const cJSON* child = cJSON_GetArrayItem(json, i);
+    if (list_[i]->FromCJSON(child) != OK) {
+      return ERROR;
+    }
+  }
+  return OK;
+}
+
 cJSON* ConfigInt::ToCJSON() const { return cJSON_CreateNumber(value_); }
 
+Status ConfigInt::FromCJSON(const cJSON* json) {
+  if (json == NULL || !cJSON_IsNumber(json)) {
+    return ERROR;
+  }
+  const int value = json->valueint;
+  if (value < min_ || value > max_) {
+    return ERROR;
+  }
+  value_ = value;
+  return OK;
+}
+
 cJSON* ConfigFloat::ToCJSON() const { return cJSON_CreateNumber(value_); }
+
+Status ConfigFloat::FromCJSON(const cJSON* json) {
+  if (json == NULL || !cJSON_IsNumber(json)) {
+    return ERROR;
+  }
+  const float value = json->valuedouble;
+  if (value < min_ || value > max_) {
+    return ERROR;
+  }
+  value_ = value;
+  return OK;
+}
+
+Status ParseConfig(const std::string& json, Config* default_config) {
+  cJSON* c_json = cJSON_ParseWithLength(json.c_str(), json.size());
+  if (c_json == NULL) {
+    return ERROR;
+  }
+  const Status status = default_config->FromCJSON(c_json);
+  cJSON_Delete(c_json);
+  return status;
+}

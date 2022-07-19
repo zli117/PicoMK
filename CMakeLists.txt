@@ -42,10 +42,8 @@ add_executable(firmware
         builtin_keycode.cc
         configuration.cc
         storage.cc
+        irq.cc
         cJSON/cJSON.c)
-
-add_compile_definitions(LFS_THREADSAFE)
-add_compile_definitions(LFS_NO_MALLOC)
 
 pico_set_program_name(firmware "Pico Keyboard Firmware")
 pico_set_program_version(firmware "0.1")
@@ -60,6 +58,11 @@ target_link_libraries(firmware
         FreeRTOS-Kernel 
         FreeRTOS-Kernel-Heap4)
 
+add_compile_definitions(
+        LFS_THREADSAFE=1
+        LFS_NO_MALLOC=1
+        PICO_HEAP_SIZE=65536)
+
 add_subdirectory(pico-ssd1306)
 add_subdirectory(littlefs)
 
@@ -69,6 +72,7 @@ target_link_libraries(firmware
         hardware_i2c
         hardware_watchdog
         hardware_clocks
+        hardware_regs
         pico_ssd1306
         littlefs
         )

@@ -309,8 +309,11 @@ status USBInit() {
 static TaskHandle_t usb_task_handle = NULL;
 
 status StartUSBTask() {
-  BaseType_t status = xTaskCreate(&USBTask, "usb_task", CONFIG_TASK_STACK_SIZE,
-                                  NULL, CONFIG_TASK_PRIORITY, &usb_task_handle);
+  // BaseType_t status = xTaskCreate(&USBTask, "usb_task", CONFIG_TASK_STACK_SIZE,
+  //                                 NULL, CONFIG_TASK_PRIORITY, &usb_task_handle);
+  BaseType_t status = xTaskCreateAffinitySet(
+      &USBTask, "usb_task", CONFIG_TASK_STACK_SIZE, NULL,
+      CONFIG_TASK_PRIORITY, (1 << 1), &usb_task_handle);
   if (status != pdPASS || usb_task_handle == NULL) {
     return ERROR;
   }

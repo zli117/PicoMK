@@ -86,7 +86,8 @@
     "cinttypes": "cpp",
     "cstdbool": "cpp",
     "typeinfo": "cpp",
-    "optional": "cpp"
+    "optional": "cpp",
+    "lfs.h": "c"
   },
   "C_Cpp.intelliSenseEngineFallback": "Enabled",
 }

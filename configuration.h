@@ -10,6 +10,7 @@
 #include <vector>
 
 #include "cJSON/cJSON.h"
+#include "utils.h"
 
 #define CONFIG_OBJECT(...) \
   (std::shared_ptr<ConfigObject>(new ConfigObject({__VA_ARGS__})))
@@ -40,6 +41,7 @@ class Config {
   };
   virtual Type GetType() const { return INVALID; }
   virtual cJSON* ToCJSON() const { return NULL; }
+  virtual Status FromCJSON(const cJSON* json) { return ERROR; }
 };
 
 class ConfigObject : public Config {
@@ -62,6 +64,7 @@ class ConfigObject : public Config {
 
   std::string ToJSON() const;
   cJSON* ToCJSON() const override;
+  Status FromCJSON(const cJSON* json) override;
 
  private:
   std::map<std::string, std::shared_ptr<Config>> members_;
@@ -79,6 +82,7 @@ class ConfigList : public Config {
   const std::vector<std::shared_ptr<Config>>* GetList() const { return &list_; }
 
   cJSON* ToCJSON() const override;
+  Status FromCJSON(const cJSON* json) override;
 
  private:
   std::vector<std::shared_ptr<Config>> list_;
@@ -102,6 +106,7 @@ class ConfigInt : public Config {
   void SetValue(int32_t value) { value_ = value; }
 
   cJSON* ToCJSON() const override;
+  Status FromCJSON(const cJSON* json) override;
 
  private:
   int32_t value_;
@@ -122,6 +127,7 @@ class ConfigFloat : public Config {
   void SetValue(float value) { value_ = value; }
 
   cJSON* ToCJSON() const override;
+  Status FromCJSON(const cJSON* json) override;
 
  private:
   float value_;
@@ -129,5 +135,9 @@ class ConfigFloat : public Config {
   const float max_;
   const float resolution_;
 };
+
+// If return is ERROR, default_config will be in an invalid state.
+// default_config is modified in place.
+Status ParseConfig(const std::string& json, Config* default_config);
 
 #endif /* CONFIGURATION_H_ */

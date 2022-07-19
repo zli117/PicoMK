@@ -71,7 +71,8 @@
 /* Memory allocation related definitions. */
 #define configSUPPORT_STATIC_ALLOCATION         0
 #define configSUPPORT_DYNAMIC_ALLOCATION        1
-#define configTOTAL_HEAP_SIZE                   (128*1024)
+// #define configTOTAL_HEAP_SIZE                   (128*1024)
+#define configTOTAL_HEAP_SIZE                   (64*1024)
 #define configAPPLICATION_ALLOCATED_HEAP        0
 
 /* Hook function related definitions. */
@@ -92,7 +93,7 @@
 #define configUSE_TIMERS                        1
 #define configTIMER_TASK_PRIORITY               ( configMAX_PRIORITIES - 1 )
 #define configTIMER_QUEUE_LENGTH                10
-#define configTIMER_TASK_STACK_DEPTH            1024
+#define configTIMER_TASK_STACK_DEPTH            (configMINIMAL_STACK_SIZE)
 
 /* Interrupt nesting behaviour configuration. */
 /*
@@ -105,6 +106,7 @@
 #define configNUM_CORES                         2
 #define configTICK_CORE                         0
 #define configRUN_MULTIPLE_PRIORITIES           1
+#define configUSE_CORE_AFFINITY                 1
 
 /* RP2040 specific */
 #define configSUPPORT_PICO_SYNC_INTEROP         1

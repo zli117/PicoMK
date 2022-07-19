@@ -173,6 +173,7 @@ class DeviceRegistry {
 
   static void UpdateConfig();
   static void CreateDefaultConfig();
+  static void SaveConfig();
 
  private:
   DeviceRegistry() : initialized_(false) {}
