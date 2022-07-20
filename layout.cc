@@ -60,7 +60,10 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
     {CONFIG,     TG(2),       K(K_ALT_L), K(K_SPACE), ______,     ______,     K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
     {CK(MSE_L),  CK(MSE_M),   CK(MSE_R)}
   },
-  [2]={{CK(CONFIG_SEL)}}
+  [2]={
+    {CK(CONFIG_SEL)},
+    {CK(BOOTSEL)},
+  }
 };
 
 // clang-format on

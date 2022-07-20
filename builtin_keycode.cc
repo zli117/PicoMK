@@ -2,6 +2,7 @@
 
 #include "keyscan.h"
 #include "layout.h"
+#include "pico/bootrom.h"
 #include "runner.h"
 
 class MouseButtonHandler : public CustomKeycodeHandler {
@@ -87,3 +88,19 @@ class ConfigSelHandler : public CustomKeycodeHandler {
 };
 
 REGISTER_CUSTOM_KEYCODE_HANDLER(CONFIG_SEL, true, ConfigSelHandler);
+
+class BootselHandler : public CustomKeycodeHandler {
+ public:
+  BootselHandler() {}
+
+  void ProcessKeyState(Keycode kc, bool is_pressed, size_t sink_idx,
+                       size_t source_idx) override {
+    if (is_pressed) {
+      reset_usb_boot(0, 0);
+    }
+  }
+
+  std::string GetName() const override { return "Enter bootsel handler"; }
+};
+
+REGISTER_CUSTOM_KEYCODE_HANDLER(BOOTSEL, true, BootselHandler);

@@ -34,6 +34,7 @@ enum BuiltInCustomKeyCode {
   LAYER_SWITCH,
   ENTER_CONFIG,
   CONFIG_SEL,
+  BOOTSEL,
   TOTAL_BUILT_IN_KC
 };
 
