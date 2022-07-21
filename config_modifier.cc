@@ -317,9 +317,3 @@ void ConfigModifiersImpl::FinalizeInputTickOutput() {
   }
   ui_stack_.back()->Draw();
 }
-
-static Status registered =
-    DeviceRegistry::RegisterConfigModifier([](ConfigObject* global_config) {
-      return std::shared_ptr<ConfigModifiersImpl>(
-          new ConfigModifiersImpl(global_config, 1, 0));
-    });

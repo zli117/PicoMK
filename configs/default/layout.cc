@@ -1,6 +1,3 @@
-#include "layout.h"
-
-#include "class/hid/hid.h"
 #include "layout_helper.h"
 
 #define C0 0
@@ -70,3 +67,64 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 
 // Compile time validation and conversion for the key matrix
 #include "layout_internal.inc"
+
+// Register everything
+
+enum {
+  JOYSTICK = 0,
+  KEYSCAN,
+  ENCODER,
+  SSD1306_1,
+  SSD1306_2,
+  USB_KEYBOARD,
+  USB_MOUSE,
+};
+
+static Status registered_config_modifier =
+    DeviceRegistry::RegisterConfigModifier([](ConfigObject* global_config) {
+      return std::shared_ptr<ConfigModifiersImpl>(
+          new ConfigModifiersImpl(global_config, SSD1306_2));
+    });
+
+static Status registered_joystick =
+    DeviceRegistry::RegisterInputDevice(JOYSTICK, []() {
+      return std::make_shared<JoystickInputDeivce>(
+          /*x_adc_pin=*/28, /*y_adc_pin=*/27,
+          /*buffer_size=*/3, /*flip_x_dir=*/false,
+          /*flip_y_dir=*/false, CONFIG_SCAN_TICKS);
+    });
+
+static Status registered_keyscan = DeviceRegistry::RegisterInputDevice(
+    KEYSCAN, []() { return std::shared_ptr<KeyScan>(new KeyScan()); });
+
+static Status registered_encoder =
+    DeviceRegistry::RegisterInputDevice(ENCODER, []() {
+      return std::make_shared<RotaryEncoder>(/*pin_a=*/19, /*pin_b=*/22,
+                                             /*resolution=*/2);
+    });
+
+static std::shared_ptr<SSD1306Display> GetSSD1306Display() {
+  static std::shared_ptr<SSD1306Display> singleton;
+  if (singleton == NULL) {
+    singleton = std::make_shared<SSD1306Display>(
+        i2c0, /*sda_pin=*/20, /*scl_pin=*/21, /*i2c_addr=*/0x3C,
+        SSD1306Display::R_64, /*flip=*/true);
+  }
+  return singleton;
+}
+static Status registered_ssd1306_1 =
+    DeviceRegistry::RegisterKeyboardOutputDevice(SSD1306_1, true,
+                                                 GetSSD1306Display);
+static Status registered_ssd1306_2 = DeviceRegistry::RegisterScreenOutputDevice(
+    SSD1306_2, true, GetSSD1306Display);
+
+static Status registered_usb_keyboard_out =
+    DeviceRegistry::RegisterKeyboardOutputDevice(
+        USB_KEYBOARD, false, []() -> std::shared_ptr<USBKeyboardOutput> {
+          return USBKeyboardOutput::GetUSBKeyboardOutput();
+        });
+static Status registered_usb_mouse_out =
+    DeviceRegistry::RegisterMouseOutputDevice(
+        USB_MOUSE, false, []() -> std::shared_ptr<USBMouseOutput> {
+          return USBMouseOutput::GetUSBMouseOutput();
+        });

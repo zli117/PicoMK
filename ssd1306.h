@@ -17,8 +17,7 @@ class SSD1306Display : virtual public ScreenOutputDevice,
   enum NumRows { R_32 = 32, R_64 = 64 };
 
   SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin, uint8_t scl_pin,
-                 uint8_t i2c_addr, NumRows num_rows, bool flip,
-                 uint32_t sleep_s);
+                 uint8_t i2c_addr, NumRows num_rows, bool flip);
 
   void OnUpdateConfig(const Config* config) override;
   std::pair<std::string, std::shared_ptr<Config>> CreateDefaultConfig()

@@ -201,6 +201,3 @@ void KeyScan::LayerChanged() {
     output->ChangeActiveLayers(active_layers_);
   }
 }
-
-static Status registered = DeviceRegistry::RegisterInputDevice(
-    1, []() { return std::shared_ptr<KeyScan>(new KeyScan()); });

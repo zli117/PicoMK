@@ -143,7 +143,7 @@ class ConfigFloatScreen : public ConfigUIBase {
 class ConfigModifiersImpl : virtual public ConfigModifier {
  public:
   ConfigModifiersImpl(ConfigObject* global_config, uint8_t screen_tag,
-                      uint8_t screen_top_margin)
+                      uint8_t screen_top_margin = 0)
       : global_config_(global_config),
         screen_tag_(screen_tag),
         screen_top_margin_(screen_top_margin),

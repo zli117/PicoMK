@@ -19,6 +19,7 @@ set(FREERTOS_KERNEL_PATH, "${CMAKE_CURRENT_SOURCE_DIR}/FreeRTOS-Kernel")
 # Pull in Raspberry Pi Pico SDK (must be before project)
 include(pico_sdk_import.cmake)
 include(FreeRTOS_Kernel_import.cmake)
+include(config.cmake)
 
 project(firmware C CXX ASM)
 
@@ -29,7 +30,7 @@ pico_sdk_init()
 
 add_executable(firmware 
         main.cc 
-        layout.cc 
+        configs/${BOARD_CONFIG}/layout.cc 
         keyscan.cc 
         usb.cc 
         joystick.cc 
@@ -45,7 +46,7 @@ add_executable(firmware
         sync.cc
         cJSON/cJSON.c)
 
-pico_set_program_name(firmware "Pico Keyboard Firmware")
+pico_set_program_name(firmware "PicoMK")
 pico_set_program_version(firmware "0.1")
 
 pico_enable_stdio_uart(firmware 0)
@@ -68,7 +69,6 @@ add_subdirectory(littlefs)
 target_link_libraries(firmware
         hardware_adc
         hardware_i2c
-        hardware_watchdog
         hardware_clocks
         hardware_regs
         pico_ssd1306
@@ -77,6 +77,7 @@ target_link_libraries(firmware
 
 target_include_directories(firmware PRIVATE
         ${CMAKE_CURRENT_LIST_DIR}
+        ${CMAKE_CURRENT_LIST_DIR}/configs/${BOARD_CONFIG}
         )
 
 pico_add_extra_outputs(firmware)

@@ -311,14 +311,3 @@ int16_t JoystickInputDeivce::GetSpeed(
 
   return speed;
 }
-
-#if CONFIG_ENABLE_JOYSTICK
-
-static Status registered = DeviceRegistry::RegisterInputDevice(2, []() {
-  return std::make_shared<JoystickInputDeivce>(
-      CONFIG_JOYSTICK_GPIO_X, CONFIG_JOYSTICK_GPIO_Y,
-      CONFIG_JOYSTICK_SMOOTH_BUFFER_LEN, CONFIG_JOYSTICK_FLIP_X_DIR,
-      CONFIG_JOYSTICK_FLIP_Y_DIR, CONFIG_SCAN_TICKS);
-});
-
-#endif /* CONFIG_ENABLE_JOYSTICK */

@@ -1,6 +1,18 @@
 #ifndef LAYOUT_HELPER_H_
 #define LAYOUT_HELPER_H_
 
+#include <memory>
+
+#include "class/hid/hid.h"
+#include "config.h"
+#include "config_modifier.h"
+#include "joystick.h"
+#include "keyscan.h"
+#include "layout.h"
+#include "rotary_encoder.h"
+#include "ssd1306.h"
+#include "usb.h"
+
 #define K(KEYCODE) \
   { .keycode = (KEYCODE), .is_custom = false, .custom_info = 0 }
 

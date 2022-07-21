@@ -16,14 +16,14 @@ using pico_ssd1306::WriteMode;
 
 SSD1306Display::SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin,
                                uint8_t scl_pin, uint8_t i2c_addr,
-                               NumRows num_rows, bool flip, uint32_t sleep_s)
+                               NumRows num_rows, bool flip)
     : i2c_(i2c),
       sda_pin_(sda_pin),
       scl_pin_(scl_pin),
       i2c_addr_(i2c_addr),
       num_rows_(num_rows),
       num_cols_(128),
-      sleep_s_(sleep_s),
+      sleep_s_(0),
       buffer_idx_(0),
       buffer_changed_(false),
       send_buffer_(true),
@@ -228,18 +228,3 @@ void SSD1306Display::CMD(uint8_t cmd) {
   uint8_t data[2] = {0x00, cmd};
   i2c_write_blocking(i2c_, i2c_addr_, data, 2, false);
 }
-
-static std::shared_ptr<SSD1306Display> singleton;
-
-static std::shared_ptr<SSD1306Display> GetSSD1306Display() {
-  if (singleton == NULL) {
-    singleton = std::make_shared<SSD1306Display>(
-        i2c0, 20, 21, 0x3C, SSD1306Display::R_64, true, 120);
-  }
-  return singleton;
-}
-
-static Status keyboard_out =
-    DeviceRegistry::RegisterKeyboardOutputDevice(1, true, GetSSD1306Display);
-static Status screen_out =
-    DeviceRegistry::RegisterScreenOutputDevice(1, true, GetSSD1306Display);

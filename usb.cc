@@ -150,7 +150,7 @@ char const *string_desc_arr[] = {
     "",                       // 0: Index 0 is language ID. Handled in callback
     CONFIG_USB_VENDER_NAME,   // 1: Manufacturer
     CONFIG_USB_PRODUCT_NAME,  // 2: Product
-    CONFIG_USB_SERIAL,        // 3: Serial number
+    CONFIG_USB_SERIAL_NUM,    // 3: Serial number
     "Keyboard",               // 4: Keyboard interface
     "Mouse",                  // 5: Mouse interface
     "Consumer",               // 6: Consumer interface
@@ -482,14 +482,3 @@ void USBMouseOutput::Pan(int8_t x, int8_t y) {
 
 USBMouseOutput::USBMouseOutput()
     : USBOutputAddIn(), active_buffer_(0), is_config_mode_(false) {}
-
-// Registration
-
-static Status usb_keyboard_out = DeviceRegistry::RegisterKeyboardOutputDevice(
-    2, false, []() -> std::shared_ptr<USBKeyboardOutput> {
-      return USBKeyboardOutput::GetUSBKeyboardOutput();
-    });
-static Status usb_mouse_out = DeviceRegistry::RegisterMouseOutputDevice(
-    2, false, []() -> std::shared_ptr<USBMouseOutput> {
-      return USBMouseOutput::GetUSBMouseOutput();
-    });
