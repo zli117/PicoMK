@@ -4,6 +4,7 @@
 #include <vector>
 
 #include "FreeRTOS.h"
+#include "FreeRTOSConfig.h"
 #include "base.h"
 #include "configuration.h"
 #include "hardware/timer.h"
@@ -107,13 +108,13 @@ Status RunnerStart() {
 
   // Start input device task
 
-  // status =
-  //     xTaskCreate(&InputDeviceTask, "input_device_task",
-  //     CONFIG_TASK_STACK_SIZE,
-  //                 NULL, CONFIG_TASK_PRIORITY, &input_task_handle);
+  // Pin input task to the same core as tick handler because there could be
+  // flash writes that will disable the other core. Don't want to block the tick
+  // handler as well as usb task (which is also pinned to the tick core) for too
+  // long.
   status = xTaskCreateAffinitySet(
       &InputDeviceTask, "input_device_task", CONFIG_TASK_STACK_SIZE, NULL,
-      CONFIG_TASK_PRIORITY, (1 << 0), &input_task_handle);
+      CONFIG_TASK_PRIORITY, (1 << (configTICK_CORE)), &input_task_handle);
   if (status != pdPASS || input_task_handle == NULL) {
     return ERROR;
   }

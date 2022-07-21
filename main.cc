@@ -1,10 +1,10 @@
 #include <stdio.h>
 
 #include "FreeRTOS.h"
-#include "sync.h"
 #include "pico/stdlib.h"
 #include "runner.h"
 #include "storage.h"
+#include "sync.h"
 #include "utils.h"
 
 extern "C" void vApplicationMallocFailedHook(void) {
@@ -18,11 +18,11 @@ extern "C" void vApplicationStackOverflowHook(TaskHandle_t pxTask,
 extern "C" void vApplicationTickHook(void) {}
 
 int main() {
-  StartSyncTasks();
-  InitializeStorage();
-  runner::RunnerInit();
-  runner::RunnerStart();
-  vTaskStartScheduler();
+  if (InitializeStorage() == OK &&   //
+      runner::RunnerInit() == OK &&  //
+      runner::RunnerStart() == OK) {
+    vTaskStartScheduler();
+  }
 
   while (true)
     ;

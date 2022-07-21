@@ -309,11 +309,12 @@ status USBInit() {
 static TaskHandle_t usb_task_handle = NULL;
 
 status StartUSBTask() {
-  // BaseType_t status = xTaskCreate(&USBTask, "usb_task", CONFIG_TASK_STACK_SIZE,
-  //                                 NULL, CONFIG_TASK_PRIORITY, &usb_task_handle);
+  // Pin usb task to tick core so that the interrupts are not blocked. If the
+  // interrupts are blocked for too long host might treat the device as
+  // disconnected.
   BaseType_t status = xTaskCreateAffinitySet(
-      &USBTask, "usb_task", CONFIG_TASK_STACK_SIZE, NULL,
-      CONFIG_TASK_PRIORITY, (1 << 0), &usb_task_handle);
+      &USBTask, "usb_task", CONFIG_TASK_STACK_SIZE, NULL, CONFIG_TASK_PRIORITY,
+      (1 << (configTICK_CORE)), &usb_task_handle);
   if (status != pdPASS || usb_task_handle == NULL) {
     return ERROR;
   }

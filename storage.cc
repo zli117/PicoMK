@@ -8,10 +8,10 @@
 #include "config.h"
 #include "hardware/flash.h"
 #include "hardware/sync.h"
-#include "sync.h"
 #include "pico/multicore.h"
 #include "pico/platform.h"
 #include "semphr.h"
+#include "sync.h"
 
 extern "C" {
 #include "littlefs/lfs.h"
@@ -50,17 +50,17 @@ constexpr struct lfs_config CreateLFSConfig() {
 
       // block device configuration
       .read_size = 64,
-      .prog_size = FLASH_PAGE_SIZE,     
-      .block_size = FLASH_SECTOR_SIZE,  
+      .prog_size = FLASH_PAGE_SIZE,
+      .block_size = FLASH_SECTOR_SIZE,
       .block_count = CONFIG_FLASH_FILESYSTEM_SIZE / FLASH_SECTOR_SIZE,
       .block_cycles = 500,
-      .cache_size = FLASH_SECTOR_SIZE / 4,  
-      .lookahead_size = 32,                 
+      .cache_size = FLASH_SECTOR_SIZE / 4,
+      .lookahead_size = 32,
   };
   return cfg;
 }
 
-static const struct lfs_config __not_in_flash("storage1")
+constexpr struct lfs_config __not_in_flash("storage1")
     kLFSConfig = CreateLFSConfig();
 
 static int read(const struct lfs_config* c, lfs_block_t block, lfs_off_t off,
@@ -130,7 +130,7 @@ Status InitializeStorage() {
     lfs_format(&lfs, &kLFSConfig);
     lfs_mount(&lfs, &kLFSConfig);
   }
-  return OK;
+  return StartSyncTasks();
 }
 
 Status WriteStringToFile(const std::string& content, const std::string& name) {
@@ -201,8 +201,7 @@ Status GetFileSize(const std::string& name, size_t* output) {
   }
 
   lfs_file_t file;
-  if (lfs_file_open(&lfs, &file, name.c_str(), LFS_O_RDONLY) <
-      0) {
+  if (lfs_file_open(&lfs, &file, name.c_str(), LFS_O_RDONLY) < 0) {
     return ERROR;
   }
 

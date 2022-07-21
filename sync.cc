@@ -27,9 +27,6 @@ static TaskInfo __not_in_flash("sync") core_info[2] = {
 extern "C" void __no_inline_not_in_flash_func(CoreBlockerTask)(void* parameter);
 
 Status StartSyncTasks() {
-  HeapStats_t xHeapStats;
-  vPortGetHeapStats(&xHeapStats);
-
   if (xTaskCreateAffinitySet(&CoreBlockerTask, "core_0_blocker",
                              configMINIMAL_STACK_SIZE, (void*)&core_info[0],
                              // Higher priority to make sure it can preempt
@@ -40,8 +37,6 @@ Status StartSyncTasks() {
     return ERROR;
   }
 
-  vPortGetHeapStats(&xHeapStats);
-
   if (xTaskCreateAffinitySet(&CoreBlockerTask, "core_1_blocker",
                              configMINIMAL_STACK_SIZE, (void*)&core_info[1],
                              CONFIG_TASK_PRIORITY + 1, (1 << 1),
@@ -50,20 +45,20 @@ Status StartSyncTasks() {
     return ERROR;
   }
 
-  vPortGetHeapStats(&xHeapStats);
-
   core_info[0].sync_wait_lock = spin_lock_init(0);
   core_info[1].sync_wait_lock = spin_lock_init(1);
   critical_section_lock = spin_lock_init(3);
-  if (core_info[0].sync_wait_lock == NULL ||
-      core_info[1].sync_wait_lock == NULL || critical_section_lock) {
+  if (core_info[0].sync_wait_lock == NULL ||  //
+      core_info[1].sync_wait_lock == NULL ||  //
+      critical_section_lock == NULL) {
     return ERROR;
   }
 
   return OK;
 }
 
-extern "C" void __no_inline_not_in_flash_func(CoreBlockerTask)(void* parameter) {
+extern "C" void __no_inline_not_in_flash_func(CoreBlockerTask)(
+    void* parameter) {
   TaskInfo& task_info = *(TaskInfo*)parameter;
   const uint32_t cpuid = *(uint32_t*)((SIO_BASE) + (SIO_CPUID_OFFSET));
   assert(cpuid == task_info.core_id);
@@ -76,7 +71,8 @@ extern "C" void __no_inline_not_in_flash_func(CoreBlockerTask)(void* parameter) 
     task_info.entered = true;
 
     // Here we want to disable IRQ until the other core tells us to stop (by
-    // releasing the lock)
+    // releasing the lock). Disabling IRQ is important because IRQ vectors and
+    // handlers might be in flash.
     uint32_t core_irq = spin_lock_blocking(task_info.sync_wait_lock);
     spin_unlock(task_info.sync_wait_lock, core_irq);
   }
@@ -99,8 +95,8 @@ void DisableTheOtherCore() {
   xTaskNotifyGive(task_handles[the_other_core]);  // Notify the other core to
                                                   // enter blocking as well
 
-  // We need to be sure the other core has entered the blocker task which is SRAM
-  // mapped before we proceed.
+  // We need to be sure the other core has entered the blocker task which is
+  // SRAM mapped before we proceed.
   while (!core_info[the_other_core].entered)
     ;
 }

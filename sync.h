@@ -11,8 +11,8 @@ class CoreBlockerSection {
   virtual ~CoreBlockerSection();
 };
 
-// Not recursive
+// Block the other core so that we can do flash operations
 void DisableTheOtherCore();
 void ReenableTheOtherCore();
 
-#endif  /* SYNC_H_ */
+#endif /* SYNC_H_ */
