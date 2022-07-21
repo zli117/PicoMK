@@ -89,4 +89,6 @@ class KeyScan : public GenericInputDevice {
   bool is_config_mode_;
 };
 
+Status RegisterKeyscan(uint8_t tag);
+
 #endif /* KEYSCAN_H_ */

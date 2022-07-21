@@ -12,6 +12,7 @@
 #include "rotary_encoder.h"
 #include "ssd1306.h"
 #include "usb.h"
+#include "utils.h"
 
 #define K(KEYCODE) \
   { .keycode = (KEYCODE), .is_custom = false, .custom_info = 0 }

@@ -90,4 +90,7 @@ enum InterfaceID {
   ITF_TOTAL,
 };
 
+Status RegisterUSBKeyboardOutput(uint8_t tag);
+Status RegisterUSBMouseOutput(uint8_t tag);
+
 #endif /* USB_H_ */

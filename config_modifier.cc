@@ -317,3 +317,11 @@ void ConfigModifiersImpl::FinalizeInputTickOutput() {
   }
   ui_stack_.back()->Draw();
 }
+
+Status RegisterConfigModifier(uint8_t screen_tag) {
+  return DeviceRegistry::RegisterConfigModifier(
+      [=](ConfigObject* global_config) {
+        return std::shared_ptr<ConfigModifiersImpl>(
+            new ConfigModifiersImpl(global_config, screen_tag));
+      });
+}

@@ -482,3 +482,17 @@ void USBMouseOutput::Pan(int8_t x, int8_t y) {
 
 USBMouseOutput::USBMouseOutput()
     : USBOutputAddIn(), active_buffer_(0), is_config_mode_(false) {}
+
+Status RegisterUSBKeyboardOutput(uint8_t tag) {
+  return DeviceRegistry::RegisterKeyboardOutputDevice(
+      tag, false, []() -> std::shared_ptr<USBKeyboardOutput> {
+        return USBKeyboardOutput::GetUSBKeyboardOutput();
+      });
+}
+
+Status RegisterUSBMouseOutput(uint8_t tag) {
+  return DeviceRegistry::RegisterMouseOutputDevice(
+      tag, false, []() -> std::shared_ptr<USBMouseOutput> {
+        return USBMouseOutput::GetUSBMouseOutput();
+      });
+}

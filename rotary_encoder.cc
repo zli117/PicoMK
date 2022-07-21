@@ -61,3 +61,10 @@ void RotaryEncoder::HandleMovement(bool dir) {
     }
   }
 }
+
+Status RegisterEncoder(uint8_t tag, uint8_t pin_a, uint8_t pin_b,
+                       uint8_t resolution) {
+  return DeviceRegistry::RegisterInputDevice(tag, [=]() {
+    return std::make_shared<RotaryEncoder>(pin_a, pin_b, resolution);
+  });
+}

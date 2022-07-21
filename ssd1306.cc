@@ -228,3 +228,18 @@ void SSD1306Display::CMD(uint8_t cmd) {
   uint8_t data[2] = {0x00, cmd};
   i2c_write_blocking(i2c_, i2c_addr_, data, 2, false);
 }
+
+Status RegisterSSD1306(uint8_t screen_tag, uint8_t keyout_tag, i2c_inst_t* i2c,
+                       uint8_t sda_pin, uint8_t scl_pin, uint8_t i2c_addr,
+                       SSD1306Display::NumRows num_rows, bool flip) {
+  static std::shared_ptr<SSD1306Display> singleton =
+      std::make_shared<SSD1306Display>(i2c, sda_pin, scl_pin, i2c_addr,
+                                       num_rows, flip);
+  if (DeviceRegistry::RegisterKeyboardOutputDevice(
+          keyout_tag, true, [=]() { return singleton; }) != OK ||
+      DeviceRegistry::RegisterScreenOutputDevice(
+          screen_tag, true, [=]() { return singleton; }) != OK) {
+    return ERROR;
+  }
+  return OK;
+}

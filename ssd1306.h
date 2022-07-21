@@ -78,4 +78,8 @@ class SSD1306Display : virtual public ScreenOutputDevice,
   SemaphoreHandle_t semaphore_;
 };
 
+Status RegisterSSD1306(uint8_t screen_tag, uint8_t keyout_tag, i2c_inst_t* i2c,
+                       uint8_t sda_pin, uint8_t scl_pin, uint8_t i2c_addr,
+                       SSD1306Display::NumRows num_rows, bool flip);
+
 #endif /* SSD1306_H_ */

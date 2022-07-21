@@ -75,4 +75,7 @@ class JoystickInputDeivce : virtual public GenericInputDevice {
   // SemaphoreHandle_t semaphore_;
 };
 
+Status RegisterJoystick(uint8_t tag, uint8_t x_adc_pin, uint8_t y_adc_pin,
+                        size_t buffer_size, bool flip_x_dir, bool flip_y_dir);
+
 #endif /* JOYSTICK_H_ */

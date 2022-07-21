@@ -311,3 +311,12 @@ int16_t JoystickInputDeivce::GetSpeed(
 
   return speed;
 }
+
+Status RegisterJoystick(uint8_t tag, uint8_t x_adc_pin, uint8_t y_adc_pin,
+                        size_t buffer_size, bool flip_x_dir, bool flip_y_dir) {
+  return DeviceRegistry::RegisterInputDevice(tag, [=]() {
+    return std::make_shared<JoystickInputDeivce>(x_adc_pin, y_adc_pin,
+                                                 buffer_size, flip_x_dir,
+                                                 flip_y_dir, CONFIG_SCAN_TICKS);
+  });
+}

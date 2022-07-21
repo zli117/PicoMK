@@ -180,4 +180,6 @@ class ConfigModifiersImpl : virtual public ConfigModifier {
   bool pop_ui_;
 };
 
+Status RegisterConfigModifier(uint8_t screen_tag);
+
 #endif /* CONFIG_MODIFIER_H_ */
