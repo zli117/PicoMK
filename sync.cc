@@ -1,4 +1,4 @@
-#include "irq.h"
+#include "sync.h"
 
 #include <atomic>
 
@@ -24,13 +24,13 @@ static TaskInfo __not_in_flash("sync") core_info[2] = {
     {.core_id = 0, .entered = false, .sync_wait_lock = NULL},
     {.core_id = 1, .entered = false, .sync_wait_lock = NULL}};
 
-extern "C" void __no_inline_not_in_flash_func(CPUHoggerTask)(void* parameter);
+extern "C" void __no_inline_not_in_flash_func(CoreBlockerTask)(void* parameter);
 
-Status StartIRQTasks() {
+Status StartSyncTasks() {
   HeapStats_t xHeapStats;
   vPortGetHeapStats(&xHeapStats);
 
-  if (xTaskCreateAffinitySet(&CPUHoggerTask, "core_0_hogger",
+  if (xTaskCreateAffinitySet(&CoreBlockerTask, "core_0_blocker",
                              configMINIMAL_STACK_SIZE, (void*)&core_info[0],
                              // Higher priority to make sure it can preempt
                              // whatever is current running on this core
@@ -42,7 +42,7 @@ Status StartIRQTasks() {
 
   vPortGetHeapStats(&xHeapStats);
 
-  if (xTaskCreateAffinitySet(&CPUHoggerTask, "core_1_hogger",
+  if (xTaskCreateAffinitySet(&CoreBlockerTask, "core_1_blocker",
                              configMINIMAL_STACK_SIZE, (void*)&core_info[1],
                              CONFIG_TASK_PRIORITY + 1, (1 << 1),
                              &task_handles[1]) != pdPASS ||
@@ -63,7 +63,7 @@ Status StartIRQTasks() {
   return OK;
 }
 
-extern "C" void __no_inline_not_in_flash_func(CPUHoggerTask)(void* parameter) {
+extern "C" void __no_inline_not_in_flash_func(CoreBlockerTask)(void* parameter) {
   TaskInfo& task_info = *(TaskInfo*)parameter;
   const uint32_t cpuid = *(uint32_t*)((SIO_BASE) + (SIO_CPUID_OFFSET));
   assert(cpuid == task_info.core_id);
@@ -82,7 +82,11 @@ extern "C" void __no_inline_not_in_flash_func(CPUHoggerTask)(void* parameter) {
   }
 }
 
-void EnterGlobalCriticalSection() {
+CoreBlockerSection::CoreBlockerSection() { DisableTheOtherCore(); }
+
+CoreBlockerSection::~CoreBlockerSection() { ReenableTheOtherCore(); }
+
+void DisableTheOtherCore() {
   // Don't disable IRQ here since flash writes we don't need to disable IRQ
   // until we actually write it.
   spin_lock_unsafe_blocking(critical_section_lock);
@@ -95,13 +99,13 @@ void EnterGlobalCriticalSection() {
   xTaskNotifyGive(task_handles[the_other_core]);  // Notify the other core to
                                                   // enter blocking as well
 
-  // We need to be sure the other core has entered the hogger task which is SRAM
+  // We need to be sure the other core has entered the blocker task which is SRAM
   // mapped before we proceed.
   while (!core_info[the_other_core].entered)
     ;
 }
 
-void ExitGlobalCriticalSection() {
+void ReenableTheOtherCore() {
   const uint32_t cpuid = *(uint32_t*)((SIO_BASE) + (SIO_CPUID_OFFSET));
   const uint32_t the_other_core = (cpuid + 1) % 2;
   spin_unlock_unsafe(core_info[the_other_core].sync_wait_lock);

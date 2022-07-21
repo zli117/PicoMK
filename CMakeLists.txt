@@ -42,7 +42,7 @@ add_executable(firmware
         builtin_keycode.cc
         configuration.cc
         storage.cc
-        irq.cc
+        sync.cc
         cJSON/cJSON.c)
 
 pico_set_program_name(firmware "Pico Keyboard Firmware")
@@ -59,8 +59,6 @@ target_link_libraries(firmware
         FreeRTOS-Kernel-Heap4)
 
 add_compile_definitions(
-        LFS_THREADSAFE=1
-        LFS_NO_MALLOC=1
         PICO_HEAP_SIZE=65536)
 
 add_subdirectory(pico-ssd1306)

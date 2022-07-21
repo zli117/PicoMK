@@ -1,7 +1,7 @@
 #include <stdio.h>
 
 #include "FreeRTOS.h"
-#include "irq.h"
+#include "sync.h"
 #include "pico/stdlib.h"
 #include "runner.h"
 #include "storage.h"
@@ -18,25 +18,10 @@ extern "C" void vApplicationStackOverflowHook(TaskHandle_t pxTask,
 extern "C" void vApplicationTickHook(void) {}
 
 int main() {
-  HeapStats_t xHeapStats1;
-  vPortGetHeapStats(&xHeapStats1);
-
-  StartIRQTasks();
-
-  vPortGetHeapStats(&xHeapStats1);
-
+  StartSyncTasks();
   InitializeStorage();
-
-  vPortGetHeapStats(&xHeapStats1);
-
   runner::RunnerInit();
-
-  vPortGetHeapStats(&xHeapStats1);
-
   runner::RunnerStart();
-
-  vPortGetHeapStats(&xHeapStats1);
-
   vTaskStartScheduler();
 
   while (true)

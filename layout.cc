@@ -61,7 +61,7 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
     {CK(MSE_L),  CK(MSE_M),   CK(MSE_R)}
   },
   [2]={
-    {CK(CONFIG_SEL)},
+    {______, CK(CONFIG_SEL)},
     {CK(BOOTSEL)},
   }
 };
