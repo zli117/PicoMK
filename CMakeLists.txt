@@ -44,6 +44,7 @@ add_executable(firmware
         configuration.cc
         storage.cc
         sync.cc
+        temperature.cc
         cJSON/cJSON.c)
 
 pico_set_program_name(firmware "PicoMK")

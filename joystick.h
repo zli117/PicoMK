@@ -17,6 +17,8 @@ class CenteringPotentialMeterDriver {
   CenteringPotentialMeterDriver(uint8_t adc_pin, size_t smooth_buffer_size,
                                 bool flip);
 
+  void Initialize();
+
   // Raw ADC reading
   int16_t GetValue();
 
@@ -49,7 +51,7 @@ class JoystickInputDeivce : virtual public GenericInputDevice,
                       bool flip_vertical_scroll, uint8_t scan_num_ticks,
                       uint8_t alt_layer);
 
-  void InputLoopStart() override {}
+  void InputLoopStart() override;
   void InputTick() override;
   void SetConfigMode(bool is_config_mode) override;
   std::pair<std::string, std::shared_ptr<Config>> CreateDefaultConfig()

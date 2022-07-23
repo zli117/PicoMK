@@ -79,7 +79,6 @@ void SSD1306Display::OnUpdateConfig(const Config* config) {
   }
   sleep_s_ = ((ConfigInt*)it->second.get())->GetValue();
   last_active_s_ = time_us_64() / 1000000;
-  ;
 }
 
 void SSD1306Display::SetConfigMode(bool is_config_mode) {

@@ -6,9 +6,9 @@
 #include "FreeRTOSConfig.h"
 #include "config.h"
 #include "hardware/adc.h"
+#include "hardware/timer.h"
 #include "semphr.h"
 #include "utils.h"
-#include "hardware/timer.h"
 
 constexpr uint8_t kADCStartPinNum = 26;
 
@@ -28,18 +28,24 @@ CenteringPotentialMeterDriver::CenteringPotentialMeterDriver(
       calibration_count_(0) {
   adc_init();
   adc_gpio_init(adc_pin);
+}
 
+void CenteringPotentialMeterDriver::Initialize() {
   busy_wait_us(100);
+
+  sum_ = 0;
 
   // Fill the buffer
   adc_select_input(adc_);
-  for (size_t i = 0; i < smooth_buffer_size; ++i) {
+  for (size_t i = 0; i < buffer_.size(); ++i) {
     const uint16_t reading = adc_read();
-    buffer_.push_back(reading);
+    buffer_[i] = reading;
     sum_ += reading;
     busy_wait_us(2);
   }
-  origin_ = sum_ / smooth_buffer_size;
+  origin_ = sum_ / buffer_.size();
+
+  buffer_idx_ = 0;
 }
 
 int16_t CenteringPotentialMeterDriver::GetValue() {
@@ -108,6 +114,11 @@ JoystickInputDeivce::JoystickInputDeivce(uint8_t x_adc_pin, uint8_t y_adc_pin,
       flip_vertical_scroll_(flip_vertical_scroll) {
   profile_x_.push_back({0, 0});
   profile_y_.push_back({0, 0});
+}
+
+void JoystickInputDeivce::InputLoopStart() {
+  x_.Initialize();
+  y_.Initialize();
 }
 
 void JoystickInputDeivce::InputTick() {

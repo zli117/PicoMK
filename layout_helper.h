@@ -11,6 +11,7 @@
 #include "layout.h"
 #include "rotary_encoder.h"
 #include "ssd1306.h"
+#include "temperature.h"
 #include "usb.h"
 #include "utils.h"
 
