@@ -72,7 +72,7 @@ class USBMouseOutput : public MouseOutputDevice, public USBOutputAddIn {
  protected:
   USBMouseOutput();
 
-  std::array<std::array<uint8_t, 5>, 2> double_buffer_;
+  std::array<std::array<int8_t, 5>, 2> double_buffer_;
   uint8_t active_buffer_;
   bool is_config_mode_;
 };

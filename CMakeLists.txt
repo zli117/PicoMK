@@ -70,6 +70,7 @@ target_link_libraries(firmware
         hardware_adc
         hardware_i2c
         hardware_clocks
+        hardware_watchdog
         hardware_regs
         pico_ssd1306
         littlefs

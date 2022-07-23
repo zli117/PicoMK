@@ -1,5 +1,6 @@
 #include <vector>
 
+#include "hardware/watchdog.h"
 #include "keyscan.h"
 #include "layout.h"
 #include "pico/bootrom.h"
@@ -104,3 +105,19 @@ class BootselHandler : public CustomKeycodeHandler {
 };
 
 REGISTER_CUSTOM_KEYCODE_HANDLER(BOOTSEL, true, BootselHandler);
+
+class RebootHandler : public CustomKeycodeHandler {
+ public:
+  RebootHandler() {}
+
+  void ProcessKeyState(Keycode kc, bool is_pressed, size_t sink_idx,
+                       size_t source_idx) override {
+    if (is_pressed) {
+      watchdog_reboot(0, 0, 0);
+    }
+  }
+
+  std::string GetName() const override { return "Reboot"; }
+};
+
+REGISTER_CUSTOM_KEYCODE_HANDLER(REBOOT, true, RebootHandler);

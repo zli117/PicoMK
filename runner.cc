@@ -8,6 +8,7 @@
 #include "base.h"
 #include "configuration.h"
 #include "hardware/timer.h"
+#include "hardware/watchdog.h"
 #include "semphr.h"
 #include "task.h"
 #include "timers.h"
@@ -130,6 +131,8 @@ Status RunnerStart() {
     return ERROR;
   }
 
+  watchdog_enable(/*delay_ms=*/100, /*pause_on_debug=*/true);
+
   return OK;
 }
 
@@ -211,6 +214,7 @@ extern "C" void InputDeviceTask(void* parameter) {
       }
       const uint64_t end_time = time_us_64();
       LOG_DEBUG("Input task per iteration takes %d us", end_time - start_time);
+      watchdog_update();
     }
   }
 }

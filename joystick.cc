@@ -12,13 +12,13 @@
 constexpr uint8_t kADCStartPinNum = 26;
 
 CenteringPotentialMeterDriver::CenteringPotentialMeterDriver(
-    uint8_t adc_pin, size_t smooth_buffer_size, bool flip_dir)
+    uint8_t adc_pin, size_t smooth_buffer_size, bool flip)
     : adc_(adc_pin - kADCStartPinNum),
       origin_(0),
       buffer_(smooth_buffer_size),
       buffer_idx_(0),
       sum_(0),
-      flip_dir_(flip_dir),
+      flip_(flip),
       last_value_(0),
       calibration_samples_(0),
       calibration_threshold_(0),
@@ -47,7 +47,7 @@ int16_t CenteringPotentialMeterDriver::GetValue() {
   sum_ += adc_raw;
   buffer_[buffer_idx_] = adc_raw;
   buffer_idx_ = (buffer_idx_ + 1) % buffer_.size();
-  return origin_ - sum_ / buffer_.size();
+  return (origin_ - sum_ / buffer_.size()) * (flip_ ? -1 : 1);
 }
 
 void CenteringPotentialMeterDriver::SetCalibrationSamples(
@@ -87,21 +87,27 @@ void CenteringPotentialMeterDriver::SetMappedValue(int16_t mapped) {
 JoystickInputDeivce::JoystickInputDeivce(uint8_t x_adc_pin, uint8_t y_adc_pin,
                                          size_t buffer_size, bool flip_x_dir,
                                          bool flip_y_dir,
-                                         uint8_t scan_num_ticks)
+                                         bool flip_vertical_scroll,
+                                         uint8_t scan_num_ticks,
+                                         uint8_t alt_layer)
     : x_(x_adc_pin, buffer_size, flip_x_dir),
       y_(y_adc_pin, buffer_size, flip_y_dir),
-      report_n_scan_(1),
+      mouse_resolution_(1),
+      pan_resolution_(1),
       counter_(0),
       x_move_(0),
       y_move_(0),
       is_config_mode_(false),
-      scan_num_ticks_(scan_num_ticks) {
+      scan_num_ticks_(scan_num_ticks),
+      alt_layer_(alt_layer),
+      is_alt_mode_(false),
+      flip_vertical_scroll_(flip_vertical_scroll) {
   profile_x_.push_back({0, 0});
   profile_y_.push_back({0, 0});
 }
 
 void JoystickInputDeivce::InputTick() {
-  if (!enable_joystick_) {
+  if (!enable_joystick_ || is_config_mode_) {
     return;
   }
 
@@ -112,33 +118,52 @@ void JoystickInputDeivce::InputTick() {
   x_.SetMappedValue(x_speed);
   y_.SetMappedValue(y_speed);
 
-  if (counter_ == 0) {
-    const int16_t tick_hz = configTICK_RATE_HZ;
-    x_move_ = x_speed * report_n_scan_ * scan_num_ticks_ / tick_hz;
-    y_move_ = y_speed * report_n_scan_ * scan_num_ticks_ / tick_hz;
-  }
-
-  const int8_t x_report_speed = x_move_ / (scan_num_ticks_ - counter_);
-  const int8_t y_report_speed = y_move_ / (scan_num_ticks_ - counter_);
-  x_move_ -= x_report_speed;
-  y_move_ -= y_report_speed;
-
-  counter_ = (counter_ + 1) % report_n_scan_;
-
-  if (is_config_mode_) {
-    return;
+  if (is_alt_mode_) {
+    if (counter_ == 0) {
+      int8_t x = 0;
+      int8_t y = 0;
+      if (x_speed < 0) {
+        x = -1;
+      } else if (x_speed > 0) {
+        x = 1;
+      }
+      if (y_speed < 0) {
+        y = -1;
+      } else if (y_speed > 0) {
+        y = 1;
+      }
+      LOG_INFO("Pan: %d, %d", x, y);
+      for (auto mouse_output : *mouse_output_) {
+        mouse_output->Pan(x, y * (flip_vertical_scroll_ ? -1 : 1));
+      }
+    }
   } else {
+    if (counter_ == 0) {
+      const int16_t tick_hz = configTICK_RATE_HZ;
+      x_move_ = x_speed * mouse_resolution_ * scan_num_ticks_ / tick_hz;
+      y_move_ = y_speed * mouse_resolution_ * scan_num_ticks_ / tick_hz;
+    }
+
+    const int8_t x_report_speed = x_move_ / (scan_num_ticks_ - counter_);
+    const int8_t y_report_speed = y_move_ / (scan_num_ticks_ - counter_);
+    x_move_ -= x_report_speed;
+    y_move_ -= y_report_speed;
+
     for (auto mouse_output : *mouse_output_) {
       mouse_output->MouseMovement(x_report_speed, y_report_speed);
     }
   }
+
+  counter_ =
+      (counter_ + 1) % (is_alt_mode_ ? pan_resolution_ : mouse_resolution_);
 }
 
 std::pair<std::string, std::shared_ptr<Config>>
 JoystickInputDeivce::CreateDefaultConfig() {
   auto config = CONFIG_OBJECT(
       CONFIG_OBJECT_ELEM("enable_joystick", CONFIG_INT(1, 0, 1)),
-      CONFIG_OBJECT_ELEM("report_n_scan", CONFIG_INT(5, 1, 100)),
+      CONFIG_OBJECT_ELEM("mouse_resolution", CONFIG_INT(5, 1, 100)),
+      CONFIG_OBJECT_ELEM("pan_resolution", CONFIG_INT(20, 1, 100)),
       CONFIG_OBJECT_ELEM("calib_samples", CONFIG_INT(1000, 0, INT32_MAX)),
       CONFIG_OBJECT_ELEM("calib_threshold", CONFIG_INT(400, 0, INT32_MAX)),
       CONFIG_OBJECT_ELEM(
@@ -212,9 +237,9 @@ void JoystickInputDeivce::OnUpdateConfig(const Config* config) {
   }
   enable_joystick_ = ((ConfigInt*)it->second.get())->GetValue() > 0;
 
-  // Get speed divider
+  // Get resolutions
 
-  it = root_map.find("report_n_scan");
+  it = root_map.find("mouse_resolution");
   if (it == root_map.end()) {
     LOG_ERROR("Can't find `report_n_scan` in config");
     return;
@@ -223,7 +248,19 @@ void JoystickInputDeivce::OnUpdateConfig(const Config* config) {
     LOG_ERROR("`report_n_scan` invalid type");
     return;
   }
-  report_n_scan_ = ((ConfigInt*)it->second.get())->GetValue();
+  mouse_resolution_ = ((ConfigInt*)it->second.get())->GetValue();
+  counter_ = 0;
+
+  it = root_map.find("pan_resolution");
+  if (it == root_map.end()) {
+    LOG_ERROR("Can't find `report_n_scan` in config");
+    return;
+  }
+  if (it->second->GetType() != Config::INTEGER) {
+    LOG_ERROR("`report_n_scan` invalid type");
+    return;
+  }
+  pan_resolution_ = ((ConfigInt*)it->second.get())->GetValue();
   counter_ = 0;
 
   // Get calibration samples
@@ -312,11 +349,26 @@ int16_t JoystickInputDeivce::GetSpeed(
   return speed;
 }
 
-Status RegisterJoystick(uint8_t tag, uint8_t x_adc_pin, uint8_t y_adc_pin,
-                        size_t buffer_size, bool flip_x_dir, bool flip_y_dir) {
-  return DeviceRegistry::RegisterInputDevice(tag, [=]() {
-    return std::make_shared<JoystickInputDeivce>(x_adc_pin, y_adc_pin,
-                                                 buffer_size, flip_x_dir,
-                                                 flip_y_dir, CONFIG_SCAN_TICKS);
-  });
+void JoystickInputDeivce::ChangeActiveLayers(const std::vector<bool>& layers) {
+  if (alt_layer_ < layers.size()) {
+    is_alt_mode_ = layers[alt_layer_];
+    counter_ = 0;
+  }
+}
+
+Status RegisterJoystick(uint8_t input_tag, uint8_t keyboard_tag,
+                        uint8_t x_adc_pin, uint8_t y_adc_pin,
+                        size_t buffer_size, bool flip_x_dir, bool flip_y_dir,
+                        bool flip_vertical_scroll, uint8_t alt_layer) {
+  static std::shared_ptr<JoystickInputDeivce> singleton =
+      std::make_shared<JoystickInputDeivce>(
+          x_adc_pin, y_adc_pin, buffer_size, flip_x_dir, flip_y_dir,
+          flip_vertical_scroll, CONFIG_SCAN_TICKS, alt_layer);
+  if (DeviceRegistry::RegisterInputDevice(input_tag,
+                                          [=]() { return singleton; }) != OK ||
+      DeviceRegistry::RegisterKeyboardOutputDevice(
+          keyboard_tag, /*slow=*/false, [=]() { return singleton; }) != OK) {
+    return ERROR;
+  }
+  return OK;
 }

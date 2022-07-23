@@ -35,6 +35,7 @@ enum BuiltInCustomKeyCode {
   ENTER_CONFIG,
   CONFIG_SEL,
   BOOTSEL,
+  REBOOT,
   TOTAL_BUILT_IN_KC
 };
 

@@ -23,6 +23,8 @@
 #define CONFIG_NUM_PHY_ROWS 6
 #define CONFIG_NUM_PHY_COLS 15
 
+#define ALT_LY 4
+
 static constexpr uint8_t kRowGPIO[] = {R0, R1, R2, R3, R4};
 static constexpr uint8_t kColGPIO[] = {C0, C1, C2, C3,  C4,  C5,  C6,
                                        C7, C8, C9, C10, C11, C12, C13};
@@ -46,21 +48,27 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
     {K(K_ESC),   K(K_TAB),    K(K_Q),     K(K_W),     K(K_E),     K(K_R),     K(K_T),     K(K_Y),     K(K_U),     K(K_I),     K(K_O),     K(K_P),     K(K_BRKTL), K(K_BRKTR), K(K_BKSL)},
     {K(K_DEL),   K(K_CTR_L),  K(K_A),     K(K_S),     K(K_D),     K(K_F),     K(K_G),     K(K_H),     K(K_J),     K(K_K),     K(K_L),     K(K_SEMIC), K(K_APST),  K(K_ENTER)},
     {K(K_INS),   K(K_SFT_L),  K(K_Z),     K(K_X),     K(K_C),     K(K_V),     K(K_B),     K(K_N),     K(K_M),     K(K_COMMA), K(K_PERID), K(K_SLASH), K(K_SFT_R)},
-    {______,     K(K_GUI_L),  K(K_ALT_L), K(K_SPACE), MO(1),      MO(2),      K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
+    {MO(ALT_LY), K(K_GUI_L),  K(K_ALT_L), K(K_SPACE), MO(1),      MO(2),      K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
     {CK(MSE_L),  CK(MSE_M),   CK(MSE_R)}
   },
   [1]={
     {K(K_MUTE),  K(K_GRAVE),  K(K_F1),    K(K_F2),    K(K_F3),    K(K_F4),    K(K_F5),    K(K_F6),    K(K_F7),    K(K_F8),    K(K_F9),    K(K_F10),   K(K_F11),   K(K_F12),   K(K_BACKS)},
     {K(K_ESC),   K(K_TAB),    K(K_Q),     K(K_W),     K(K_E),     K(K_R),     K(K_T),     K(K_Y),     K(K_U),     K(K_I),     K(K_O),     K(K_P),     K(K_BRKTL), K(K_BRKTR), K(K_BKSL)},
     {K(K_DEL),   K(K_CTR_L),  K(K_A),     K(K_S),     K(K_D),     K(K_F),     K(K_G),     K(K_H),     K(K_J),     K(K_K),     K(K_L),     K(K_SEMIC), K(K_APST),  K(K_ENTER)},
-    {K(K_INS),   K(K_SFT_L),  K(K_Z),     K(K_X),     K(K_C),     K(K_V),     K(K_B),     K(K_N),     K(K_M),     K(K_COMMA), K(K_PERID), K(K_SLASH), K(K_SFT_R)},
+    {MO(3),      K(K_SFT_L),  K(K_Z),     K(K_X),     K(K_C),     K(K_V),     K(K_B),     K(K_N),     K(K_M),     K(K_COMMA), K(K_PERID), K(K_SLASH), K(K_SFT_R)},
     {CONFIG,     TG(2),       K(K_ALT_L), K(K_SPACE), ______,     ______,     K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
     {CK(MSE_L),  CK(MSE_M),   CK(MSE_R)}
   },
   [2]={
     {CK(CONFIG_SEL)},
+    {______},
+    {CK(REBOOT)},
+  },
+  [3]={
+    {______},
     {CK(BOOTSEL)},
-  }
+  },
+  [ALT_LY]={},
 };
 
 // clang-format on
@@ -72,6 +80,7 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 
 enum {
   JOYSTICK = 0,
+  JOYSTICK_2,
   KEYSCAN,
   ENCODER,
   SSD1306_SCREEN,
@@ -81,11 +90,12 @@ enum {
 };
 
 static Status register1 = RegisterConfigModifier(SSD1306_SCREEN);
-static Status register2 = RegisterJoystick(JOYSTICK, 28, 27, 3, false, false);
+static Status register2 = RegisterJoystick(JOYSTICK, JOYSTICK_2, 28, 27, 3,
+                                           false, false, true, ALT_LY);
 static Status register3 = RegisterKeyscan(KEYSCAN);
 static Status register4 = RegisterEncoder(ENCODER, 19, 22, 2);
 static Status register5 =
     RegisterSSD1306(SSD1306_SCREEN, SSD1306_KEYOUT, i2c0, 20, 21, 0x3c,
                     SSD1306Display::R_64, true);
-static Status register6 = RegisterUSBKeyboardOutput(USB_KEYBOARD); 
-static Status register7 = RegisterUSBKeyboardOutput(USB_MOUSE); 
+static Status register6 = RegisterUSBKeyboardOutput(USB_KEYBOARD);
+static Status register7 = RegisterUSBMouseOutput(USB_MOUSE);
