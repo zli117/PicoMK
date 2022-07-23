@@ -8,6 +8,7 @@
 #include "hardware/adc.h"
 #include "semphr.h"
 #include "utils.h"
+#include "hardware/timer.h"
 
 constexpr uint8_t kADCStartPinNum = 26;
 
@@ -28,12 +29,15 @@ CenteringPotentialMeterDriver::CenteringPotentialMeterDriver(
   adc_init();
   adc_gpio_init(adc_pin);
 
+  busy_wait_us(100);
+
   // Fill the buffer
   adc_select_input(adc_);
   for (size_t i = 0; i < smooth_buffer_size; ++i) {
     const uint16_t reading = adc_read();
     buffer_.push_back(reading);
     sum_ += reading;
+    busy_wait_us(2);
   }
   origin_ = sum_ / smooth_buffer_size;
 }
@@ -100,7 +104,7 @@ JoystickInputDeivce::JoystickInputDeivce(uint8_t x_adc_pin, uint8_t y_adc_pin,
       is_config_mode_(false),
       scan_num_ticks_(scan_num_ticks),
       alt_layer_(alt_layer),
-      is_alt_mode_(false),
+      is_pan_mode_(false),
       flip_vertical_scroll_(flip_vertical_scroll) {
   profile_x_.push_back({0, 0});
   profile_y_.push_back({0, 0});
@@ -118,7 +122,9 @@ void JoystickInputDeivce::InputTick() {
   x_.SetMappedValue(x_speed);
   y_.SetMappedValue(y_speed);
 
-  if (is_alt_mode_) {
+  LOG_INFO("x: %d, y: %d", x_speed, y_speed);
+
+  if (is_pan_mode_) {
     if (counter_ == 0) {
       int8_t x = 0;
       int8_t y = 0;
@@ -155,7 +161,7 @@ void JoystickInputDeivce::InputTick() {
   }
 
   counter_ =
-      (counter_ + 1) % (is_alt_mode_ ? pan_resolution_ : mouse_resolution_);
+      (counter_ + 1) % (is_pan_mode_ ? pan_resolution_ : mouse_resolution_);
 }
 
 std::pair<std::string, std::shared_ptr<Config>>
@@ -351,7 +357,7 @@ int16_t JoystickInputDeivce::GetSpeed(
 
 void JoystickInputDeivce::ChangeActiveLayers(const std::vector<bool>& layers) {
   if (alt_layer_ < layers.size()) {
-    is_alt_mode_ = layers[alt_layer_];
+    is_pan_mode_ = layers[alt_layer_];
     counter_ = 0;
   }
 }

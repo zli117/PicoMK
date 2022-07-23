@@ -9,6 +9,7 @@
 
 #include "FreeRTOS.h"
 #include "hardware/gpio.h"
+#include "hardware/timer.h"
 #include "layout.h"
 #include "pico/stdlib.h"
 #include "runner.h"
@@ -150,7 +151,7 @@ std::vector<uint8_t> KeyScan::GetActiveLayers() {
   return output;
 }
 
-void KeyScan::SinkGPIODelay() { sleep_us(CONFIG_GPIO_SINK_DELAY_US); }
+void KeyScan::SinkGPIODelay() { busy_wait_us_32(CONFIG_GPIO_SINK_DELAY_US); }
 
 KeyScan::HandlerRegistry* KeyScan::HandlerRegistry::GetRegistry() {
   static HandlerRegistry instance;

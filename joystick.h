@@ -85,7 +85,7 @@ class JoystickInputDeivce : virtual public GenericInputDevice,
   bool is_config_mode_;
   const int16_t scan_num_ticks_;
   const uint8_t alt_layer_;
-  bool is_alt_mode_;
+  bool is_pan_mode_;
   bool flip_vertical_scroll_;
 };
 

@@ -90,7 +90,7 @@ enum {
 };
 
 static Status register1 = RegisterConfigModifier(SSD1306_SCREEN);
-static Status register2 = RegisterJoystick(JOYSTICK, JOYSTICK_2, 28, 27, 3,
+static Status register2 = RegisterJoystick(JOYSTICK, JOYSTICK_2, 28, 27, 5,
                                            false, false, true, ALT_LY);
 static Status register3 = RegisterKeyscan(KEYSCAN);
 static Status register4 = RegisterEncoder(ENCODER, 19, 22, 2);
