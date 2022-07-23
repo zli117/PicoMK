@@ -14,6 +14,7 @@ class TemperatureInputDeivce : virtual public GenericInputDevice {
   std::pair<std::string, std::shared_ptr<Config>> CreateDefaultConfig()
       override;
   void OnUpdateConfig(const Config* config) override;
+  void SetConfigMode(bool is_config_mode) override;
 
  protected:
   virtual int32_t ConvertTemperature();
@@ -21,7 +22,11 @@ class TemperatureInputDeivce : virtual public GenericInputDevice {
   virtual void WriteTemp(int32_t temp);
 
   bool is_fahrenheit_;
+  bool is_config_;
+  bool enabled_;
   std::vector<uint16_t> buffer_;
+  uint32_t sample_every_ticks_;
+  uint32_t counter_;
   uint32_t buffer_idx_;
   int32_t sum_;
   int32_t prev_temp_;

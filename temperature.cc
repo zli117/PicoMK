@@ -11,7 +11,11 @@ constexpr uint8_t kBufferSize = 100;
 
 TemperatureInputDeivce::TemperatureInputDeivce()
     : is_fahrenheit_(true),
+      is_config_(false),
+      enabled_(true),
       buffer_(kBufferSize),
+      sample_every_ticks_(1),
+      counter_(0),
       buffer_idx_(0),
       sum_(0),
       prev_temp_(0) {
@@ -35,6 +39,15 @@ void TemperatureInputDeivce::InputLoopStart() {
 }
 
 void TemperatureInputDeivce::InputTick() {
+  if (!enabled_) {
+    return;
+  }
+
+  counter_ = (counter_ + 1) % sample_every_ticks_;
+  if (counter_ != 0) {
+    return;
+  }
+
   adc_select_input(kADC);
   const uint16_t adc_raw = adc_read();
 
@@ -52,8 +65,10 @@ void TemperatureInputDeivce::InputTick() {
 
 std::pair<std::string, std::shared_ptr<Config>>
 TemperatureInputDeivce::CreateDefaultConfig() {
-  auto config =
-      CONFIG_OBJECT(CONFIG_OBJECT_ELEM("fahrenheit", CONFIG_INT(1, 0, 1)));
+  auto config = CONFIG_OBJECT(
+      CONFIG_OBJECT_ELEM("fahrenheit", CONFIG_INT(1, 0, 1)),
+      CONFIG_OBJECT_ELEM("enabled", CONFIG_INT(1, 0, 1)),
+      CONFIG_OBJECT_ELEM("sample_n_ticks", CONFIG_INT(100, 0, 1000)));
   return {"temperature", config};
 }
 
@@ -73,9 +88,40 @@ void TemperatureInputDeivce::OnUpdateConfig(const Config* config) {
     return;
   }
   is_fahrenheit_ = ((ConfigInt*)it->second.get())->GetValue() == 1;
+
+  it = root_map.find("enabled");
+  if (it == root_map.end()) {
+    LOG_ERROR("Can't find `enabled` in config");
+    return;
+  }
+  if (it->second->GetType() != Config::INTEGER) {
+    LOG_ERROR("`enabled` invalid type");
+    return;
+  }
+  enabled_ = ((ConfigInt*)it->second.get())->GetValue() == 1;
+
+  it = root_map.find("sample_n_ticks");
+  if (it == root_map.end()) {
+    LOG_ERROR("Can't find `sample_n_ticks` in config");
+    return;
+  }
+  if (it->second->GetType() != Config::INTEGER) {
+    LOG_ERROR("`sample_n_ticks` invalid type");
+    return;
+  }
+  sample_every_ticks_ = ((ConfigInt*)it->second.get())->GetValue();
+  counter_ = 0;
+}
+
+void TemperatureInputDeivce::SetConfigMode(bool is_config_mode) {
+  is_config_ = is_config_mode;
 }
 
 void TemperatureInputDeivce::WriteTemp(int32_t temp) {
+  if (is_config_) {
+    return;
+  }
+
   for (auto screen : *screen_output_) {
     std::unique_ptr<char[]> buffer(new char[screen->GetNumCols() / 8]);
     const size_t padding = screen->GetNumCols() / 8 - 7;
