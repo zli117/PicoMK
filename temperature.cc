@@ -76,9 +76,11 @@ void TemperatureInputDeivce::OnUpdateConfig(const Config* config) {
 }
 
 void TemperatureInputDeivce::WriteTemp(int32_t temp) {
-  std::unique_ptr<char[]> buffer(new char[16]);
   for (auto screen : *screen_output_) {
-    size_t len = std::snprintf(buffer.get(), 16, "Temp: %4d", temp);
+    std::unique_ptr<char[]> buffer(new char[screen->GetNumCols() / 8]);
+    const size_t padding = screen->GetNumCols() / 8 - 7;
+    size_t len = std::snprintf(buffer.get(), 16, "Temp:%*d%s", padding, temp,
+                               is_fahrenheit_ ? "F" : "C");
 
     // Clear the row first
     screen->DrawRect(screen->GetNumRows() - 8, 0, screen->GetNumRows(),
