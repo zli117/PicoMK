@@ -231,13 +231,13 @@ void SSD1306Display::CMD(uint8_t cmd) {
 Status RegisterSSD1306(uint8_t screen_tag, uint8_t keyout_tag, i2c_inst_t* i2c,
                        uint8_t sda_pin, uint8_t scl_pin, uint8_t i2c_addr,
                        SSD1306Display::NumRows num_rows, bool flip) {
-  static std::shared_ptr<SSD1306Display> singleton =
+  std::shared_ptr<SSD1306Display> instance =
       std::make_shared<SSD1306Display>(i2c, sda_pin, scl_pin, i2c_addr,
                                        num_rows, flip);
   if (DeviceRegistry::RegisterKeyboardOutputDevice(
-          keyout_tag, true, [=]() { return singleton; }) != OK ||
+          keyout_tag, true, [=]() { return instance; }) != OK ||
       DeviceRegistry::RegisterScreenOutputDevice(
-          screen_tag, true, [=]() { return singleton; }) != OK) {
+          screen_tag, true, [=]() { return instance; }) != OK) {
     return ERROR;
   }
   return OK;

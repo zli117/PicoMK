@@ -89,11 +89,14 @@ class ScreenOutputDevice : virtual public GenericOutputDevice {
 
 class LEDOutputDevice : virtual public GenericOutputDevice {
  public:
-  virtual void NextAnimation() = 0;
-  virtual void PreviousAnimation() = 0;
-  virtual void SetAnimationSpeed() = 0;
+  virtual void IncreaseBrightness() = 0;
+  virtual void DecreaseBrightness() = 0;
+  virtual void IncreaseAnimationSpeed() = 0;
+  virtual void DecreaseAnimationSpeed() = 0;
   virtual size_t NumPixels() const = 0;
-  virtual void SetFixedColor(uint8_t r, uint8_t g, uint8_t b) = 0;
+  virtual void SetFixedColor(uint8_t w, uint8_t r, uint8_t g, uint8_t b) = 0;
+  virtual void SetPixel(size_t idx, uint8_t w, uint8_t r, uint8_t g,
+                        uint8_t b) = 0;
 };
 
 class ConfigModifier;

@@ -14,6 +14,7 @@
 #include "temperature.h"
 #include "usb.h"
 #include "utils.h"
+#include "ws2812.h"
 
 #define K(KEYCODE) \
   { .keycode = (KEYCODE), .is_custom = false, .custom_info = 0 }

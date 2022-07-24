@@ -45,13 +45,20 @@ add_executable(firmware
         storage.cc
         sync.cc
         temperature.cc
+        ws2812.cc
         cJSON/cJSON.c)
+
+
+file(GLOB pio "${CMAKE_CURRENT_LIST_DIR}/pio/*.pio")
+pico_generate_pio_header(firmware ${pio})
 
 pico_set_program_name(firmware "PicoMK")
 pico_set_program_version(firmware "0.1")
 
 pico_enable_stdio_uart(firmware 0)
 pico_enable_stdio_usb(firmware 0)
+
+pico_set_float_implementation(firmware pico)
 
 # Add the standard library to the build
 target_link_libraries(firmware 
@@ -73,6 +80,7 @@ target_link_libraries(firmware
         hardware_clocks
         hardware_watchdog
         hardware_regs
+        hardware_pio
         pico_ssd1306
         littlefs
         )

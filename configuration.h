@@ -27,8 +27,9 @@
 #define CONFIG_INT(value, min, max) \
   (std::shared_ptr<ConfigInt>(new ConfigInt((value), (min), (max))))
 
-#define CONFIG_FLOAT(value, min, max) \
-  (std::shared_ptr<ConfigFloat>(new ConfigFloat((value), (min), (max))))
+#define CONFIG_FLOAT(value, min, max, resolution) \
+  (std::shared_ptr<ConfigFloat>(                  \
+      new ConfigFloat((value), (min), (max), (resolution))))
 
 class Config {
  public:

@@ -88,6 +88,7 @@ enum {
   USB_KEYBOARD,
   USB_MOUSE,
   TEMPERATURE,
+  LED,
 };
 
 static Status register1 = RegisterConfigModifier(SSD1306_SCREEN);
@@ -101,3 +102,4 @@ static Status register5 =
 static Status register6 = RegisterUSBKeyboardOutput(USB_KEYBOARD);
 static Status register7 = RegisterUSBMouseOutput(USB_MOUSE);
 static Status register8 = RegisterTemperatureInput(TEMPERATURE);
+static Status register9 = RegisterWS2812(LED, 26, 17);
