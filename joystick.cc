@@ -133,7 +133,7 @@ void JoystickInputDeivce::InputTick() {
   x_.SetMappedValue(x_speed);
   y_.SetMappedValue(y_speed);
 
-  LOG_INFO("x: %d, y: %d", x_speed, y_speed);
+  LOG_DEBUG("x: %d, y: %d", x_speed, y_speed);
 
   if (is_pan_mode_) {
     if (counter_ == 0) {
@@ -149,7 +149,7 @@ void JoystickInputDeivce::InputTick() {
       } else if (y_speed > 0) {
         y = 1;
       }
-      LOG_INFO("Pan: %d, %d", x, y);
+      LOG_DEBUG("Pan: %d, %d", x, y);
       for (auto mouse_output : *mouse_output_) {
         mouse_output->Pan(x, y * (flip_vertical_scroll_ ? -1 : 1));
       }

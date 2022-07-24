@@ -36,6 +36,8 @@ WS2812::WS2812(uint8_t pin, uint8_t num_pixels, float max_brightness, PIO pio,
 }
 
 void WS2812::OutputTick() {
+  const uint64_t start_time = time_us_64();
+
   Mode mode;
   float brightness;
   {
@@ -72,6 +74,9 @@ void WS2812::OutputTick() {
       RotateAnimation(brightness);
       break;
   }
+
+  const uint64_t end_time = time_us_64();
+  LOG_DEBUG("LED write time: %d us", end_time - start_time);
 }
 
 void WS2812::StartOfInputTick() {

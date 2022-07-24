@@ -214,6 +214,7 @@ extern "C" void InputDeviceTask(void* parameter) {
       }
       const uint64_t end_time = time_us_64();
       LOG_DEBUG("Input task per iteration takes %d us", end_time - start_time);
+      LOG_INFO("End input tick");
       watchdog_update();
     }
   }
