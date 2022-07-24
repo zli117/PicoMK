@@ -34,6 +34,7 @@ class WS2812 : public LEDOutputDevice {
                 uint8_t b) override;
 
   void OnUpdateConfig(const Config* config) override;
+  void SetConfigMode(bool is_config_mode) override;
   std::pair<std::string, std::shared_ptr<Config>> CreateDefaultConfig()
       override;
 

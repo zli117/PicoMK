@@ -39,19 +39,31 @@ void WS2812::OutputTick() {
   const uint64_t start_time = time_us_64();
 
   Mode mode;
+  bool enabled;
   float brightness;
   {
     LockSemaphore lock(semaphore_);
+    if (!enabled_ && !redraw_) {
+      return;
+    }
+    if (!redraw_) {
+      return;
+    }
     if (counter_++ < tick_divider_) {
       return;
     }
     counter_ = 0;
     mode = mode_;
     brightness = brightness_;
-    if (!redraw_) {
-      return;
-    }
     redraw_ = false;
+    enabled = enabled_;
+  }
+
+  if (!enabled) {
+    for (size_t i = 0; i < NumPixels(); ++i) {
+      PutPixel(0);
+    }
+    return;
   }
 
   switch (mode) {
@@ -81,14 +93,14 @@ void WS2812::OutputTick() {
 
 void WS2812::StartOfInputTick() {
   LockSemaphore lock(semaphore_);
-  if (mode_ != SET_PIXEL) {
+  if (mode_ != SET_PIXEL && enabled_) {
     redraw_ = true;
   }
 }
 
 void WS2812::FinalizeInputTickOutput() {
   LockSemaphore lock(semaphore_);
-  if (mode_ == SET_PIXEL && buffer_changed_) {
+  if (mode_ == SET_PIXEL && buffer_changed_ && enabled_) {
     active_buffer_ = (active_buffer_ + 1) % 2;
     redraw_ = true;
   }
@@ -96,6 +108,9 @@ void WS2812::FinalizeInputTickOutput() {
 
 void WS2812::IncreaseBrightness() {
   LockSemaphore lock(semaphore_);
+  if (!enabled_) {
+    return;
+  }
   brightness_ += 0.05;
   if (brightness_ > max_brightness_) {
     brightness_ = max_brightness_;
@@ -105,6 +120,9 @@ void WS2812::IncreaseBrightness() {
 
 void WS2812::DecreaseBrightness() {
   LockSemaphore lock(semaphore_);
+  if (!enabled_) {
+    return;
+  }
   brightness_ -= 0.05;
   if (brightness_ < 0) {
     brightness_ = 0;
@@ -114,6 +132,9 @@ void WS2812::DecreaseBrightness() {
 
 void WS2812::IncreaseAnimationSpeed() {
   LockSemaphore lock(semaphore_);
+  if (!enabled_) {
+    return;
+  }
   if (tick_divider_ != 1) {
     tick_divider_ -= 1;
   }
@@ -122,6 +143,9 @@ void WS2812::IncreaseAnimationSpeed() {
 
 void WS2812::DecreaseAnimationSpeed() {
   LockSemaphore lock(semaphore_);
+  if (!enabled_) {
+    return;
+  }
   if (tick_divider_ != 0xff) {
     tick_divider_ += 1;
   }
@@ -129,6 +153,12 @@ void WS2812::DecreaseAnimationSpeed() {
 }
 
 void WS2812::SetFixedColor(uint8_t w, uint8_t r, uint8_t g, uint8_t b) {
+  {
+    LockSemaphore lock(semaphore_);
+    if (!enabled_) {
+      return;
+    }
+  }
   if (mode_ != SET_PIXEL) {
     return;
   }
@@ -139,6 +169,12 @@ void WS2812::SetFixedColor(uint8_t w, uint8_t r, uint8_t g, uint8_t b) {
 }
 
 void WS2812::SetPixel(size_t idx, uint8_t w, uint8_t r, uint8_t g, uint8_t b) {
+  {
+    LockSemaphore lock(semaphore_);
+    if (!enabled_) {
+      return;
+    }
+  }
   if (mode_ != SET_PIXEL || idx >= NumPixels()) {
     return;
   }
@@ -177,6 +213,17 @@ void WS2812::OnUpdateConfig(const Config* config) {
   tick_divider_ = ((ConfigInt*)it->second.get())->GetValue();
   counter_ = 0;
 
+  it = root_map.find("enabled");
+  if (it == root_map.end()) {
+    LOG_ERROR("Can't find `enabled` in config");
+    return;
+  }
+  if (it->second->GetType() != Config::INTEGER) {
+    LOG_ERROR("`enabled` invalid type");
+    return;
+  }
+  enabled_ = ((ConfigInt*)it->second.get())->GetValue();
+
   it = root_map.find("animation");
   if (it == root_map.end()) {
     LOG_ERROR("Can't find `animation` in config");
@@ -189,11 +236,17 @@ void WS2812::OnUpdateConfig(const Config* config) {
   mode_ = (Mode)(((ConfigInt*)it->second.get())->GetValue());
 }
 
+void WS2812::SetConfigMode(bool is_config_mode) {
+  LockSemaphore lock(semaphore_);
+  redraw_ = true;
+}
+
 std::pair<std::string, std::shared_ptr<Config>> WS2812::CreateDefaultConfig() {
   auto config = CONFIG_OBJECT(
       CONFIG_OBJECT_ELEM("brightness",
                          CONFIG_FLOAT(0.25, 0.0, max_brightness_, 0.02)),
       CONFIG_OBJECT_ELEM("tick_dividier", CONFIG_INT(10, 1, 250)),
+      CONFIG_OBJECT_ELEM("enabled", CONFIG_INT(1, 0, 1)),
       CONFIG_OBJECT_ELEM("animation", CONFIG_INT(ROTATE, 0, TOTAL - 1)));
   return {"ws2812", config};
 }
