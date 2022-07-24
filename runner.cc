@@ -164,12 +164,18 @@ extern "C" void InputDeviceTask(void* parameter) {
     }
 
     while (true) {
+      const uint64_t sleep_time = time_us_64();
       // Wait for the timer callback to wake it up. Running this outside the
       // timer context to avoid overflowing the timer task.
       xTaskNotifyWait(/*do not clear notification on enter*/ 0,
                       /*clear notification on exit*/ 0xffffffff,
                       /*pulNotificationValue=*/NULL, portMAX_DELAY);
       const uint64_t start_time = time_us_64();
+      if (start_time - sleep_time < 1000) {
+        LOG_WARNING(
+            "Input task didn't sleep enough. Remaining time budget less than "
+            "is less than 1ms.");
+      }
       bool should_change_config_mode;
       bool should_update_config;
       {
@@ -228,12 +234,18 @@ extern "C" void OutputDeviceTask(void* parameter) {
   (void)parameter;
 
   while (true) {
+    const uint64_t sleep_time = time_us_64();
     // Wait for the timer callback to wake it up. Running this outside the timer
     // context to avoid overflowing the timer task.
     xTaskNotifyWait(/*do not clear notification on enter*/ 0,
                     /*clear notification on exit*/ 0xffffffff,
                     /*pulNotificationValue=*/NULL, portMAX_DELAY);
     const uint64_t start_time = time_us_64();
+    if (start_time - sleep_time < 1000) {
+      LOG_WARNING(
+          "Output task didn't sleep enough. Remaining time budget less than "
+          "1ms.");
+    }
     for (auto output_device : output_devices) {
       output_device->OutputTick();
     }
@@ -250,12 +262,18 @@ extern "C" void SlowOutputDeviceTask(void* parameter) {
   (void)parameter;
 
   while (true) {
+    const uint64_t sleep_time = time_us_64();
     // Wait for the timer callback to wake it up. Running this outside the timer
     // context to avoid overflowing the timer task.
     xTaskNotifyWait(/*do not clear notification on enter*/ 0,
                     /*clear notification on exit*/ 0xffffffff,
                     /*pulNotificationValue=*/NULL, portMAX_DELAY);
     const uint64_t start_time = time_us_64();
+    if (start_time - sleep_time < 1000) {
+      LOG_WARNING(
+          "Slow output task didn't sleep enough. Remaining time budget is less "
+          "than 1ms.");
+    }
     for (auto output_device : slow_output_devices) {
       output_device->OutputTick();
     }
