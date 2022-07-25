@@ -36,6 +36,7 @@ void TemperatureInputDeivce::InputLoopStart() {
     busy_wait_us(2);
   }
   buffer_idx_ = 0;
+  prev_temp_ = 0;
 }
 
 void TemperatureInputDeivce::InputTick() {
