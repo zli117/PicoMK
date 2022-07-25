@@ -230,19 +230,23 @@ void ConfigFloatScreen::Draw() {
 
 void ConfigFloatScreen::OnUp() {
   float value = config_float_->GetValue();
-  if (value >= config_float_->GetMinMax().second) {
+  const auto max = config_float_->GetMinMax().second;
+  if (value >= max) {
     return;
   }
-  config_float_->SetValue(value + config_float_->GetResolution());
+  config_float_->SetValue(
+      std::min(max, value + config_float_->GetResolution()));
   redraw_ = true;
 }
 
 void ConfigFloatScreen::OnDown() {
   float value = config_float_->GetValue();
-  if (value <= config_float_->GetMinMax().first) {
+  const auto min = config_float_->GetMinMax().first;
+  if (value <= min) {
     return;
   }
-  config_float_->SetValue(value - config_float_->GetResolution());
+  config_float_->SetValue(
+      std::max(min, value - config_float_->GetResolution()));
   redraw_ = true;
 }
 
