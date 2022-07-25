@@ -5,6 +5,7 @@
 #include "FreeRTOS.h"
 #include "configuration.h"
 #include "hardware/clocks.h"
+#include "hardware/adc.h"
 #include "hardware/pio.h"
 #include "hardware/timer.h"
 #include "semphr.h"
@@ -26,13 +27,31 @@ WS2812::WS2812(uint8_t pin, uint8_t num_pixels, float max_brightness, PIO pio,
       tick_divider_(0),
       counter_(0),
       double_buffer_(2, std::vector<uint32_t>(num_pixels)),
-      rotate_idx_(0) {
+      rotate_idx_(0),
+      breath_scalar_(1.0),
+      breath_scalar_delta_(-0.02) {
   semaphore_ = xSemaphoreCreateBinary();
   xSemaphoreGive(semaphore_);
+
+  // Seed the random number generator (note we only need good enough
+  // randomness. Not anything for key generation).
+  adc_init();
+  adc_gpio_init(26);
+  adc_select_input(0);
+  uint32_t seed = adc_read() << 16;
+  busy_wait_us(10);
+  seed |= adc_read();
+  srand(seed);
 
   // Initialize PIO
   const uint32_t offset = pio_add_program(pio, &ws2812_program);
   ws2812_program_init(pio, sm_, offset, pin, 800000, false);
+
+  // Fill random buffer
+  random_buffer_.reserve(NumPixels());
+  for (size_t i = 0; i < NumPixels(); ++i) {
+    random_buffer_.push_back(rand() % 0x00ffffff);
+  }
 }
 
 void WS2812::OutputTick() {
@@ -78,9 +97,10 @@ void WS2812::OutputTick() {
       for (const uint32_t pixel : copy) {
         PutPixel(RescaleByBrightness(brightness, pixel));
       }
+      break;
     }
-    case RANDOM:
-      RandomAnimation(brightness);
+    case BREATH:
+      BreathAnimation(brightness);
       break;
     case ROTATE:
       RotateAnimation(brightness);
@@ -247,7 +267,7 @@ std::pair<std::string, std::shared_ptr<Config>> WS2812::CreateDefaultConfig() {
                          CONFIG_FLOAT(0.25, 0.0, max_brightness_, 0.02)),
       CONFIG_OBJECT_ELEM("tick_dividier", CONFIG_INT(10, 1, 250)),
       CONFIG_OBJECT_ELEM("enabled", CONFIG_INT(1, 0, 1)),
-      CONFIG_OBJECT_ELEM("animation", CONFIG_INT(ROTATE, 0, TOTAL - 1)));
+      CONFIG_OBJECT_ELEM("animation", CONFIG_INT(BREATH, 0, TOTAL - 1)));
   return {"ws2812", config};
 }
 
@@ -275,24 +295,29 @@ void WS2812::PutPixel(uint32_t pixel) {
   pio_sm_put_blocking(pio_, sm_, pixel << 8u);
 }
 
-void WS2812::RandomAnimation(float brightness) {
+void WS2812::BreathAnimation(float brightness) {
+  const float new_brightness = brightness * breath_scalar_;
   for (size_t i = 0; i < NumPixels(); ++i) {
-    PutPixel(RescaleByBrightness(brightness, rand()));
+    PutPixel(RescaleByBrightness(new_brightness, random_buffer_[i]));
   }
+  if (breath_scalar_delta_ < 0) {
+    if (breath_scalar_ <= 0.2) {
+      breath_scalar_delta_ *= -1;
+    }
+  } else {
+    if (breath_scalar_ >= 0.96) {
+      breath_scalar_delta_ *= -1;
+    }
+  }
+  breath_scalar_ += breath_scalar_delta_;
 }
 
 void WS2812::RotateAnimation(float brightness) {
-  if (rotate_buffer_.empty()) {
-    rotate_buffer_.reserve(NumPixels());
-    for (size_t i = 0; i < NumPixels(); ++i) {
-      rotate_buffer_.push_back(rand() % 0x00ffffff);
-    }
-  }
-  for (size_t i = 0; i < rotate_buffer_.size(); ++i) {
+  for (size_t i = 0; i < random_buffer_.size(); ++i) {
     PutPixel(RescaleByBrightness(
-        brightness, rotate_buffer_[(i + rotate_idx_) % rotate_buffer_.size()]));
+        brightness, random_buffer_[(i + rotate_idx_) % random_buffer_.size()]));
   }
-  rotate_idx_ = (rotate_idx_ + 1) % rotate_buffer_.size();
+  rotate_idx_ = (rotate_idx_ + 1) % random_buffer_.size();
 }
 
 Status RegisterWS2812(uint8_t tag, uint8_t pin, uint8_t num_pixels,

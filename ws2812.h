@@ -14,7 +14,7 @@
 
 class WS2812 : public LEDOutputDevice {
  public:
-  enum Mode { SET_PIXEL = 0, RANDOM, ROTATE, TOTAL };
+  enum Mode { SET_PIXEL = 0, BREATH, ROTATE, TOTAL };
 
   WS2812(uint8_t pin, uint8_t num_pixels, float max_brightness, PIO pio,
          uint8_t state_machine);
@@ -44,7 +44,7 @@ class WS2812 : public LEDOutputDevice {
   void SeparateColors(uint32_t pixel, uint8_t* r, uint8_t* g, uint8_t* b);
   void PutPixel(uint32_t pixel);
 
-  void RandomAnimation(float brightness);
+  void BreathAnimation(float brightness);
   void RotateAnimation(float brightness);
 
   const uint8_t pin_;
@@ -60,8 +60,10 @@ class WS2812 : public LEDOutputDevice {
   uint8_t tick_divider_;
   uint8_t counter_;
   std::vector<std::vector<uint32_t>> double_buffer_;
-  std::vector<uint32_t> rotate_buffer_;
+  std::vector<uint32_t> random_buffer_;
   uint8_t rotate_idx_;
+  float breath_scalar_;
+  float breath_scalar_delta_;
 
   SemaphoreHandle_t semaphore_;
 };
