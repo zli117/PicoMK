@@ -52,6 +52,9 @@ class SSD1306Display : virtual public ScreenOutputDevice,
     buffer_changed_ = true;
   }
 
+  // Don't need to do anything special since we already have the sleep
+  void SuspendEvent(bool is_suspend) override {}
+
  protected:
   void CMD(uint8_t cmd);
 

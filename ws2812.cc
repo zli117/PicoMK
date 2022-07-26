@@ -4,8 +4,8 @@
 
 #include "FreeRTOS.h"
 #include "configuration.h"
-#include "hardware/clocks.h"
 #include "hardware/adc.h"
+#include "hardware/clocks.h"
 #include "hardware/pio.h"
 #include "hardware/timer.h"
 #include "semphr.h"
@@ -29,7 +29,8 @@ WS2812::WS2812(uint8_t pin, uint8_t num_pixels, float max_brightness, PIO pio,
       double_buffer_(2, std::vector<uint32_t>(num_pixels)),
       rotate_idx_(0),
       breath_scalar_(1.0),
-      breath_scalar_delta_(-0.02) {
+      breath_scalar_delta_(-0.02),
+      suspend_(false) {
   semaphore_ = xSemaphoreCreateBinary();
   xSemaphoreGive(semaphore_);
 
@@ -62,7 +63,8 @@ void WS2812::OutputTick() {
   float brightness;
   {
     LockSemaphore lock(semaphore_);
-    if (!enabled_ && !redraw_) {
+    enabled = enabled_ && !suspend_;
+    if (!enabled && !redraw_) {
       return;
     }
     if (!redraw_) {
@@ -75,7 +77,6 @@ void WS2812::OutputTick() {
     mode = mode_;
     brightness = brightness_;
     redraw_ = false;
-    enabled = enabled_;
   }
 
   if (!enabled) {
@@ -113,14 +114,14 @@ void WS2812::OutputTick() {
 
 void WS2812::StartOfInputTick() {
   LockSemaphore lock(semaphore_);
-  if (mode_ != SET_PIXEL && enabled_) {
+  if (mode_ != SET_PIXEL && enabled_ && !suspend_) {
     redraw_ = true;
   }
 }
 
 void WS2812::FinalizeInputTickOutput() {
   LockSemaphore lock(semaphore_);
-  if (mode_ == SET_PIXEL && buffer_changed_ && enabled_) {
+  if (mode_ == SET_PIXEL && buffer_changed_ && enabled_ && !suspend_) {
     active_buffer_ = (active_buffer_ + 1) % 2;
     redraw_ = true;
   }
@@ -269,6 +270,12 @@ std::pair<std::string, std::shared_ptr<Config>> WS2812::CreateDefaultConfig() {
       CONFIG_OBJECT_ELEM("enabled", CONFIG_INT(1, 0, 1)),
       CONFIG_OBJECT_ELEM("animation", CONFIG_INT(BREATH, 0, TOTAL - 1)));
   return {"ws2812", config};
+}
+
+void WS2812::SuspendEvent(bool is_suspend) {
+  LockSemaphore lock(semaphore_);
+  suspend_ = is_suspend;
+  redraw_ = true;
 }
 
 uint32_t WS2812::RescaleByBrightness(float brightness, uint32_t pixel) {

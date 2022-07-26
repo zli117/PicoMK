@@ -26,7 +26,7 @@
 
 // Enable or disable USB serial debug
 
-#define CONFIG_DEBUG_ENABLE_USB_SERIAL 0
+#define CONFIG_DEBUG_ENABLE_USB_SERIAL 1
 
 #if CONFIG_DEBUG_ENABLE_USB_SERIAL
 

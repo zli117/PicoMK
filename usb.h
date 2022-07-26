@@ -10,23 +10,22 @@
 #include "base.h"
 #include "config.h"
 #include "semphr.h"
+#include "tusb.h"
 #include "utils.h"
 
-status USBInit();
+Status USBInit();
 
-status StartUSBTask();
+Status StartUSBTask();
 
 class USBOutputAddIn {
  public:
   USBOutputAddIn();
 
-  virtual void SetIdle(uint8_t idle_rate);
-  virtual void SetBoot(bool is_boot_protocol);
+  virtual bool SetIdle(uint8_t idle_rate);
 
  protected:
   SemaphoreHandle_t semaphore_;
   uint8_t idle_rate_;
-  bool is_boot_protocol_;
 };
 
 class USBKeyboardOutput : public KeyboardOutputDevice, public USBOutputAddIn {
@@ -77,6 +76,39 @@ class USBMouseOutput : public MouseOutputDevice, public USBOutputAddIn {
   bool is_config_mode_;
 };
 
+class USBInput : public GenericInputDevice {
+ public:
+  static std::shared_ptr<USBInput> GetUSBInput();
+
+  // Callbacks will be called by the USB task
+
+  void OnSetReport(hid_report_type_t report_type, uint8_t const* buffer,
+                   uint16_t buffer_size);
+
+  // Don't really handle usb mount events
+
+  void OnMount() { OnResume(); }
+  void OnUnMount() {}
+
+  void OnSuspend();
+  void OnResume();
+
+  // These function to pass the information from callbacks to the corresponding
+  // outputs. Since we need to make sure output class functions other than
+  // OutputTick are called on the input task
+
+  void InputLoopStart() override {}
+  void InputTick() override;
+
+ protected:
+  USBInput();
+
+  bool state_changed_;
+  bool suspended_;
+  LEDOutputDevice::LEDIndicators leds_;
+  SemaphoreHandle_t semaphore_;
+};
+
 enum InterfaceID {
   ITF_KEYBOARD = 0,
   ITF_MOUSE,
@@ -92,5 +124,6 @@ enum InterfaceID {
 
 Status RegisterUSBKeyboardOutput(uint8_t tag);
 Status RegisterUSBMouseOutput(uint8_t tag);
+Status RegisterUSBInput(uint8_t tag);
 
 #endif /* USB_H_ */

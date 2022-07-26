@@ -85,10 +85,19 @@ class ScreenOutputDevice : virtual public GenericOutputDevice {
   virtual void DrawBuffer(const std::vector<uint8_t>& buffer, size_t start_row,
                           size_t start_col, size_t end_row, size_t end_col) = 0;
   virtual void Clear() = 0;
+  virtual void SuspendEvent(bool is_suspend) = 0;
 };
 
 class LEDOutputDevice : virtual public GenericOutputDevice {
  public:
+  struct LEDIndicators {
+    bool num_lock : 1;
+    bool caps_lock : 1;
+    bool scroll_lock : 1;
+    bool compose : 1;
+    bool kana : 1;
+  };
+
   virtual void IncreaseBrightness() = 0;
   virtual void DecreaseBrightness() = 0;
   virtual void IncreaseAnimationSpeed() = 0;
@@ -97,6 +106,8 @@ class LEDOutputDevice : virtual public GenericOutputDevice {
   virtual void SetFixedColor(uint8_t w, uint8_t r, uint8_t g, uint8_t b) = 0;
   virtual void SetPixel(size_t idx, uint8_t w, uint8_t r, uint8_t g,
                         uint8_t b) = 0;
+  virtual void SetLedStatus(LEDIndicators indicators) = 0;
+  virtual void SuspendEvent(bool is_suspend) = 0;
 };
 
 class ConfigModifier;

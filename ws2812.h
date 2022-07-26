@@ -38,6 +38,10 @@ class WS2812 : public LEDOutputDevice {
   std::pair<std::string, std::shared_ptr<Config>> CreateDefaultConfig()
       override;
 
+  void SetLedStatus(LEDIndicators indicators) override {}
+
+  void SuspendEvent(bool is_suspend) override;
+
  protected:
   uint32_t RescaleByBrightness(float brightness, uint32_t pixel);
   uint32_t CombineColors(uint8_t r, uint8_t g, uint8_t b);
@@ -64,6 +68,7 @@ class WS2812 : public LEDOutputDevice {
   uint8_t rotate_idx_;
   float breath_scalar_;
   float breath_scalar_delta_;
+  bool suspend_;
 
   SemaphoreHandle_t semaphore_;
 };

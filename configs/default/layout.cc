@@ -87,6 +87,7 @@ enum {
   SSD1306_KEYOUT,
   USB_KEYBOARD,
   USB_MOUSE,
+  USB_INPUT,
   TEMPERATURE,
   LED,
 };
@@ -101,5 +102,6 @@ static Status register5 =
                     SSD1306Display::R_64, true);
 static Status register6 = RegisterUSBKeyboardOutput(USB_KEYBOARD);
 static Status register7 = RegisterUSBMouseOutput(USB_MOUSE);
-static Status register8 = RegisterTemperatureInput(TEMPERATURE);
-static Status register9 = RegisterWS2812(LED, 26, 17);
+static Status register8 = RegisterUSBInput(USB_INPUT);
+static Status register9 = RegisterTemperatureInput(TEMPERATURE);
+static Status register10 = RegisterWS2812(LED, 26, 17);

@@ -224,31 +224,50 @@ uint16_t const *tud_descriptor_string_cb(uint8_t index, uint16_t langid) {
 extern "C" uint16_t tud_hid_get_report_cb(uint8_t instance, uint8_t report_id,
                                           hid_report_type_t report_type,
                                           uint8_t *buffer, uint16_t reqlen) {
+  // Just stall it
   return 0;
 }
 
 extern "C" void tud_hid_set_report_cb(uint8_t instance, uint8_t report_id,
                                       hid_report_type_t report_type,
                                       uint8_t const *buffer, uint16_t bufsize) {
+  USBInput::GetUSBInput()->OnSetReport(report_type, buffer, bufsize);
 }
 
-extern "C" void tud_hid_set_protocol_cb(uint8_t instance, uint8_t protocol) {}
+extern "C" void tud_hid_set_protocol_cb(uint8_t instance, uint8_t protocol) {
+  // We don't need to handle any set protocol since the keyboard report format
+  // is already compatiable with boot protocol.
+}
 
 extern "C" bool tud_hid_set_idle_cb(uint8_t instance, uint8_t idle_rate) {
+  (void)instance;
+
+  // Call the USB outputs' SetIdle directly since it's not part of the
+  // OutputDevice interface.
+
+  if (instance == ITF_KEYBOARD) {
+    return USBKeyboardOutput::GetUSBKeyboardOutput()->SetIdle(idle_rate);
+  }
+  if (instance == ITF_MOUSE) {
+    return USBMouseOutput::GetUSBMouseOutput()->SetIdle(idle_rate);
+  }
   return false;
 }
 
 extern "C" void tud_hid_report_complete_cb(uint8_t instance,
                                            uint8_t const *report, uint8_t len) {
+  // Don't need to do any report chaining.
 }
 
-extern "C" void tud_mount_cb(void) {}
+extern "C" void tud_mount_cb(void) { USBInput::GetUSBInput()->OnMount(); }
 
-extern "C" void tud_umount_cb(void) {}
+extern "C" void tud_umount_cb(void) { USBInput::GetUSBInput()->OnUnMount(); }
 
-extern "C" void tud_suspend_cb(bool remote_wakeup_en) {}
+extern "C" void tud_suspend_cb(bool remote_wakeup_en) {
+  USBInput::GetUSBInput()->OnSuspend();
+}
 
-extern "C" void tud_resume_cb(void) {}
+extern "C" void tud_resume_cb(void) { USBInput::GetUSBInput()->OnResume(); }
 
 extern "C" void USBTask(void *parameter);
 
@@ -340,14 +359,10 @@ USBOutputAddIn::USBOutputAddIn() {
   xSemaphoreGive(semaphore_);
 }
 
-void USBOutputAddIn::SetIdle(uint8_t idle_rate) {
+bool USBOutputAddIn::SetIdle(uint8_t idle_rate) {
   LockSemaphore lock(semaphore_);
   idle_rate_ = idle_rate;
-}
-
-void USBOutputAddIn::SetBoot(bool is_boot_protocol) {
-  LockSemaphore lock(semaphore_);
-  is_boot_protocol_ = is_boot_protocol;
+  return true;
 }
 
 std::shared_ptr<USBKeyboardOutput> USBKeyboardOutput::GetUSBKeyboardOutput() {
@@ -483,16 +498,62 @@ void USBMouseOutput::Pan(int8_t x, int8_t y) {
 USBMouseOutput::USBMouseOutput()
     : USBOutputAddIn(), active_buffer_(0), is_config_mode_(false) {}
 
+std::shared_ptr<USBInput> USBInput::GetUSBInput() {
+  static std::shared_ptr<USBInput> singleton = NULL;
+  if (singleton == NULL) {
+    singleton = std::shared_ptr<USBInput>(new USBInput());
+  }
+  return singleton;
+}
+
+void USBInput::OnSetReport(hid_report_type_t report_type, uint8_t const *buffer,
+                           uint16_t buffer_size) {
+  LockSemaphore lock(semaphore_);
+}
+
+void USBInput::OnSuspend() {
+  LockSemaphore lock(semaphore_);
+  suspended_ = true;
+  state_changed_ = true;
+}
+
+void USBInput::OnResume() {
+  LockSemaphore lock(semaphore_);
+  suspended_ = false;
+  state_changed_ = true;
+}
+
+void USBInput::InputTick() {
+  LockSemaphore lock(semaphore_);
+  if (!state_changed_) {
+    return;
+  }
+  state_changed_ = false;
+  for (auto device : *led_output_) {
+    device->SuspendEvent(suspended_);
+    device->SetLedStatus(leds_);
+  }
+  for (auto device : *screen_output_) {
+    device->SuspendEvent(suspended_);
+  }
+}
+
+USBInput::USBInput() : state_changed_(false), suspended_(false) {
+  semaphore_ = xSemaphoreCreateBinary();
+  xSemaphoreGive(semaphore_);
+}
+
 Status RegisterUSBKeyboardOutput(uint8_t tag) {
   return DeviceRegistry::RegisterKeyboardOutputDevice(
-      tag, false, []() -> std::shared_ptr<USBKeyboardOutput> {
-        return USBKeyboardOutput::GetUSBKeyboardOutput();
-      });
+      tag, false, []() { return USBKeyboardOutput::GetUSBKeyboardOutput(); });
 }
 
 Status RegisterUSBMouseOutput(uint8_t tag) {
   return DeviceRegistry::RegisterMouseOutputDevice(
-      tag, false, []() -> std::shared_ptr<USBMouseOutput> {
-        return USBMouseOutput::GetUSBMouseOutput();
-      });
+      tag, false, []() { return USBMouseOutput::GetUSBMouseOutput(); });
+}
+
+Status RegisterUSBInput(uint8_t tag) {
+  return DeviceRegistry::RegisterInputDevice(
+      tag, []() { return USBInput::GetUSBInput(); });
 }
