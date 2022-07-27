@@ -379,11 +379,12 @@ void USBKeyboardOutput::OutputTick() {
     // Don't report key strokes to host if in config mode
     return;
   }
-  if (!tud_hid_n_ready(ITF_KEYBOARD)) {
-    return;
-  }
   if (tud_suspended() && has_key_output_) {
     tud_remote_wakeup();
+    return;
+  }
+  if (!tud_hid_n_ready(ITF_KEYBOARD)) {
+    return;
   }
   auto &buffer = double_buffer_[active_buffer_];
   tud_hid_n_report(ITF_KEYBOARD, /*report_id=*/0, buffer.data(), buffer.size());
@@ -414,7 +415,7 @@ void USBKeyboardOutput::SendKeycode(uint8_t keycode) {
   auto &buffer = double_buffer_[(active_buffer_ + 1) % 2];
   buffer[keycode / 8 + 8] |= (1 << (keycode % 8));
   if (boot_protocol_kc_count_ < 6) {
-    buffer[2 + (boot_protocol_kc_count_)++] = keycode;
+    buffer[2 + (boot_protocol_kc_count_++)] = keycode;
   } else if (buffer[2] != 0x01) {
     for (size_t i = 2; i < 8; ++i) {
       buffer[i] = 0x01;  // ErrorRollOver
