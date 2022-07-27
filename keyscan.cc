@@ -55,11 +55,13 @@ void KeyScan::InputTick() {
       // gpio_get returns true when no button is pressed (because of pull up)
       // and false when a button is pressed.
       const bool pressed = !gpio_get(GetSourceGPIO(source));
+      bool key_event = false;
       if (pressed != d_timer.pressed) {
         d_timer.tick_count += CONFIG_SCAN_TICKS;
         if (d_timer.tick_count >= CONFIG_DEBOUNCE_TICKS) {
           d_timer.pressed = !d_timer.pressed;
           d_timer.tick_count = 0;
+          key_event = true;
         }
       }
 
@@ -77,6 +79,9 @@ void KeyScan::InputTick() {
             HandlerRegistry::RegisteredHandlerFactory(kc.keycode, this);
         if (handler != NULL) {
           handler->ProcessKeyState(kc, d_timer.pressed, sink, source);
+          if (key_event) {
+            handler->ProcessKeyEvent(kc, d_timer.pressed, sink, source);
+          }
         } else {
           LOG_WARNING("Custom Keycode (%d) missing handler", kc.keycode);
         }

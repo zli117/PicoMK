@@ -24,8 +24,14 @@ class KeyScan;
 
 class CustomKeycodeHandler {
  public:
+  // Key state is always called regardless whether it's a state transition.
   virtual void ProcessKeyState(Keycode kc, bool is_pressed, size_t sink_idx,
-                               size_t source_idx) = 0;
+                               size_t source_idx) {}
+
+  // Key events are only called when the key goes from pressed to released or
+  // released to pressed, after debouncing.
+  virtual void ProcessKeyEvent(Keycode kc, bool is_pressed, size_t sink_idx,
+                               size_t source_idx) {}
   virtual void SetOuterClass(KeyScan* keyscan) { key_scan_ = keyscan; }
   virtual std::string GetName() const = 0;
 
