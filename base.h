@@ -102,6 +102,13 @@ class LEDOutputDevice : virtual public GenericOutputDevice,
     bool scroll_lock : 1;
     bool compose : 1;
     bool kana : 1;
+
+    LEDIndicators()
+        : num_lock(false),
+          caps_lock(false),
+          scroll_lock(false),
+          compose(false),
+          kana(false) {}
   };
 
   virtual void IncreaseBrightness() = 0;

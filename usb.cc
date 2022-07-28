@@ -510,6 +510,16 @@ std::shared_ptr<USBInput> USBInput::GetUSBInput() {
 void USBInput::OnSetReport(hid_report_type_t report_type, uint8_t const *buffer,
                            uint16_t buffer_size) {
   LockSemaphore lock(semaphore_);
+  if (buffer_size != 1) {
+    return;
+  }
+  const uint8_t value = buffer[0];
+  leds_.num_lock = value & 0x1;
+  leds_.caps_lock = (value >> 1) & 0x1;
+  leds_.scroll_lock = (value >> 2) & 0x1;
+  leds_.compose = (value >> 3) & 0x1;
+  leds_.kana = (value >> 4) & 0x1;
+  state_changed_ = true;
 }
 
 void USBInput::OnSuspend() {

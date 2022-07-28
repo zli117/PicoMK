@@ -115,6 +115,9 @@ class CustomSSD1306 : virtual public SSD1306Display,
     if (config_mode_) {
       return;
     }
+
+    // Note: this implementation is still inefficient. It can take a significant
+    // amount of time to render everything everytime.
     DrawRect(19, 0, GetNumRows() - 1, GetNumCols() - 1, /*fill=*/false, ADD);
     uint8_t offset = 21;
     DrawLEDIndicator("NumLock", offset, indicators.num_lock);

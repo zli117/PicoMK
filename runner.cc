@@ -173,8 +173,8 @@ extern "C" void InputDeviceTask(void* parameter) {
       const uint64_t start_time = time_us_64();
       if (start_time - sleep_time < 1000) {
         LOG_WARNING(
-            "Input task didn't sleep enough. Remaining time budget less than "
-            "is less than 1ms.");
+            "Input task didn't sleep enough. Remaining time budget is less "
+            "than 1ms.");
       }
       bool should_change_config_mode;
       bool should_update_config;
@@ -220,7 +220,6 @@ extern "C" void InputDeviceTask(void* parameter) {
       }
       const uint64_t end_time = time_us_64();
       LOG_DEBUG("Input task per iteration takes %d us", end_time - start_time);
-      LOG_INFO("End input tick");
       watchdog_update();
     }
   }
@@ -243,7 +242,7 @@ extern "C" void OutputDeviceTask(void* parameter) {
     const uint64_t start_time = time_us_64();
     if (start_time - sleep_time < 1000) {
       LOG_WARNING(
-          "Output task didn't sleep enough. Remaining time budget less than "
+          "Output task didn't sleep enough. Remaining time budget is less than "
           "1ms.");
     }
     for (auto output_device : output_devices) {
