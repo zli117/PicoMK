@@ -91,8 +91,7 @@ class JoystickInputDeivce : virtual public GenericInputDevice,
   bool flip_vertical_scroll_;
 };
 
-Status RegisterJoystick(uint8_t input_tag, uint8_t keyboard_tag,
-                        uint8_t x_adc_pin, uint8_t y_adc_pin,
+Status RegisterJoystick(uint8_t tag, uint8_t x_adc_pin, uint8_t y_adc_pin,
                         size_t buffer_size, bool flip_x_dir, bool flip_y_dir,
                         bool flip_vertical_scroll, uint8_t alt_layer);
 

@@ -373,18 +373,17 @@ void JoystickInputDeivce::ChangeActiveLayers(const std::vector<bool>& layers) {
   }
 }
 
-Status RegisterJoystick(uint8_t input_tag, uint8_t keyboard_tag,
-                        uint8_t x_adc_pin, uint8_t y_adc_pin,
+Status RegisterJoystick(uint8_t tag, uint8_t x_adc_pin, uint8_t y_adc_pin,
                         size_t buffer_size, bool flip_x_dir, bool flip_y_dir,
                         bool flip_vertical_scroll, uint8_t alt_layer) {
   std::shared_ptr<JoystickInputDeivce> instance =
       std::make_shared<JoystickInputDeivce>(
           x_adc_pin, y_adc_pin, buffer_size, flip_x_dir, flip_y_dir,
           flip_vertical_scroll, CONFIG_SCAN_TICKS, alt_layer);
-  if (DeviceRegistry::RegisterInputDevice(input_tag,
-                                          [=]() { return instance; }) != OK ||
+  if (DeviceRegistry::RegisterInputDevice(tag, [=]() { return instance; }) !=
+          OK ||
       DeviceRegistry::RegisterKeyboardOutputDevice(
-          keyboard_tag, /*slow=*/false, [=]() { return instance; }) != OK) {
+          tag, /*slow=*/false, [=]() { return instance; }) != OK) {
     return ERROR;
   }
   return OK;

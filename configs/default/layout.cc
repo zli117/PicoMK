@@ -80,11 +80,9 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 
 enum {
   JOYSTICK = 0,
-  JOYSTICK_2,
   KEYSCAN,
   ENCODER,
-  SSD1306_SCREEN,
-  SSD1306_KEYOUT,
+  SSD1306,
   USB_KEYBOARD,
   USB_MOUSE,
   USB_INPUT,
@@ -92,14 +90,13 @@ enum {
   LED,
 };
 
-static Status register1 = RegisterConfigModifier(SSD1306_SCREEN);
-static Status register2 = RegisterJoystick(JOYSTICK, JOYSTICK_2, 28, 27, 5,
-                                           false, false, true, ALT_LY);
+static Status register1 = RegisterConfigModifier(SSD1306);
+static Status register2 =
+    RegisterJoystick(JOYSTICK, 28, 27, 5, false, false, true, ALT_LY);
 static Status register3 = RegisterKeyscan(KEYSCAN);
 static Status register4 = RegisterEncoder(ENCODER, 19, 22, 2);
 static Status register5 =
-    RegisterSSD1306(SSD1306_SCREEN, SSD1306_KEYOUT, i2c0, 20, 21, 0x3c,
-                    SSD1306Display::R_64, true);
+    RegisterSSD1306(SSD1306, i2c0, 20, 21, 0x3c, SSD1306Display::R_64, true);
 static Status register6 = RegisterUSBKeyboardOutput(USB_KEYBOARD);
 static Status register7 = RegisterUSBMouseOutput(USB_MOUSE);
 static Status register8 = RegisterUSBInput(USB_INPUT);

@@ -76,23 +76,6 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 // Compile time validation and conversion for the key matrix
 #include "layout_internal.inc"
 
-// Register all the devices
-
-enum {
-  JOYSTICK = 0,
-  JOYSTICK_2,
-  KEYSCAN,
-  ENCODER,
-  SSD1306_SCREEN,
-  SSD1306_KEYOUT,
-  SSD1306_LEDOUT,
-  USB_KEYBOARD,
-  USB_MOUSE,
-  USB_INPUT,
-  TEMPERATURE,
-  LED,
-};
-
 // Implement a custom SSD1306 device that can also display status LEDs
 
 class CustomSSD1306 : virtual public SSD1306Display,
@@ -141,18 +124,17 @@ class CustomSSD1306 : virtual public SSD1306Display,
   }
 };
 
-Status RegisterCustomSSD1306(uint8_t screen_tag, uint8_t keyout_tag,
-                             uint8_t led_tag, i2c_inst_t* i2c, uint8_t sda_pin,
+Status RegisterCustomSSD1306(uint8_t tag, i2c_inst_t* i2c, uint8_t sda_pin,
                              uint8_t scl_pin, uint8_t i2c_addr,
                              SSD1306Display::NumRows num_rows, bool flip) {
   std::shared_ptr<CustomSSD1306> instance = std::make_shared<CustomSSD1306>(
       i2c, sda_pin, scl_pin, i2c_addr, num_rows, flip);
   if (DeviceRegistry::RegisterKeyboardOutputDevice(
-          keyout_tag, true, [=]() { return instance; }) != OK ||
+          tag, true, [=]() { return instance; }) != OK ||
       DeviceRegistry::RegisterScreenOutputDevice(
-          screen_tag, true, [=]() { return instance; }) != OK ||
+          tag, true, [=]() { return instance; }) != OK ||
       DeviceRegistry::RegisterLEDOutputDevice(
-          led_tag, true, [=]() { return instance; }) != OK) {
+          tag, true, [=]() { return instance; }) != OK) {
     return ERROR;
   }
   return OK;
@@ -160,14 +142,24 @@ Status RegisterCustomSSD1306(uint8_t screen_tag, uint8_t keyout_tag,
 
 // Register all the devices
 
-static Status register1 = RegisterConfigModifier(SSD1306_SCREEN);
-static Status register2 = RegisterJoystick(JOYSTICK, JOYSTICK_2, 28, 27, 5,
-                                           false, false, true, ALT_LY);
+enum {
+  JOYSTICK = 0,
+  KEYSCAN,
+  ENCODER,
+  SSD1306,
+  USB_KEYBOARD,
+  USB_MOUSE,
+  USB_INPUT,
+  LED,
+};
+
+static Status register1 = RegisterConfigModifier(SSD1306);
+static Status register2 =
+    RegisterJoystick(JOYSTICK, 28, 27, 5, false, false, true, ALT_LY);
 static Status register3 = RegisterKeyscan(KEYSCAN);
 static Status register4 = RegisterEncoder(ENCODER, 19, 22, 2);
-static Status register5 =
-    RegisterCustomSSD1306(SSD1306_SCREEN, SSD1306_KEYOUT, SSD1306_LEDOUT, i2c0,
-                          20, 21, 0x3c, SSD1306Display::R_64, true);
+static Status register5 = RegisterCustomSSD1306(SSD1306, i2c0, 20, 21, 0x3c,
+                                                SSD1306Display::R_64, true);
 static Status register6 = RegisterUSBKeyboardOutput(USB_KEYBOARD);
 static Status register7 = RegisterUSBMouseOutput(USB_MOUSE);
 static Status register8 = RegisterUSBInput(USB_INPUT);
