@@ -146,8 +146,10 @@ void SSD1306Display::ChangeActiveLayers(const std::vector<bool>& layers) {
   if (config_mode_) {
     return;
   }
+  DrawText(1, 0, "Active Layers", F8X8, ADD);
+  DrawRect(9, 0, 17, GetNumCols() - 1, /*fill=*/false, ADD);
   for (size_t i = 0; i < layers.size() && i < 16; ++i) {
-    DrawRect(1, i * 8 + 1, 7, i * 8 + 7, /*fill=*/true,
+    DrawRect(11, i * 7 + 2, 15, i * 7 + 7, /*fill=*/true,
              layers[i] ? ADD : SUBTRACT);
   }
 }
@@ -231,9 +233,8 @@ void SSD1306Display::CMD(uint8_t cmd) {
 Status RegisterSSD1306(uint8_t screen_tag, uint8_t keyout_tag, i2c_inst_t* i2c,
                        uint8_t sda_pin, uint8_t scl_pin, uint8_t i2c_addr,
                        SSD1306Display::NumRows num_rows, bool flip) {
-  std::shared_ptr<SSD1306Display> instance =
-      std::make_shared<SSD1306Display>(i2c, sda_pin, scl_pin, i2c_addr,
-                                       num_rows, flip);
+  std::shared_ptr<SSD1306Display> instance = std::make_shared<SSD1306Display>(
+      i2c, sda_pin, scl_pin, i2c_addr, num_rows, flip);
   if (DeviceRegistry::RegisterKeyboardOutputDevice(
           keyout_tag, true, [=]() { return instance; }) != OK ||
       DeviceRegistry::RegisterScreenOutputDevice(
