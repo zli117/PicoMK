@@ -524,6 +524,13 @@ void USBInput::OnResume() {
   state_changed_ = true;
 }
 
+void USBInput::InputLoopStart() {
+  LockSemaphore lock(semaphore_);
+  for (auto device : *led_output_) {
+    device->SetLedStatus(leds_);
+  }
+}
+
 void USBInput::InputTick() {
   LockSemaphore lock(semaphore_);
   if (!state_changed_) {

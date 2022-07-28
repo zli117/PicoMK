@@ -59,7 +59,13 @@ class MouseOutputDevice : virtual public GenericOutputDevice {
   virtual void Pan(int8_t x, int8_t y) = 0;
 };
 
-class ScreenOutputDevice : virtual public GenericOutputDevice {
+class Suspendable {
+ public:
+  virtual void SuspendEvent(bool is_suspend) = 0;
+};
+
+class ScreenOutputDevice : virtual public GenericOutputDevice,
+                           virtual public Suspendable {
  public:
   enum Mode { ADD = 0, SUBTRACT, INVERT };
   enum Font { F5X8 = 0, F8X8, F12X16, F16X32 };
@@ -85,10 +91,10 @@ class ScreenOutputDevice : virtual public GenericOutputDevice {
   virtual void DrawBuffer(const std::vector<uint8_t>& buffer, size_t start_row,
                           size_t start_col, size_t end_row, size_t end_col) = 0;
   virtual void Clear() = 0;
-  virtual void SuspendEvent(bool is_suspend) = 0;
 };
 
-class LEDOutputDevice : virtual public GenericOutputDevice {
+class LEDOutputDevice : virtual public GenericOutputDevice,
+                        virtual public Suspendable {
  public:
   struct LEDIndicators {
     bool num_lock : 1;
@@ -107,7 +113,6 @@ class LEDOutputDevice : virtual public GenericOutputDevice {
   virtual void SetPixel(size_t idx, uint8_t w, uint8_t r, uint8_t g,
                         uint8_t b) = 0;
   virtual void SetLedStatus(LEDIndicators indicators) = 0;
-  virtual void SuspendEvent(bool is_suspend) = 0;
 };
 
 class ConfigModifier;

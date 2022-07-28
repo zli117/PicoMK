@@ -97,7 +97,7 @@ class USBInput : public GenericInputDevice {
   // outputs. Since we need to make sure output class functions other than
   // OutputTick are called on the input task
 
-  void InputLoopStart() override {}
+  void InputLoopStart() override;
   void InputTick() override;
 
  protected:
