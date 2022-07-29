@@ -117,7 +117,7 @@ Please take a look at the following documentations on how to customize different
 
  * USB mass storage mode for importing and exporting json config file.
  * Support charlieplexing to save pins for other things such as driving an LED matrix.
- * Keyboard as a wifi dongle for Pico W (Nice for RPi2 and lower but is this too crazy?)
+ * Keyboard as a wifi dongle with Pico W (Nice for RPi2 and lower but is this too crazy?)
  * More peripherals such as SK6805, bigger screen, LED matrix, trackpad, etc.
  * USB hub
  * A way for people to check in their configs like in [QMK](https://github.com/qmk/qmk_firmware) 
