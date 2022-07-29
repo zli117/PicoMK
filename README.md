@@ -81,7 +81,7 @@ The last command will checkout all the dependencies such as pico-sdk and FreeRTO
 
 ## Build a Firmware
 
-To create a custom firmware, you can make a copy of the existing config in the `configs/` folder. For this example, we will copy the default config in `configs/default`. 
+To create a custom firmware, you can make a copy of the existing config in the `configs/` folder. For this guide, we will copy the default config in `configs/default`. 
 
 ```bash
 mkdir -p configs/tutorial/my_new_config
@@ -99,7 +99,7 @@ cmake -DBOARD_CONFIG=<board_config> ..
 make -j 4
 ```
 
-`<board_config>` is the relative path of the custom config folder you've just created w.r.t the `configs/` folder. In our case, to build the `configs/tutorial/my_new_config` config, you can use this command: 
+`<board_config>` is the relative path of the custom config folder we have just created w.r.t the `configs/` folder. In our case, to build the `configs/tutorial/my_new_config` config, you can use this command: 
 
 ```bash
 cmake -DBOARD_CONFIG=tutorial/my_new_config ..
