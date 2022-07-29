@@ -5,26 +5,103 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
 ## Table of Contents
 
 - [Features](#features)
-- [Getting Started](#getting-started)
+- [Quick Start](#quick-start)
   - [Environment Setup](#environment-setup)
-  - [Basic Configurations](#basic-configurations)
-- [Advanced Topics](#advanced-topics)
+    - [Get the Code](#get-the-code)
+  - [Build a Firmware](#build-a-firmware)
+- [Documentations](#documentations)
 - [Example Configurations](#example-configurations)
 
 # Features
 
 * Configurable keymaps with multiple layers with compile time validation.
-* Full [n-key roll over](https://en.wikipedia.org/wiki/Rollover_(keyboard)) support .
-* C++ inheritance based customization 
+* Full [NKRO](https://en.wikipedia.org/wiki/Rollover_(keyboard)) support.
+* C++ inheritance based customization.
 * Supports multiple peripherals such as rotary encoder, SSD1306 OLED screen, joysticks, WS2812 LED and more to come.
-* Runtime configuration menu: change keyboard configuration on-the-fly without any host software. ![Config Menu Demo](docs/config_menu.gif)
+* Runtime configuration menu (screen required). Change keyboard configuration on-the-fly without any host software.
+  
+  ![Config Menu Demo](docs/config_menu.gif)
 
-# Getting Started
+# Quick Start
 
 ## Environment Setup
 
-## Basic Configurations
+### Get the Code
+This guide assumes you're using one of the followings: Linux (including Raspbian), Windows WSL, MacOS.
 
-# Advanced Topics
+First, install the dependencies for pico sdk
+
+ * Arch Linux:
+
+   ```bash
+   pacman -S git cmake arm-none-eabi-gcc
+   ```
+
+ * Ubuntu:
+
+   ```bash
+   sudo apt update
+   sudo apt install cmake gcc-arm-none-eabi libnewlib-arm-none-eabi build-essential libstdc++-arm-none-eabi-newlib
+   ```
+
+ * Raspbian:
+
+   Note the installation script requires ~2.5GB of disk space on the SD card. 
+
+   ```bash
+   sudo apt install wget
+   wget https://raw.githubusercontent.com/raspberrypi/pico-setup/master/pico_setup.sh
+   chmod +x pico_setup.sh
+   ./pico_setup.sh
+   ```
+
+   For details on what this script does, please see Pi Pico [Getting started guide](https://datasheets.raspberrypi.com/pico/getting-started-with-pico.pdf) chapter 1.
+
+ * MacOS:
+
+   ```bash
+   # Install Homebrew
+   /bin/bash -c "$(curl -fsSL
+   https://raw.githubusercontent.com/Homebrew/install/master/install.sh)"
+   
+   brew install cmake
+   brew tap ArmMbed/homebrew-formulae
+   brew install arm-none-eabi-gcc
+   
+   # For M1 Mac only: install Rosetta 2
+   /usr/sbin/softwareupdate --install-rosetta --agree-to-license
+   ```
+
+Then checkout the code
+
+```bash
+git clone https://github.com/zli117/PicoMK.git
+cd PicoMK
+git submodule update --init --recursive
+```
+The last command will checkout all the dependencies such as pico sdk and FreeRTOS, so it might take a while depending on your internet connection.
+
+## Build a Firmware
+
+Build the firmware
+
+```bash
+mkdir build
+cd build
+cmake -DBOARD_CONFIG=<board_config> ..
+make -j 4
+```
+
+`<board_config>` is the relative path of the custom config dir you've just created w.r.t the `configs/` dir. For example, to build the `configs/examples/home_screen` config, you can use this command: 
+
+```bash
+cmake -DBOARD_CONFIG=examples/home_screen ..
+```
+
+Once you successfully build the firmware, you should be able to find the `firmware.uf2` file under the `build/` dir. Now take the Pico board (or other RP2040 boards you have) and put it into the bootloader mode (for Pico board, you can just hold down the bootsel button and replug the USB cable). Mount the board as USB mass storage device, if not done automatically. Copy over the `firmware.uf2` to the storage device folder and you're all set.
+
+Please read the following documentations on how to customize different part of the firmware.
+
+# Documentations
 
 # Example Configurations
