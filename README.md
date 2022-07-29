@@ -6,17 +6,17 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
 
 - [Features](#features)
 - [Quick Start](#quick-start)
-  - [Environment Setup](#environment-setup)
-    - [Get the Code](#get-the-code)
+  - [Get the Code](#get-the-code)
   - [Build a Firmware](#build-a-firmware)
 - [Documentations](#documentations)
 - [Example Configurations](#example-configurations)
+- [Future Roadmaps](#future-roadmaps)
 
 # Features
 
 * Configurable keymaps with multiple layers with compile time validation.
 * Full [NKRO](https://en.wikipedia.org/wiki/Rollover_(keyboard)) support.
-* C++ inheritance based customization.
+* C++ registration based customization.
 * Supports multiple peripherals such as rotary encoder, SSD1306 OLED screen, joysticks, WS2812 LED and more to come.
 * Runtime configuration menu (screen required). Change keyboard configuration on-the-fly without any host software.
   
@@ -24,12 +24,10 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
 
 # Quick Start
 
-## Environment Setup
-
-### Get the Code
+## Get the Code
 This guide assumes you're using one of the followings: Linux (including Raspbian), Windows WSL, MacOS.
 
-First, install the dependencies for pico sdk
+First, install the dependencies for pico-sdk
 
  * Arch Linux:
 
@@ -79,11 +77,20 @@ git clone https://github.com/zli117/PicoMK.git
 cd PicoMK
 git submodule update --init --recursive
 ```
-The last command will checkout all the dependencies such as pico sdk and FreeRTOS, so it might take a while depending on your internet connection.
+The last command will checkout all the dependencies such as pico-sdk and FreeRTOS, so it might take a while depending on your internet connection.
 
 ## Build a Firmware
 
-Build the firmware
+To create a custom firmware, you can make a copy of the existing config in the `configs/` folder. For this example, we will copy the default config in `configs/default`. 
+
+```bash
+mkdir -p configs/tutorial/my_new_config
+cp configs/default/* configs/tutorial/my_new_config
+```
+
+Each config consists of two files: `config.h` and `layout.cc`. Please see the comments in the file and the documentations for information on how to configure them.
+
+The following commands builds the firmware:
 
 ```bash
 mkdir build
@@ -92,16 +99,25 @@ cmake -DBOARD_CONFIG=<board_config> ..
 make -j 4
 ```
 
-`<board_config>` is the relative path of the custom config dir you've just created w.r.t the `configs/` dir. For example, to build the `configs/examples/home_screen` config, you can use this command: 
+`<board_config>` is the relative path of the custom config folder you've just created w.r.t the `configs/` folder. In our case, to build the `configs/tutorial/my_new_config` config, you can use this command: 
 
 ```bash
-cmake -DBOARD_CONFIG=examples/home_screen ..
+cmake -DBOARD_CONFIG=tutorial/my_new_config ..
 ```
 
-Once you successfully build the firmware, you should be able to find the `firmware.uf2` file under the `build/` dir. Now take the Pico board (or other RP2040 boards you have) and put it into the bootloader mode (for Pico board, you can just hold down the bootsel button and replug the USB cable). Mount the board as USB mass storage device, if not done automatically. Copy over the `firmware.uf2` to the storage device folder and you're all set.
+Once you successfully build the firmware, you can find the `firmware.uf2` file under the current (`build/`) folder. Now take the Pico board (or other RP2040 boards you have) and put it into the bootloader mode (for Pico board, you can just hold down the bootsel button and replug the USB cable). Mount the board as USB mass storage device, if not done automatically. Copy over the `firmware.uf2` to the storage device folder and you're all set.
 
-Please read the following documentations on how to customize different part of the firmware.
+Please take a look at the following documentations on how to customize different parts of the firmware, including implementing your own custom keycode handler and more. 
 
 # Documentations
 
 # Example Configurations
+
+# Future Roadmaps
+
+ * USB mass storage mode for importing and exporting json config file.
+ * Support charlieplexing to save pins for other things such as driving a LED matrix.
+ * Keyboard as a wifi dongle for Pico W (Nice for RPi2 and lower but is this too crazy?)
+ * More peripherals such as SK6805, bigger screen, LED matrix, trackpad, etc.
+ * USB hub
+ * A way for people to check in their configs like in [QMK](https://github.com/qmk/qmk_firmware) 
