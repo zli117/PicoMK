@@ -14,7 +14,7 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
 
 # Features
 
-* Configurable keymaps with multiple layers with compile time validation.
+* Configurable keymaps with multiple layers and compile time validation.
 * Full [NKRO](https://en.wikipedia.org/wiki/Rollover_(keyboard)) support.
 * C++ registration based customization.
 * Supports multiple peripherals such as rotary encoder, SSD1306 OLED screen, joysticks, WS2812 LED and more to come.
