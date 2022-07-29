@@ -269,7 +269,7 @@ std::pair<std::string, std::shared_ptr<Config>> WS2812::CreateDefaultConfig() {
       CONFIG_OBJECT_ELEM("tick_dividier", CONFIG_INT(10, 1, 250)),
       CONFIG_OBJECT_ELEM("enabled", CONFIG_INT(1, 0, 1)),
       CONFIG_OBJECT_ELEM("animation", CONFIG_INT(BREATH, 0, TOTAL - 1)));
-  return {"ws2812", config};
+  return {"WS2812 LED", config};
 }
 
 void WS2812::SuspendEvent(bool is_suspend) {

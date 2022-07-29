@@ -202,7 +202,7 @@ JoystickInputDeivce::CreateDefaultConfig() {
               CONFIG_PAIR(CONFIG_INT(2000, 0, 2048),
                           CONFIG_INT(300, 40, 1000)))));
 
-  return {"joystick", config};
+  return {"Joystick", config};
 }
 
 Status JoystickInputDeivce::ParseProfileConfig(

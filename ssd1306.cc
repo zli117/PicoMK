@@ -59,7 +59,7 @@ std::pair<std::string, std::shared_ptr<Config>>
 SSD1306Display::CreateDefaultConfig() {
   auto config = CONFIG_OBJECT(
       CONFIG_OBJECT_ELEM("sleep_seconds", CONFIG_INT(20, 0, 300)));
-  return {"ssd1306", config};
+  return {"SSD1306 Screen", config};
 }
 
 void SSD1306Display::OnUpdateConfig(const Config* config) {
