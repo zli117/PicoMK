@@ -179,7 +179,7 @@ void DeviceRegistry::InitializeAllDevices() {
   // Initialize the config from flash if there's any
   std::string config_file;
   if (ReadFileContent(CONFIG_FLASH_JSON_FILE_NAME, &config_file) == OK &&
-      !config_file.empty() && ParseConfig(config_file, &global_config_) != OK) {
+      !config_file.empty() && ParseJsonConfig(config_file, &global_config_) != OK) {
     // Reinitialize to default
     CreateDefaultConfigImpl();
   }

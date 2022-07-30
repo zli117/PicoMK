@@ -10,6 +10,7 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
   - [Build a Firmware](#build-a-firmware)
 - [Documentations](#documentations)
   - [Anatomy of a layout.cc File](#anatomy-of-a-layoutcc-file)
+  - [Design and Tradeoffs](#design-and-tradeoffs)
 - [Example Configurations](#example-configurations)
 - [Future Roadmaps](#future-roadmaps)
 
@@ -21,7 +22,9 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
 * Supports multiple peripherals such as rotary encoder, SSD1306 OLED screen, joysticks, WS2812 LED and more to come.
 * Runtime configuration menu (screen required). Change keyboard configuration on-the-fly without any host software.
   
-  ![Config Menu Demo](docs/config_menu.gif)
+  |![Config Menu Demo](docs/config_menu.gif)|
+  |:----:|
+  |Turn off LED|
 
 # Quick Start
 
@@ -116,12 +119,16 @@ Please take a look at the following documentations on how to customize different
 
 Basic intro to how to configure a keyboard layout using `layout.cc` file. 
 
+## [Design and Tradeoffs](docs/design.md)
+
+Documents the overall code design, and some decisions.
+
 # Example Configurations
 
 | Name                                                     | Description |
 | -------------------------------------------------------- | ----------- |
 | [`examples/home_screen`](configs/examples/home_screen) | An example of customizing the home screen, or overall how to customize a device and register it.
-| [`examples/bare_minimum`](configs/examples/bare_minimum) | Show that registration is like conditional compilation. If you don't register something, it'll be stripped from the binary. `default` config binary size: 509440, `examples/bare_minimum` binary size: 372736 bytes
+| [`examples/bare_minimum`](configs/examples/bare_minimum) | Show that registration is like conditional compilation. If you don't register something, it'll be stripped from the binary. `default` config binary size: 509440 bytes, `examples/bare_minimum` binary size: 372736 bytes
 
 # Future Roadmaps
 

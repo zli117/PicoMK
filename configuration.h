@@ -139,6 +139,6 @@ class ConfigFloat : public Config {
 
 // If return is ERROR, default_config will be in an invalid state.
 // default_config is modified in place.
-Status ParseConfig(const std::string& json, Config* default_config);
+Status ParseJsonConfig(const std::string& json, Config* default_config);
 
 #endif /* CONFIGURATION_H_ */

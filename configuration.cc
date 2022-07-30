@@ -104,7 +104,7 @@ Status ConfigFloat::FromCJSON(const cJSON* json) {
   return OK;
 }
 
-Status ParseConfig(const std::string& json, Config* default_config) {
+Status ParseJsonConfig(const std::string& json, Config* default_config) {
   cJSON* c_json = cJSON_ParseWithLength(json.c_str(), json.size());
   if (c_json == NULL) {
     return ERROR;
