@@ -190,7 +190,7 @@ CustomKeycodeHandler* KeyScan::HandlerRegistry::RegisteredHandlerFactory(
       return NULL;
     }
     auto* handler = creator_it->second.second();
-    handler->SetOuterClass(outer);
+    handler->SetKeyScan(outer);
     instance->handler_singletons_[keycode] = handler;
     return handler;
   }

@@ -32,7 +32,11 @@ class CustomKeycodeHandler {
   // released to pressed, after debouncing.
   virtual void ProcessKeyEvent(Keycode kc, bool is_pressed, size_t sink_idx,
                                size_t source_idx) {}
-  virtual void SetOuterClass(KeyScan* keyscan) { key_scan_ = keyscan; }
+
+  // Getting a reference to the KeyScan instance
+  virtual void SetKeyScan(KeyScan* keyscan) { key_scan_ = keyscan; }
+
+  // Get the name of this custom key
   virtual std::string GetName() const = 0;
 
  protected:

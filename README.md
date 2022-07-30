@@ -118,9 +118,9 @@ Basic intro to how to configure a keyboard layout using `layout.cc` file.
 
 # Example Configurations
 
-| Name                                                     | Info |
-| -------------------------------------------------------- | ---- |
-| [`examples/home_screen`](configs/examples/home_screen) | An example of customizing the home screen.
+| Name                                                     | Description |
+| -------------------------------------------------------- | ----------- |
+| [`examples/home_screen`](configs/examples/home_screen) | An example of customizing the home screen, or overall how to customize a device and register it.
 | [`examples/bare_minimum`](configs/examples/bare_minimum) | Show that registration is like conditional compilation. If you don't register something, it'll be stripped from the binary. `default` config binary size: 509440, `examples/bare_minimum` binary size: 372736 bytes
 
 # Future Roadmaps
