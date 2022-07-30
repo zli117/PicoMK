@@ -147,14 +147,14 @@ uint8_t const desc_configuration[] = {
 };
 
 char const *string_desc_arr[] = {
-    "",                       // 0: Index 0 is language ID. Handled in callback
-    CONFIG_USB_VENDER_NAME,   // 1: Manufacturer
-    CONFIG_USB_PRODUCT_NAME,  // 2: Product
-    CONFIG_USB_SERIAL_NUM,    // 3: Serial number
-    "Keyboard",               // 4: Keyboard interface
-    "Mouse",                  // 5: Mouse interface
-    "Consumer",               // 6: Consumer interface
-    "Serial",                 // 7: CDC interface
+    "",                      // 0: Index 0 is language ID. Handled in callback
+    CONFIG_USB_VENDER_NAME,  // 1: Manufacturer
+    CONFIG_KEYBOARD_NAME,    // 2: Product
+    CONFIG_USB_SERIAL_NUM,   // 3: Serial number
+    "Keyboard",              // 4: Keyboard interface
+    "Mouse",                 // 5: Mouse interface
+    "Consumer",              // 6: Consumer interface
+    "Serial",                // 7: CDC interface
 };
 
 ////////////////////////////////////////////////////////////////////////////////

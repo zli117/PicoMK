@@ -1,4 +1,9 @@
+// layout_helper.h defines the helper macros as well as short alias to each
+// keycode. Please include it at the top of the layout.cc file.
 #include "layout_helper.h"
+
+// Alias for the key matrix GPIO pins. This is for better readability and is
+// optional.
 
 #define C0 0
 #define C1 1
@@ -20,19 +25,38 @@
 #define R3 17
 #define R4 16
 
+// These two are also optional
+
 #define CONFIG_NUM_PHY_ROWS 6
 #define CONFIG_NUM_PHY_COLS 15
 
+// This is a special layer that rotary encoder might have different behaviors.
+// Also optional.
+
 #define ALT_LY 4
 
+// For a layout.cc file, the followings are required: kRowGPIO, kColGPIO,
+// kDiodeColToRow, kGPIOMatrix, and kKeyCodes. They need to have exactly the
+// same name and type. They also need to be constexpr. For array types you don't
+// need to specify the size for all the dimenions as long as compiler is happy.
+// See docs/layout_cc.md for an example key matrix setup.
+
+// The row GPIOs for the key matrix. Order doesn't matter.
 static constexpr uint8_t kRowGPIO[] = {R0, R1, R2, R3, R4};
+
+// The column GPIOs for the key matrix. Order doesn't matter.
 static constexpr uint8_t kColGPIO[] = {C0, C1, C2, C3,  C4,  C5,  C6,
                                        C7, C8, C9, C10, C11, C12, C13};
+
+// Specifies the direction of the diodes.
 static constexpr bool kDiodeColToRow = true;
 
 // clang-format off
 
-// Keyboard switch physical GPIO connection setup.
+// Keyboard switch physical GPIO connection setup. This is a map from the
+// physical layout of the keys to their switch matrix. The reason for having 
+// this mapping is that often times the physical layout of the switches does not
+// match up with their wiring matrix 
 static constexpr GPIO kGPIOMatrix[CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] = {
   {G(R0, C0),  G(R0, C1),  G(R0, C2),  G(R0, C3),  G(R0, C4),  G(R0, C5),  G(R0, C6),  G(R0, C7),  G(R0, C8),  G(R0, C9),  G(R0, C10),  G(R0, C11),  G(R0, C12),  G(R0, C13),  G(R1, C13)},
   {G(R1, C0),  G(R1, C1),  G(R1, C2),  G(R1, C3),  G(R1, C4),  G(R1, C5),  G(R1, C6),  G(R1, C7),  G(R1, C8),  G(R1, C9),  G(R1, C10),  G(R1, C11),  G(R1, C12),  G(R2, C13),  G(R3, C13)},
@@ -73,11 +97,12 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 
 // clang-format on
 
-// Compile time validation and conversion for the key matrix
+// Compile time validation and conversion for the key matrix. Must include this.
 #include "layout_internal.inc"
 
 // Register all the devices
 
+// Each device is registered with a unique tag.
 enum {
   JOYSTICK = 0,
   KEYSCAN,
@@ -89,6 +114,10 @@ enum {
   TEMPERATURE,
   LED,
 };
+
+// The return values have to be retained and static for the registration code to
+// execute at initialization time. See each device's documentation for what
+// values are needed for the registration function.
 
 static Status register1 = RegisterConfigModifier(SSD1306);
 static Status register2 =
