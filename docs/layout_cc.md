@@ -105,4 +105,4 @@ static constexpr Keycode kKeyCodes[][3][3] = {
 static Status register1 = RegisterKeyscan(/*tag=*/0);
 ```
 
-For next step you can take a look at the default layout at `configs/default/layout.cc` for [Pico-Keyboard](https://github.com/zli117/Pico-Keyboard).
+For next step you can take a look at the default layout at `configs/default/layout.cc` for [Pico-Keyboard](https://github.com/zli117/Pico-Keyboard). Please also take a look at the `layout_helper.h` for helper macros and keycodes.
