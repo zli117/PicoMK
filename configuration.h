@@ -12,21 +12,29 @@
 #include "cJSON/cJSON.h"
 #include "utils.h"
 
+// Create an object from a list of key value pairs
 #define CONFIG_OBJECT(...) \
   (std::shared_ptr<ConfigObject>(new ConfigObject({__VA_ARGS__})))
 
+// Create one key value pair from a string name to a subconfig.
 #define CONFIG_OBJECT_ELEM(name, value) \
   { (name), (value) }
 
+// Create a list of subconfigs
 #define CONFIG_LIST(...) \
   (std::shared_ptr<ConfigList>(new ConfigList({__VA_ARGS__})))
 
+// Convenient macro for creating a special list with length of two
 #define CONFIG_PAIR(first, second) \
   (std::shared_ptr<ConfigPair>(new ConfigPair((first), (second))))
 
+// Value can only be in range [min, max]. value is the compile time default.
 #define CONFIG_INT(value, min, max) \
   (std::shared_ptr<ConfigInt>(new ConfigInt((value), (min), (max))))
 
+// Value can only be in range [min, max]. Each up/down on the config modifier
+// increases/decreases the value by resolution amount. value is the compile time
+// default.
 #define CONFIG_FLOAT(value, min, max, resolution) \
   (std::shared_ptr<ConfigFloat>(                  \
       new ConfigFloat((value), (min), (max), (resolution))))

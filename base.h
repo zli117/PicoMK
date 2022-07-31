@@ -18,8 +18,18 @@ class GenericDevice {
   virtual void SetTag(uint8_t tag) { tag_ = tag; }
   virtual uint8_t GetTag() { return tag_; }
 
+  // Called when the config has been updated.
   virtual void OnUpdateConfig(const Config* config){};
+
+  // Override this if the device needs to behave differently when in and out of
+  // config mode. One example would be USB output devices, where during config
+  // mode it doesn't report any key code or mouse movement to the host.
   virtual void SetConfigMode(bool is_config_mode){};
+
+  // Called during initialization to create the default config. Note that it'll
+  // be called even when there's a valid config json file in the filesystem. The
+  // default config specifies the structure of the config sub-tree to later
+  // parse the json file.
   virtual std::pair<std::string, std::shared_ptr<Config>>
   CreateDefaultConfig() {
     return std::make_pair<std::string, std::shared_ptr<Config>>("", NULL);
