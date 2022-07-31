@@ -9,7 +9,7 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
   - [Get the Code](#get-the-code)
   - [Build a Firmware](#build-a-firmware)
 - [Documentations](#documentations)
-  - [Anatomy of a layout.cc File](#anatomy-of-a-layoutcc-file)
+  - [Anatomy of layout.cc](#anatomy-of-layoutcc)
   - [Devices and Registration Functions](#devices-and-registration-functions)
   - [Configuration Menu](#configuration-menu)
   - [Design and Tradeoffs](#design-and-tradeoffs)
@@ -119,7 +119,7 @@ Please take a look at the following documentations on how to customize different
 
 ## [Anatomy of layout.cc](docs/layout_cc.md)
 
-Basic intro to how to configure a keyboard layout using `layout.cc` file. 
+Basic intro to configuring a keyboard layout with `layout.cc` file. 
 
 ## [Devices and Registration Functions](docs/devices.md)
 
