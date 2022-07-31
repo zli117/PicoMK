@@ -134,6 +134,7 @@ Documents the overall code design, and some decisions.
 | -------------------------------------------------------- | ----------- |
 | [`examples/home_screen`](configs/examples/home_screen) | An example of customizing the home screen, or overall how to customize a device and register it.
 | [`examples/bare_minimum`](configs/examples/bare_minimum) | Show that registration is like conditional compilation. If you don't register something, it'll be stripped from the binary. `default` config binary size: 509440 bytes, `examples/bare_minimum` binary size: 372736 bytes
+| [`examples/custom_keycode`](configs/examples/custom_keycode) | Create three custom keycodes that translate keyboard up/down/enter keys to config mode curser up/down/select.
 
 # Future Roadmaps
 
