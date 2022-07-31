@@ -14,7 +14,9 @@
 #include "semphr.h"
 #include "utils.h"
 
-// Each registration creates at most one instance of the handler
+// Each registration creates at most one instance of the handler. If
+// CAN_OVERRIDE is true, then another registration with CAN_OVERRIDE equals
+// false will override it.
 #define REGISTER_CUSTOM_KEYCODE_HANDLER(KEYCODE, CAN_OVERRIDE, CLS)  \
   status register_##KEYCODE = KeyScan::RegisterCustomKeycodeHandler( \
       (KEYCODE), (CAN_OVERRIDE),                                     \

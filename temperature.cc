@@ -70,7 +70,7 @@ TemperatureInputDeivce::CreateDefaultConfig() {
       CONFIG_OBJECT_ELEM("fahrenheit", CONFIG_INT(1, 0, 1)),
       CONFIG_OBJECT_ELEM("enabled", CONFIG_INT(1, 0, 1)),
       CONFIG_OBJECT_ELEM("sample_n_ticks", CONFIG_INT(100, 0, 1000)));
-  return {"temperature", config};
+  return {"Temperature", config};
 }
 
 void TemperatureInputDeivce::OnUpdateConfig(const Config* config) {
