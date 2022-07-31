@@ -43,7 +43,7 @@ Status RegisterJoystick(uint8_t tag, uint8_t x_adc_pin, uint8_t y_adc_pin,
                         bool flip_vertical_scroll, uint8_t alt_layer);
 ```
 
-The default implementation of a joystick. You can register multiple instances. Normally, it sends joystick input as mouse movement. `alt_layer` is the layer number that if activated, will send joystick input as horizontal and vertical scrolling.
+The default implementation of a joystick. You can register multiple instances. Normally, it sends joystick input as mouse movement. `buffer_size` is the size of smoothing buffer. The larger the buffer, the less noisy the reading, and longer it takes for movement to show up on screen. `alt_layer` is the layer number that if activated, will send joystick input as horizontal and vertical scrolling.
 
 ## Rotary Encoder
 
