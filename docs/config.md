@@ -70,25 +70,28 @@ For example, to create a config tree whose default values correspond to the foll
       },
       {
          "float":11.1
-      }
+      },
+      30,
    ]
 }
 ```
 
 ```cpp
 auto config = CONFIG_OBJECT(
-  // Valid value in range [0, 100], default is 10
-  CONFIG_OBJECT_ELEM("int1", CONFIG_INT(10, 0, 100)),
+    // Valid value in range [0, 100], default is 10
+    CONFIG_OBJECT_ELEM("int1", CONFIG_INT(10, 0, 100)),
 
-  // Valid value in range [5, 20.0], default is 10.5, and each time it's
-  // increased/decreased by 0.2
-  CONFIG_OBJECT_ELEM("float1", CONFIG_FLOAT(10.5, 5, 20.0, 0.2)),
+    // Valid value in range [5, 20.0], default is 10.5, and each time it's
+    // increased/decreased by 0.2
+    CONFIG_OBJECT_ELEM("float1", CONFIG_FLOAT(10.5, 5, 20.0, 0.2)),
 
-  // A list of 2 elements
-  CONFIG_OBJECT_ELEM("list1", CONFIG_LIST(
-    CONFIG_INT(5, 0, 2048), 
-    CONFIG_FLOAT(11.1, 3, 12, 0.1)
-  )));
+    // A list of 3 elements
+    CONFIG_OBJECT_ELEM(
+        "list1", CONFIG_LIST(CONFIG_OBJECT(CONFIG_OBJECT_ELEM(
+                                 "int", CONFIG_INT(5, 0, 100))),
+                             CONFIG_OBJECT(CONFIG_OBJECT_ELEM(
+                                 "float", CONFIG_FLOAT(11.1, 5, 20.0, 0.1))),
+                             CONFIG_INT(30, 0, 2048))));
 ```
 
 Finally, in `CreateDefaultConfig` return the device name as well as the config tree:
