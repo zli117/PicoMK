@@ -1,4 +1,4 @@
-# Anatomy of a layout.cc File
+# Anatomy of layout.cc
 
 This doc shows the structure of a `layout.cc` file, including what are the required elements of the file. For the also required `config.h` file, please take a look at the default config's `config.h` at `configs/default/config.h`. For this tutorial we'll use a toy keyboard layout with the following key matrix and setup:
 | Schematic                         | Layout                         |

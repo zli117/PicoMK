@@ -117,7 +117,7 @@ Please take a look at the following documentations on how to customize different
 
 # Documentations
 
-## [Anatomy of a layout.cc File](docs/layout_cc.md)
+## [Anatomy of layout.cc](docs/layout_cc.md)
 
 Basic intro to how to configure a keyboard layout using `layout.cc` file. 
 
