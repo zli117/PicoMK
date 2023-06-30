@@ -255,7 +255,7 @@ extern "C" bool tud_hid_set_idle_cb(uint8_t instance, uint8_t idle_rate) {
 }
 
 extern "C" void tud_hid_report_complete_cb(uint8_t instance,
-                                           uint8_t const *report, uint8_t len) {
+                                           uint8_t const *report, uint16_t len) {
   // Don't need to do any report chaining.
 }
 
