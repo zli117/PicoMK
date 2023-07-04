@@ -66,13 +66,12 @@ class SSD1306Display : virtual public ScreenOutputDevice,
   const size_t num_cols_;
   uint32_t sleep_s_;
 
-  // pico_ssd1306::SSD1306 currently has memory leak issue. See
-  // https://github.com/Harbys/pico-ssd1306/issues/8
   std::unique_ptr<pico_ssd1306::SSD1306> display_;
 
-  std::array<std::array<uint8_t, FRAMEBUFFER_SIZE>, 2> double_buffer_;
-  uint8_t buffer_idx_;
-  bool buffer_changed_;
+  std::array<uint8_t, FRAMEBUFFER_SIZE> buffer_;
+  std::array<uint8_t, FRAMEBUFFER_SIZE> out_buffer_;
+
+  bool nnffer_changed_;
   bool send_buffer_;
   uint32_t last_active_s_;
   bool sleep_;
