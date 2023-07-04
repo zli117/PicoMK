@@ -24,7 +24,6 @@ SSD1306Display::SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin,
       num_rows_(num_rows),
       num_cols_(128),
       sleep_s_(0),
-      buffer_idx_(0),
       buffer_changed_(false),
       send_buffer_(true),
       last_active_s_(0),
@@ -38,11 +37,13 @@ SSD1306Display::SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin,
 
   busy_wait_ms(250);
 
-  std::fill(double_buffer_[0].begin(), double_buffer_[0].end(), 0);
-  std::fill(double_buffer_[1].begin(), double_buffer_[1].end(), 0);
+  std::fill(buffer_.begin(), buffer_.end(), 0);
+  std::fill(out_buffer_.begin(), out_buffer_.end(), 0);
   display_ = std::make_unique<SSD1306>(
       i2c_, i2c_addr_, num_rows_ == 64 ? Size::W128xH64 : Size::W128xH32);
-  display_->setBuffer(double_buffer_[1].data());
+  
+  // Use a buffer we can control.
+  display_->setBuffer(buffer_.data());
   if (flip) {
     display_->setOrientation(0);
   }
@@ -97,8 +98,8 @@ void SSD1306Display::OutputTick() {
   {
     LockSemaphore lock(semaphore_);
     if (send_buffer_) {
-      std::copy(double_buffer_[buffer_idx_].begin(),
-                double_buffer_[buffer_idx_].end(), local_copy.begin() + 1);
+      std::copy(out_buffer_.begin(),
+                out_buffer_.end(), local_copy.begin() + 1);
       send_buffer = send_buffer_;
       last_active_s_ = curr_s;
     }
@@ -133,11 +134,8 @@ void SSD1306Display::StartOfInputTick() { buffer_changed_ = false; }
 void SSD1306Display::FinalizeInputTickOutput() {
   LockSemaphore lock(semaphore_);
   if (buffer_changed_) {
-    const uint8_t buf_idx = (buffer_idx_ + 1) % 2;
-    std::copy(double_buffer_[buf_idx].begin(), double_buffer_[buf_idx].end(),
-              double_buffer_[buffer_idx_].begin());
-    display_->setBuffer(double_buffer_[buffer_idx_].data());
-    buffer_idx_ = buf_idx;
+    std::copy(buffer_.begin(),
+              buffer_.end(), out_buffer_.begin());
     send_buffer_ = true;
   }
 }
