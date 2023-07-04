@@ -71,7 +71,7 @@ class SSD1306Display : virtual public ScreenOutputDevice,
   std::array<uint8_t, FRAMEBUFFER_SIZE> buffer_;
   std::array<uint8_t, FRAMEBUFFER_SIZE> out_buffer_;
 
-  bool nnffer_changed_;
+  bool buffer_changed_;
   bool send_buffer_;
   uint32_t last_active_s_;
   bool sleep_;

@@ -5,16 +5,6 @@ constexpr size_t ArraySize(T (&)[N]) {
   return N;
 }
 
-template <size_t N>
-constexpr int Find(const uint8_t (&arr)[N], uint8_t target) {
-  for (size_t i = 0; i < N; ++i) {
-    if (arr[i] == target) {
-      return i;
-    }
-  }
-  return -1;
-}
-
 constexpr size_t kNumLayers = ArraySize(kKeyCodes);
 
 template <size_t L>
@@ -23,14 +13,14 @@ struct Scan {
   std::array<Keycode, L> keycodes;
 };
 
+constexpr size_t kGPIONumMax = 40;  // Pico has at most 40 pins
+
 template <size_t N>
 using KeyScanOrder = std::array<Scan<kNumLayers>, N>;
 using AllGPIOs = std::array<uint8_t, kGPIONumMax>;
 
 // Force non-constexpr as error
 void failure(const char*) {}
-
-constexpr size_t kGPIONumMax = 40;  // Pico has at most 40 pins
 
 template <size_t L, size_t R, size_t C>
 constexpr KeyScanOrder<R * C> ConvertKeyScan(const GPIO (&gpio)[R][C],
