@@ -10,10 +10,8 @@ class MouseButtonHandler : public CustomKeycodeHandler {
  public:
   // Using ProcessKeyState callback because we want to keep on sending the mouse
   // keycode until the key is released.
-  void ProcessKeyState(Keycode kc, bool is_pressed, size_t sink_idx,
-                       size_t source_idx) override {
-    (void)sink_idx;
-    (void)source_idx;
+  void ProcessKeyState(Keycode kc, bool is_pressed, size_t key_idx) override {
+    (void)key_idx;
     key_scan_->SetMouseButtonState(kc.keycode, is_pressed);
   }
 
@@ -30,8 +28,8 @@ class LayerButtonHandler : public CustomKeycodeHandler {
  public:
   LayerButtonHandler() {}
 
-  void ProcessKeyEvent(Keycode kc, bool is_pressed, size_t sink_idx,
-                       size_t source_idx) override {
+  void ProcessKeyEvent(Keycode kc, bool is_pressed, size_t key_idx) override {
+    (void)key_idx;
     const bool toggle = kc.custom_info & 0x40;
     const uint8_t layer = kc.custom_info & 0x3f;
     if (toggle) {
@@ -50,8 +48,8 @@ REGISTER_CUSTOM_KEYCODE_HANDLER(LAYER_SWITCH, true, LayerButtonHandler);
 
 class EnterConfigHandler : public CustomKeycodeHandler {
  public:
-  void ProcessKeyEvent(Keycode kc, bool is_pressed, size_t sink_idx,
-                       size_t source_idx) override {
+  void ProcessKeyEvent(Keycode kc, bool is_pressed, size_t key_idx) override {
+    (void)key_idx;
     if (is_pressed) {
       runner::SetConfigMode(true);
     }
@@ -66,8 +64,8 @@ class ConfigSelHandler : public CustomKeycodeHandler {
  public:
   ConfigSelHandler() : currently_pressed_(false) {}
 
-  void ProcessKeyEvent(Keycode kc, bool is_pressed, size_t sink_idx,
-                       size_t source_idx) override {
+  void ProcessKeyEvent(Keycode kc, bool is_pressed, size_t key_idx) override {
+    (void)key_idx;
     if (is_pressed) {
       key_scan_->ConfigSelect();
     }
@@ -85,8 +83,8 @@ class BootselHandler : public CustomKeycodeHandler {
  public:
   BootselHandler() {}
 
-  void ProcessKeyState(Keycode kc, bool is_pressed, size_t sink_idx,
-                       size_t source_idx) override {
+  void ProcessKeyState(Keycode kc, bool is_pressed, size_t key_idx) override {
+    (void)key_idx;
     if (is_pressed) {
       reset_usb_boot(0, 0);
     }
@@ -101,8 +99,8 @@ class RebootHandler : public CustomKeycodeHandler {
  public:
   RebootHandler() {}
 
-  void ProcessKeyState(Keycode kc, bool is_pressed, size_t sink_idx,
-                       size_t source_idx) override {
+  void ProcessKeyState(Keycode kc, bool is_pressed, size_t key_idx) override {
+    (void)key_idx;
     if (is_pressed) {
       watchdog_reboot(0, 0, 0);
     }

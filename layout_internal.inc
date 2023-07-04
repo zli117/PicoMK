@@ -15,84 +15,171 @@ constexpr int Find(const uint8_t (&arr)[N], uint8_t target) {
   return -1;
 }
 
-constexpr size_t kNumRowGPIO = ArraySize(kRowGPIO);
-constexpr size_t kNumColGPIO = ArraySize(kColGPIO);
 constexpr size_t kNumLayers = ArraySize(kKeyCodes);
 
-using KeyMatrix =
-    std::array<std::array<std::array<Keycode, kNumColGPIO>, kNumRowGPIO>,
-               kNumLayers>;
+template <size_t L>
+struct Scan {
+  GPIO gpio;
+  std::array<Keycode, L> keycodes;
+};
+
+template <size_t N>
+using KeyScanOrder = std::array<Scan<kNumLayers>, N>;
+using AllGPIOs = std::array<uint8_t, kGPIONumMax>;
 
 // Force non-constexpr as error
 void failure(const char*) {}
 
-template <size_t L, size_t R, size_t C, size_t GP_ROW, size_t GP_COL>
-constexpr KeyMatrix PostProcess(const GPIO (&gpio)[R][C],
-                                const Keycode (&kc)[L][R][C],
-                                const uint8_t (&gpio_row)[GP_ROW],
-                                const uint8_t (&gpio_col)[GP_COL]) {
-  if (GP_COL > GP_ROW) {
-    for (size_t i = 0; i < GP_COL; ++i) {
-      if (Find(gpio_row, gpio_col[i]) != -1) {
-        failure("Currently doesn't support GPIO pin to be both row and col");
+constexpr size_t kGPIONumMax = 40;  // Pico has at most 40 pins
+
+template <size_t L, size_t R, size_t C>
+constexpr KeyScanOrder<R * C> ConvertKeyScan(const GPIO (&gpio)[R][C],
+                                             const Keycode (&kc)[L][R][C]) {
+  size_t end_idx[kGPIONumMax] = {0};
+  size_t source_count[kGPIONumMax] = {0};
+
+  // Counting sort the source GPIOs
+
+  for (size_t r = 0; r < R; ++r) {
+    for (size_t c = 0; c < C; ++c) {
+      bool is_none = true;
+      for (size_t l = 0; l < L; ++l) {
+        if (kc[l][r][c].is_custom || kc[l][r][c].keycode != HID_KEY_NONE) {
+          is_none = false;
+          break;
+        }
       }
-    }
-  } else {
-    for (size_t i = 0; i < GP_ROW; ++i) {
-      if (Find(gpio_col, gpio_row[i]) != -1) {
-        failure("Currently doesn't support GPIO pin to be both row and col");
+      if (is_none) {
+        continue;
       }
+      if (gpio[r][c].source == gpio[r][c].sink) {
+        failure("Source and sink GPIOs have to be different");
+      }
+      if (gpio[r][c].source >= kGPIONumMax) {
+        failure("Invalid source GPIO number");
+      }
+      if (gpio[r][c].sink >= kGPIONumMax) {
+        failure("Invalid sink GPIO number");
+      }
+      ++end_idx[gpio[r][c].source];
+      ++source_count[gpio[r][c].source];
     }
   }
-  KeyMatrix output = {0};
-  for (size_t l = 0; l < L; ++l) {
-    for (size_t r = 0; r < R; ++r) {
-      for (size_t c = 0; c < C; ++c) {
+
+  for (size_t i = 1; i < kGPIONumMax; ++i) {
+    end_idx[i] += end_idx[i - 1];
+  }
+
+  KeyScanOrder<R* C> output = {0};
+
+  for (size_t r = 0; r < R; ++r) {
+    for (size_t c = 0; c < C; ++c) {
+      bool is_none = true;
+      for (size_t l = 0; l < L; ++l) {
+        if (kc[l][r][c].is_custom || kc[l][r][c].keycode != HID_KEY_NONE) {
+          is_none = false;
+          break;
+        }
+      }
+      if (is_none) {
+        continue;
+      }
+      const size_t idx =
+          end_idx[gpio[r][c].source] - source_count[gpio[r][c].source];
+      auto& key_slot = output[idx];
+      key_slot.gpio = gpio[r][c];
+      for (size_t i = gpio[r][c].source > 0 ? end_idx[gpio[r][c].source - 1]
+                                            : 0;
+           i < idx; ++i) {
+        if (key_slot.gpio.sink == output[i].gpio.sink) {
+          failure("Duplicate source sink combination.");
+        }
+      }
+      for (size_t l = 0; l < L; ++l) {
         if (!kc[l][r][c].is_custom && kc[l][r][c].keycode == HID_KEY_NONE) {
           continue;
         }
-
-        if (gpio[r][c].row == gpio[r][c].col) {
-          failure("Row and col GPIOs have to be different");
-        }
-        int row_gpio_idx = Find(gpio_row, gpio[r][c].row);
-        int col_gpio_idx = Find(gpio_col, gpio[r][c].col);
-        if (row_gpio_idx < 0) {
-          failure("Row GPIO not found");
-        }
-        if (col_gpio_idx < 0) {
-          failure("Col GPIO not found");
-        }
-        if (output[l][row_gpio_idx][col_gpio_idx].keycode != HID_KEY_NONE) {
-          failure("Trying to assign two keycodes to one location");
-        }
-
-        output[l][row_gpio_idx][col_gpio_idx] = kc[l][r][c];
+        key_slot.keycodes[l] = kc[l][r][c];
       }
+      --source_count[gpio[r][c].source];
+    }
+  }
+
+  return output;
+}
+
+template <size_t N>
+constexpr size_t CountKeyScans(const KeyScanOrder<N>& key_scans) {
+  size_t i = 0;
+  for (; i < key_scans.size(); ++i) {
+    if (key_scans[i].gpio.source == 0 && key_scans[i].gpio.sink == 0) {
+      return i;
+    }
+  }
+
+  return i;
+}
+
+template <size_t N>
+constexpr AllGPIOs CollectAllGPIOs(const KeyScanOrder<N>& scan_order) {
+  bool exist[kGPIONumMax] = {0};
+
+  for (size_t i = 0; i < CountKeyScans(scan_order); ++i) {
+    const auto& scan = scan_order[i];
+    exist[scan.gpio.source] = true;
+    exist[scan.gpio.sink] = true;
+  }
+
+  AllGPIOs output;
+  output.fill(255);
+  size_t idx = 0;
+  for (size_t i = 0; i < kGPIONumMax; ++i) {
+    if (exist[i]) {
+      output[idx++] = i;
     }
   }
   return output;
 }
 
-constexpr KeyMatrix kKeyMatrix =
-    PostProcess(kGPIOMatrix, kKeyCodes, kRowGPIO, kColGPIO);
+constexpr size_t CountGPIOs(const AllGPIOs& gpios) {
+  size_t i = 0;
+  for (; i < gpios.size(); ++i) {
+    if (gpios[i] == 255) {
+      return i;
+    }
+  }
+
+  return i;
+}
+
+static constexpr auto __not_in_flash("keyscan") kKeys =
+    ConvertKeyScan(kGPIOMatrix, kKeyCodes);
+static constexpr AllGPIOs __not_in_flash("keyscan") kGPIOPins =
+    CollectAllGPIOs(kKeys);
 
 }  // namespace
 
 size_t GetKeyboardNumLayers() { return kNumLayers; }
 
-size_t GetNumSinkGPIOs() { return kDiodeColToRow ? kNumRowGPIO : kNumColGPIO; }
-size_t GetNumSourceGPIOs() {
-  return kDiodeColToRow ? kNumColGPIO : kNumRowGPIO;
+size_t GetTotalNumGPIOs() { return CountGPIOs(kGPIOPins); }
+
+uint8_t GetGPIOPin(size_t gpio_idx) { return kGPIOPins.at(gpio_idx); }
+
+size_t GetTotalScans() { return CountKeyScans(kKeys); }
+
+uint8_t GetSourceGPIO(size_t scan_idx) {
+  return kKeys.at(scan_idx).gpio.source;
 }
-uint8_t GetSinkGPIO(size_t idx) {
-  return kDiodeColToRow ? kRowGPIO[idx] : kColGPIO[idx];
+
+uint8_t GetSinkGPIO(size_t scan_idx) { return kKeys.at(scan_idx).gpio.sink; }
+
+bool IsSourceChange(size_t scan_idx) {
+  if (scan_idx == 0) {
+    return true;
+  }
+  return GetSourceGPIO(scan_idx - 1) != GetSourceGPIO(scan_idx);
 }
-uint8_t GetSourceGPIO(size_t idx) {
-  return kDiodeColToRow ? kColGPIO[idx] : kRowGPIO[idx];
-}
-Keycode GetKeycodeAtLayer(uint8_t layer, size_t sink_gpio_idx,
-                          size_t source_gpio_idx) {
-  return kKeyMatrix[layer][kDiodeColToRow ? sink_gpio_idx : source_gpio_idx]
-                   [kDiodeColToRow ? source_gpio_idx : sink_gpio_idx];
+
+Keycode GetKeycodeAtLayer(uint8_t layer, size_t scan_idx) {
+  return kKeys.at(scan_idx).keycodes.at(layer);
 }

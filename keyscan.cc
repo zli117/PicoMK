@@ -35,63 +35,62 @@ void KeyScan::InputLoopStart() { LayerChanged(); }
 
 void KeyScan::InputTick() {
   const std::vector<uint8_t> active_layers = GetActiveLayers();
-
-  // Set all sink GPIOs to HIGH
-  for (size_t sink = 0; sink < GetNumSinkGPIOs(); ++sink) {
-    gpio_put(GetSinkGPIO(sink), true);
-  }
-
   std::vector<uint8_t> pressed_keycode;
 
-  for (size_t sink = 0; sink < GetNumSinkGPIOs(); ++sink) {
-    // Set one sink pin to LOW
-    gpio_put(GetSinkGPIO(sink), false);
-    SinkGPIODelay();
-
-    for (size_t source = 0; source < GetNumSourceGPIOs(); ++source) {
-      DebounceTimer& d_timer =
-          debounce_timer_[sink * GetNumSourceGPIOs() + source];
-
-      // gpio_get returns true when no button is pressed (because of pull up)
-      // and false when a button is pressed.
-      const bool pressed = !gpio_get(GetSourceGPIO(source));
-      bool key_event = false;
-      if (pressed != d_timer.pressed) {
-        d_timer.tick_count += CONFIG_SCAN_TICKS;
-        if (d_timer.tick_count >= CONFIG_DEBOUNCE_TICKS) {
-          d_timer.pressed = !d_timer.pressed;
-          d_timer.tick_count = 0;
-          key_event = true;
+  for (size_t i = 0; i < GetTotalScans(); ++i) {
+    const uint8_t source_pin = GetSourceGPIO(i);
+    if (IsSourceChange(i)) {
+      // Only source is the output. Others are all input with pull down.
+      for (size_t j = 0; j < GetTotalNumGPIOs(); ++j) {
+        const uint8_t sink_pin = GetGPIOPin(j);
+        if (sink_pin == source_pin) {
+          continue;
         }
+        gpio_set_dir(sink_pin, false);
+        gpio_pull_down(sink_pin);
       }
+      gpio_set_dir(source_pin, true);
+      gpio_put(source_pin, true);
+      SinkGPIODelay();
+    }
 
-      Keycode kc = {0};
-      for (uint8_t l : active_layers) {
-        Keycode layer_kc = GetKeycodeAtLayer(l, sink, source);
-        if (layer_kc.is_custom || layer_kc.keycode != HID_KEY_NONE) {
-          kc = layer_kc;
-          break;
-        }
-      }
+    DebounceTimer& d_timer = debounce_timer_[i];
 
-      if (kc.is_custom) {
-        auto* handler =
-            HandlerRegistry::RegisteredHandlerFactory(kc.keycode, this);
-        if (handler != NULL) {
-          handler->ProcessKeyState(kc, d_timer.pressed, sink, source);
-          if (key_event) {
-            handler->ProcessKeyEvent(kc, d_timer.pressed, sink, source);
-          }
-        } else {
-          LOG_WARNING("Custom Keycode (%d) missing handler", kc.keycode);
-        }
-      } else if (d_timer.pressed) {
-        pressed_keycode.push_back(kc.keycode);
+    const bool pressed = gpio_get(GetSinkGPIO(i));
+
+    bool key_event = false;
+    if (pressed != d_timer.pressed) {
+      d_timer.tick_count += CONFIG_SCAN_TICKS;
+      if (d_timer.tick_count >= CONFIG_DEBOUNCE_TICKS) {
+        d_timer.pressed = !d_timer.pressed;
+        d_timer.tick_count = 0;
+        key_event = true;
       }
     }
 
-    // Set the sink back to high
-    gpio_put(GetSinkGPIO(sink), true);
+    Keycode kc = {0};
+    for (uint8_t l : active_layers) {
+      Keycode layer_kc = GetKeycodeAtLayer(l, i);
+      if (layer_kc.is_custom || layer_kc.keycode != HID_KEY_NONE) {
+        kc = layer_kc;
+        break;
+      }
+    }
+
+    if (kc.is_custom) {
+      auto* handler =
+          HandlerRegistry::RegisteredHandlerFactory(kc.keycode, this);
+      if (handler != NULL) {
+        handler->ProcessKeyState(kc, d_timer.pressed, i);
+        if (key_event) {
+          handler->ProcessKeyEvent(kc, d_timer.pressed, i);
+        }
+      } else {
+        LOG_WARNING("Custom Keycode (%d) missing handler", kc.keycode);
+      }
+    } else if (d_timer.pressed) {
+      pressed_keycode.push_back(kc.keycode);
+    }
   }
 
   NotifyOutput(pressed_keycode);
@@ -107,21 +106,11 @@ status KeyScan::RegisterCustomKeycodeHandler(
 }
 
 KeyScan::KeyScan() : is_config_mode_(false) {
-  for (size_t i = 0; i < GetNumSinkGPIOs(); ++i) {
-    const uint8_t pin = GetSinkGPIO(i);
-    gpio_init(pin);
-    gpio_set_dir(pin, true);
-  }
-  for (size_t i = 0; i < GetNumSourceGPIOs(); ++i) {
-    const uint8_t pin = GetSourceGPIO(i);
-    gpio_init(pin);
-
-    // Set the source GPIO to be INPUT with pullup
-    gpio_set_dir(pin, false);
-    gpio_pull_up(pin);
+  for (size_t i = 0; i < GetTotalNumGPIOs(); ++i) {
+    gpio_init(GetGPIOPin(i));
   }
 
-  debounce_timer_.resize(GetNumSinkGPIOs() * GetNumSourceGPIOs());
+  debounce_timer_.resize(GetTotalScans());
 
   active_layers_.resize(GetKeyboardNumLayers());
   active_layers_[0] = true;

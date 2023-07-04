@@ -3,6 +3,7 @@
 
 #include <array>
 #include <cstdint>
+#include <span>
 #include <stdexcept>
 
 struct Keycode {
@@ -12,18 +13,19 @@ struct Keycode {
 };
 
 struct GPIO {
-  uint8_t row;  // in
-  uint8_t col;  // out
+  uint8_t source;  // in
+  uint8_t sink;    // out
 };
 
 size_t GetKeyboardNumLayers();
-size_t GetNumSinkGPIOs();
-size_t GetNumSourceGPIOs();
+size_t GetTotalNumGPIOs();
+uint8_t GetGPIOPin(size_t gpio_idx);
 
-uint8_t GetSinkGPIO(size_t idx);
-uint8_t GetSourceGPIO(size_t idx);
-Keycode GetKeycodeAtLayer(uint8_t layer, size_t sink_gpio_idx,
-                          size_t source_gpio_idx);
+size_t GetTotalScans();
+uint8_t GetSourceGPIO(size_t scan_idx);
+uint8_t GetSinkGPIO(size_t scan_idx);
+bool IsSourceChange(size_t scan_idx);
+Keycode GetKeycodeAtLayer(uint8_t layer, size_t scan_idx);
 
 enum BuiltInCustomKeyCode {
   MSE_L = 0,

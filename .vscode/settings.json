@@ -89,5 +89,10 @@
     "optional": "cpp",
     "lfs.h": "c"
   },
-  "C_Cpp.intelliSenseEngineFallback": "Enabled",
+  "C_Cpp.intelliSenseEngineFallback": "enabled",
+  "C_Cpp.files.exclude": {
+
+    "**/.vscode": true,
+    "**/.vs": true
+  },
 }

@@ -2,6 +2,7 @@
 #define LAYOUT_HELPER_H_
 
 #include <memory>
+#include <tuple>
 
 #include "class/hid/hid.h"
 #include "config.h"
@@ -9,6 +10,7 @@
 #include "joystick.h"
 #include "keyscan.h"
 #include "layout.h"
+#include "pico/platform.h"
 #include "rotary_encoder.h"
 #include "ssd1306.h"
 #include "temperature.h"
@@ -26,7 +28,7 @@
   { .keycode = (KEYCODE), .is_custom = true, .custom_info = 0 }
 
 // Macro for key that doesn't have any effect. For layouts with multiple layers,
-// the key scan will fall through these empty keys  
+// the key scan will fall through these empty keys
 #define ______ \
   { .keycode = (HID_KEY_NONE), .is_custom = false, .custom_info = 0 }
 
@@ -45,8 +47,8 @@
   }
 
 // Macro to define GPIO wiring for each key switch
-#define G(ROW, COL) \
-  { .row = (ROW), .col = (COL) }
+#define G(SOURCE, SINK) \
+  { .source = (SOURCE), .sink = (SINK) }
 
 // A special custom key that enters config menu
 #define CONFIG CK(ENTER_CONFIG)
