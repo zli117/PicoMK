@@ -255,7 +255,8 @@ extern "C" bool tud_hid_set_idle_cb(uint8_t instance, uint8_t idle_rate) {
 }
 
 extern "C" void tud_hid_report_complete_cb(uint8_t instance,
-                                           uint8_t const *report, uint16_t len) {
+                                           uint8_t const *report,
+                                           uint16_t len) {
   // Don't need to do any report chaining.
 }
 
@@ -414,7 +415,10 @@ void USBKeyboardOutput::FinalizeInputTickOutput() {
 void USBKeyboardOutput::SendKeycode(uint8_t keycode) {
   auto &buffer = double_buffer_[(active_buffer_ + 1) % 2];
   buffer[keycode / 8 + 8] |= (1 << (keycode % 8));
-  if (boot_protocol_kc_count_ < 6) {
+  if (keycode >= HID_KEY_CONTROL_LEFT && keycode <= HID_KEY_GUI_RIGHT) {
+    // Set the boot protocol modifier mask.
+    buffer[0] |= (1 << (keycode - HID_KEY_CONTROL_LEFT));
+  } else if (boot_protocol_kc_count_ < 6) {
     buffer[2 + (boot_protocol_kc_count_++)] = keycode;
   } else if (buffer[2] != 0x01) {
     for (size_t i = 2; i < 8; ++i) {
