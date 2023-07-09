@@ -219,18 +219,3 @@ Status SSD1306Display::Register(uint8_t key, bool slow,
   return DeviceRegistry::RegisterScreenOutputDevice(key, true,
                                                     [=]() { return ptr; });
 }
-
-// Status RegisterSSD1306(uint8_t tag, i2c_inst_t* i2c, uint8_t sda_pin,
-//                        uint8_t scl_pin, uint8_t i2c_addr,
-//                        SSD1306Display::NumRows num_rows, bool flip) {
-  // std::shared_ptr<SSD1306Display> instance =
-  // std::make_shared<SSD1306Display>(
-  //     i2c, sda_pin, scl_pin, i2c_addr, num_rows, flip);
-  // if (DeviceRegistry::RegisterKeyboardOutputDevice(
-  //         tag, true, [=]() { return instance; }) != OK ||
-  //     DeviceRegistry::RegisterScreenOutputDevice(
-  //         tag, true, [=]() { return instance; }) != OK) {
-  //   return ERROR;
-  // }
-//   return OK;
-// }
