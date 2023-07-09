@@ -17,6 +17,7 @@
 #include "usb.h"
 #include "utils.h"
 #include "ws2812.h"
+#include "display_mixins.h"
 
 // Macro to define keys that sends the USB HID keycode (aliased below in this
 // file) directly

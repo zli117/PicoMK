@@ -82,6 +82,29 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 // Compile time validation and conversion for the key matrix. Must include this.
 #include "layout_internal.inc"
 
+// Create the screen display
+
+class FancierScreen : public virtual SSD1306Display,
+                      public virtual ActiveLayersDisplayMixin<>,
+                      public virtual StatusLEDDisplayMixin<> {
+ public:
+  FancierScreen()
+      : SSD1306Display(i2c0, 20, 21, 0x3c, SSD1306Display::R_64, true),
+        ActiveLayersDisplayMixin<>(),
+        StatusLEDDisplayMixin<>() {}
+
+  static Status RegisterScreen(uint8_t key) {
+    std::shared_ptr<FancierScreen> instance = std::make_shared<FancierScreen>();
+    if (ActiveLayersDisplayMixin<>::Register(key, /*slow=*/true, instance) !=
+            OK ||
+        StatusLEDDisplayMixin<>::Register(key, /*slow=*/true, instance) != OK ||
+        SSD1306Display::Register(key, /*slow=*/true, instance) != OK) {
+      return ERROR;
+    }
+    return OK;
+  }
+};
+
 // Register all the devices
 
 // Each device is registered with a unique tag.
@@ -93,7 +116,6 @@ enum {
   USB_KEYBOARD,
   USB_MOUSE,
   USB_INPUT,
-  TEMPERATURE,
   LED,
 };
 
@@ -106,10 +128,8 @@ static Status register2 =
     RegisterJoystick(JOYSTICK, 26, 27, 5, false, false, true, ALT_LY);
 static Status register3 = RegisterKeyscan(KEYSCAN);
 static Status register4 = RegisterEncoder(ENCODER, 12, 13, 2);
-static Status register5 =
-    RegisterSSD1306(SSD1306, i2c0, 20, 21, 0x3c, SSD1306Display::R_64, true);
+static Status register5 = FancierScreen::RegisterScreen(SSD1306);
 static Status register6 = RegisterUSBKeyboardOutput(USB_KEYBOARD);
 static Status register7 = RegisterUSBMouseOutput(USB_MOUSE);
 static Status register8 = RegisterUSBInput(USB_INPUT);
-static Status register9 = RegisterTemperatureInput(TEMPERATURE);
-static Status register10 = RegisterWS2812(LED, 28, 17);
+static Status register9 = RegisterWS2812(LED, 28, 17);

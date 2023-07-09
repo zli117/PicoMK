@@ -10,9 +10,9 @@
 #include "hardware/i2c.h"
 #include "pico-ssd1306/ssd1306.h"
 #include "semphr.h"
+#include "utils.h"
 
-class SSD1306Display : virtual public ScreenOutputDevice,
-                       virtual public KeyboardOutputDevice {
+class SSD1306Display : virtual public ScreenMixinBase<SSD1306Display> {
  public:
   enum NumRows { R_32 = 32, R_64 = 64 };
 
@@ -29,13 +29,9 @@ class SSD1306Display : virtual public ScreenOutputDevice,
   void StartOfInputTick() override;
   void FinalizeInputTickOutput() override;
 
-  void SendKeycode(uint8_t) override {}
-  void SendKeycode(const std::vector<uint8_t>&) override {}
-  void SendConsumerKeycode(uint16_t keycode) override {}
-  void ChangeActiveLayers(const std::vector<bool>& layers) override;
-
   size_t GetNumRows() const override { return num_rows_; }
   size_t GetNumCols() const override { return num_cols_; }
+  bool IsConfigMode() const override { return config_mode_; }
   void SetPixel(size_t row, size_t col, Mode mode) override;
   void DrawLine(size_t start_row, size_t start_col, size_t end_row,
                 size_t end_col, Mode mode) override;
@@ -54,6 +50,9 @@ class SSD1306Display : virtual public ScreenOutputDevice,
 
   // Don't need to do anything special since we already have the sleep
   void SuspendEvent(bool is_suspend) override {}
+
+  static Status Register(uint8_t key, bool slow,
+                         const std::shared_ptr<SSD1306Display> ptr);
 
  protected:
   void CMD(uint8_t cmd);
@@ -79,9 +78,5 @@ class SSD1306Display : virtual public ScreenOutputDevice,
 
   SemaphoreHandle_t semaphore_;
 };
-
-Status RegisterSSD1306(uint8_t tag, i2c_inst_t* i2c, uint8_t sda_pin,
-                       uint8_t scl_pin, uint8_t i2c_addr,
-                       SSD1306Display::NumRows num_rows, bool flip);
 
 #endif /* SSD1306_H_ */

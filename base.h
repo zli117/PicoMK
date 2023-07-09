@@ -89,6 +89,14 @@ class ScreenOutputDevice : virtual public GenericOutputDevice,
 
   virtual size_t GetNumRows() const = 0;
   virtual size_t GetNumCols() const = 0;
+  virtual bool IsConfigMode() const = 0;
+
+  // These functions allow you to draw directly from an input device. However,
+  // it's advised aginst so because one input device doesn't have a way of
+  // knowing what other input devices are drawing. It's better to create device
+  // mixins like the examples in display_mixins.h. Mixins are also more
+  // reusable.
+
   virtual void SetPixel(size_t row, size_t col, Mode mode) = 0;
   virtual void DrawLine(size_t start_row, size_t start_col, size_t end_row,
                         size_t end_col, Mode mode) = 0;
@@ -101,6 +109,15 @@ class ScreenOutputDevice : virtual public GenericOutputDevice,
   virtual void DrawBuffer(const std::vector<uint8_t>& buffer, size_t start_row,
                           size_t start_col, size_t end_row, size_t end_col) = 0;
   virtual void Clear() = 0;
+};
+
+template <typename T>
+class ScreenMixinBase : virtual public ScreenOutputDevice {
+ private:
+  // Just to make sure subclass implements the Register method.
+  static Status Unused(uint8_t key, bool slow, const std::shared_ptr<T> ptr) {
+    return T::Register(key, slow, ptr);
+  };
 };
 
 class LEDOutputDevice : virtual public GenericOutputDevice,
@@ -119,6 +136,8 @@ class LEDOutputDevice : virtual public GenericOutputDevice,
           scroll_lock(false),
           compose(false),
           kana(false) {}
+
+    bool operator==(const LEDIndicators&) const = default;
   };
 
   virtual void IncreaseBrightness() = 0;
@@ -130,6 +149,11 @@ class LEDOutputDevice : virtual public GenericOutputDevice,
   virtual void SetPixel(size_t idx, uint8_t w, uint8_t r, uint8_t g,
                         uint8_t b) = 0;
   virtual void SetLedStatus(LEDIndicators indicators) = 0;
+};
+
+class MiscOutputDevice : virtual public GenericOutputDevice {
+ public:
+  virtual void Output(const std::string& output_string) = 0;
 };
 
 class ConfigModifier;
@@ -148,6 +172,8 @@ class GenericInputDevice : virtual public GenericDevice {
       const std::vector<std::shared_ptr<ScreenOutputDevice>>* device);
   virtual void SetLEDOutputs(
       const std::vector<std::shared_ptr<LEDOutputDevice>>* device);
+  virtual void SetMiscOutputs(
+      const std::vector<std::shared_ptr<MiscOutputDevice>>* device);
   virtual void SetConfigModifier(
       std::shared_ptr<ConfigModifier> config_modifier);
 
@@ -156,6 +182,7 @@ class GenericInputDevice : virtual public GenericDevice {
   const std::vector<std::shared_ptr<MouseOutputDevice>>* mouse_output_;
   const std::vector<std::shared_ptr<ScreenOutputDevice>>* screen_output_;
   const std::vector<std::shared_ptr<LEDOutputDevice>>* led_output_;
+  const std::vector<std::shared_ptr<MiscOutputDevice>>* misc_output_;
   std::shared_ptr<ConfigModifier> config_modifier_;
 };
 
@@ -186,6 +213,8 @@ using ScreenOutputDeviceCreator =
     std::function<std::shared_ptr<ScreenOutputDevice>()>;
 using LEDOutputDeviceCreator =
     std::function<std::shared_ptr<LEDOutputDevice>()>;
+using MiscOutputDeviceCreator =
+    std::function<std::shared_ptr<MiscOutputDevice>()>;
 using ConfigModifierCreator =
     std::function<std::shared_ptr<ConfigModifier>(ConfigObject* global_config)>;
 
@@ -201,6 +230,8 @@ class DeviceRegistry {
                                            ScreenOutputDeviceCreator func);
   static Status RegisterLEDOutputDevice(uint8_t key, bool slow,
                                         LEDOutputDeviceCreator func);
+  static Status RegisterMiscOutputDevice(uint8_t key, bool slow,
+                                         MiscOutputDeviceCreator func);
   static Status RegisterConfigModifier(ConfigModifierCreator func);
 
   static std::vector<std::shared_ptr<GenericInputDevice>> GetInputDevices();
@@ -230,6 +261,8 @@ class DeviceRegistry {
       screen_output_creators_;
   std::map<uint8_t, std::pair<bool, LEDOutputDeviceCreator>>
       led_output_creators_;
+  std::map<uint8_t, std::pair<bool, MiscOutputDeviceCreator>>
+      misc_output_creators_;
   std::optional<ConfigModifierCreator> config_modifier_creator_;
 
   bool initialized_;
@@ -238,6 +271,7 @@ class DeviceRegistry {
   std::vector<std::shared_ptr<MouseOutputDevice>> mouse_devices_;
   std::vector<std::shared_ptr<ScreenOutputDevice>> screen_devices_;
   std::vector<std::shared_ptr<LEDOutputDevice>> led_devices_;
+  std::vector<std::shared_ptr<MiscOutputDevice>> misc_devices_;
   std::shared_ptr<ConfigModifier> config_modifier_;
 
   ConfigObject global_config_;

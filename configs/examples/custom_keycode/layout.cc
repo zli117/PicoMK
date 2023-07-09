@@ -136,6 +136,24 @@ REGISTER_CUSTOM_KEYCODE_HANDLER(UP, true, ConfigUpHandler);
 REGISTER_CUSTOM_KEYCODE_HANDLER(DOWN, true, ConfigDownHandler);
 REGISTER_CUSTOM_KEYCODE_HANDLER(SELECT, true, ConfigSelectHandler);
 
+// Create the screen display
+
+class Screen : public virtual SSD1306Display,
+               public virtual ActiveLayersDisplayMixin<> {
+ public:
+  Screen() : SSD1306Display(i2c0, 20, 21, 0x3c, SSD1306Display::R_64, true) {}
+
+  static Status RegisterScreen(uint8_t key) {
+    std::shared_ptr<Screen> instance = std::make_shared<Screen>();
+    if (ActiveLayersDisplayMixin<>::Register(key, /*slow=*/true, instance) !=
+            OK ||
+        SSD1306Display::Register(key, /*slow=*/true, instance) != OK) {
+      return ERROR;
+    }
+    return OK;
+  }
+};
+
 // Register all the devices
 
 // Each device is registered with a unique tag.
@@ -156,8 +174,7 @@ static Status register2 =
     RegisterJoystick(JOYSTICK, 28, 27, 5, false, false, true, ALT_LY);
 static Status register3 = RegisterKeyscan(KEYSCAN);
 static Status register4 = RegisterEncoder(ENCODER, 19, 22, 2);
-static Status register5 =
-    RegisterSSD1306(SSD1306, i2c0, 20, 21, 0x3c, SSD1306Display::R_64, true);
+static Status register5 = Screen::RegisterScreen(SSD1306);
 static Status register6 = RegisterUSBKeyboardOutput(USB_KEYBOARD);
 static Status register7 = RegisterUSBMouseOutput(USB_MOUSE);
 static Status register8 = RegisterUSBInput(USB_INPUT);

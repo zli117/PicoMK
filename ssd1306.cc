@@ -41,7 +41,7 @@ SSD1306Display::SSD1306Display(i2c_inst_t* i2c, uint8_t sda_pin,
   std::fill(out_buffer_.begin(), out_buffer_.end(), 0);
   display_ = std::make_unique<SSD1306>(
       i2c_, i2c_addr_, num_rows_ == 64 ? Size::W128xH64 : Size::W128xH32);
-  
+
   // Use a buffer we can control.
   display_->setBuffer(buffer_.data());
   if (flip) {
@@ -98,8 +98,7 @@ void SSD1306Display::OutputTick() {
   {
     LockSemaphore lock(semaphore_);
     if (send_buffer_) {
-      std::copy(out_buffer_.begin(),
-                out_buffer_.end(), local_copy.begin() + 1);
+      std::copy(out_buffer_.begin(), out_buffer_.end(), local_copy.begin() + 1);
       send_buffer = send_buffer_;
       last_active_s_ = curr_s;
     }
@@ -134,21 +133,8 @@ void SSD1306Display::StartOfInputTick() { buffer_changed_ = false; }
 void SSD1306Display::FinalizeInputTickOutput() {
   LockSemaphore lock(semaphore_);
   if (buffer_changed_) {
-    std::copy(buffer_.begin(),
-              buffer_.end(), out_buffer_.begin());
+    std::copy(buffer_.begin(), buffer_.end(), out_buffer_.begin());
     send_buffer_ = true;
-  }
-}
-
-void SSD1306Display::ChangeActiveLayers(const std::vector<bool>& layers) {
-  if (config_mode_) {
-    return;
-  }
-  DrawText(1, 0, "Active Layers", F8X8, ADD);
-  DrawRect(9, 0, 17, GetNumCols() - 1, /*fill=*/false, ADD);
-  for (size_t i = 0; i < layers.size() && i < 16; ++i) {
-    DrawRect(11, i * 7 + 2, 15, i * 7 + 7, /*fill=*/true,
-             layers[i] ? ADD : SUBTRACT);
   }
 }
 
@@ -228,16 +214,23 @@ void SSD1306Display::CMD(uint8_t cmd) {
   i2c_write_blocking(i2c_, i2c_addr_, data, 2, false);
 }
 
-Status RegisterSSD1306(uint8_t tag, i2c_inst_t* i2c, uint8_t sda_pin,
-                       uint8_t scl_pin, uint8_t i2c_addr,
-                       SSD1306Display::NumRows num_rows, bool flip) {
-  std::shared_ptr<SSD1306Display> instance = std::make_shared<SSD1306Display>(
-      i2c, sda_pin, scl_pin, i2c_addr, num_rows, flip);
-  if (DeviceRegistry::RegisterKeyboardOutputDevice(
-          tag, true, [=]() { return instance; }) != OK ||
-      DeviceRegistry::RegisterScreenOutputDevice(
-          tag, true, [=]() { return instance; }) != OK) {
-    return ERROR;
-  }
-  return OK;
+Status SSD1306Display::Register(uint8_t key, bool slow,
+                                const std::shared_ptr<SSD1306Display> ptr) {
+  return DeviceRegistry::RegisterScreenOutputDevice(key, true,
+                                                    [=]() { return ptr; });
 }
+
+// Status RegisterSSD1306(uint8_t tag, i2c_inst_t* i2c, uint8_t sda_pin,
+//                        uint8_t scl_pin, uint8_t i2c_addr,
+//                        SSD1306Display::NumRows num_rows, bool flip) {
+  // std::shared_ptr<SSD1306Display> instance =
+  // std::make_shared<SSD1306Display>(
+  //     i2c, sda_pin, scl_pin, i2c_addr, num_rows, flip);
+  // if (DeviceRegistry::RegisterKeyboardOutputDevice(
+  //         tag, true, [=]() { return instance; }) != OK ||
+  //     DeviceRegistry::RegisterScreenOutputDevice(
+  //         tag, true, [=]() { return instance; }) != OK) {
+  //   return ERROR;
+  // }
+//   return OK;
+// }

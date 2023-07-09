@@ -87,7 +87,10 @@
     "cstdbool": "cpp",
     "typeinfo": "cpp",
     "optional": "cpp",
-    "lfs.h": "c"
+    "lfs.h": "c",
+    "netfwd": "cpp",
+    "ratio": "cpp",
+    "span": "cpp"
   },
   "C_Cpp.intelliSenseEngineFallback": "enabled",
   "C_Cpp.files.exclude": {
@@ -95,4 +98,5 @@
     "**/.vscode": true,
     "**/.vs": true
   },
+  "C_Cpp.default.cppStandard": "c++20",
 }

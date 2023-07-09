@@ -58,12 +58,12 @@ static constexpr bool kDiodeColToRow = true;
 // this mapping is that often times the physical layout of the switches does not
 // match up with their wiring matrix 
 static constexpr GPIO kGPIOMatrix[CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] = {
-  {G(R0, C0),  G(R0, C1),  G(R0, C2),  G(R0, C3),  G(R0, C4),  G(R0, C5),  G(R0, C6),  G(R0, C7),  G(R0, C8),  G(R0, C9),  G(R0, C10),  G(R0, C11),  G(R0, C12),  G(R0, C13),  G(R1, C13)},
-  {G(R1, C0),  G(R1, C1),  G(R1, C2),  G(R1, C3),  G(R1, C4),  G(R1, C5),  G(R1, C6),  G(R1, C7),  G(R1, C8),  G(R1, C9),  G(R1, C10),  G(R1, C11),  G(R1, C12),  G(R2, C13),  G(R3, C13)},
-  {G(R2, C0),  G(R2, C1),  G(R2, C2),  G(R2, C3),  G(R2, C4),  G(R2, C5),  G(R2, C6),  G(R2, C7),  G(R2, C8),  G(R2, C9),  G(R2, C10),  G(R2, C11),  G(R2, C12),  G(R4, C13)},
-  {G(R3, C0),  G(R3, C1),  G(R3, C2),  G(R3, C3),  G(R3, C4),  G(R3, C5),  G(R3, C6),  G(R3, C7),  G(R3, C8),  G(R3, C9),  G(R3, C10),  G(R3, C11),  G(R3, C12)},
-  {G(R4, C0),  G(R4, C1),  G(R4, C2),  G(R4, C5),  G(R4, C7),  G(R4, C8),  G(R4, C9),  G(R4, C10), G(R4, C11), G(R4, C12)},
-  {G(R4, C3),  G(R4, C4),  G(R4, C6)}
+  {G(C0, R0),  G(C1, R0),  G(C2, R0),  G(C3, R0),  G(C4, R0),  G(C5, R0),  G(C6, R0),  G(C7, R0),  G(C8, R0),  G(C9, R0),  G(C10, R0),  G(C11, R0),  G(C12, R0),  G(C13, R0),  G(C13, R1)},
+  {G(C0, R1),  G(C1, R1),  G(C2, R1),  G(C3, R1),  G(C4, R1),  G(C5, R1),  G(C6, R1),  G(C7, R1),  G(C8, R1),  G(C9, R1),  G(C10, R1),  G(C11, R1),  G(C12, R1),  G(C13, R2),  G(C13, R3)},
+  {G(C0, R2),  G(C1, R2),  G(C2, R2),  G(C3, R2),  G(C4, R2),  G(C5, R2),  G(C6, R2),  G(C7, R2),  G(C8, R2),  G(C9, R2),  G(C10, R2),  G(C11, R2),  G(C12, R2),  G(C13, R4)},
+  {G(C0, R3),  G(C1, R3),  G(C2, R3),  G(C3, R3),  G(C4, R3),  G(C5, R3),  G(C6, R3),  G(C7, R3),  G(C8, R3),  G(C9, R3),  G(C10, R3),  G(C11, R3),  G(C12, R3)},
+  {G(C0, R4),  G(C1, R4),  G(C2, R4),  G(C5, R4),  G(C7, R4),  G(C8, R4),  G(C9, R4),  G(C10, R4), G(C11, R4), G(C12, R4)},
+  {G(C3, R4),  G(C4, R4),  G(C6, R4)}
 };
 
 static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] = {

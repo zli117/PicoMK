@@ -119,6 +119,11 @@ void TemperatureInputDeivce::SetConfigMode(bool is_config_mode) {
 }
 
 void TemperatureInputDeivce::WriteTemp(int32_t temp) {
+  // Note: This function writes directly to the screen output because it's
+  // allowed by the framework. However, it's generally a bad idea, since the
+  // code here has no way of konwing what's being painted on the screen by other
+  // devices. A better way is to create a mixin. See display_mixins.h for
+  // examples.
   if (is_config_) {
     return;
   }

@@ -73,67 +73,91 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 
 // Implement a custom SSD1306 device that can also display status LEDs
 
-class CustomSSD1306 : virtual public SSD1306Display,
-                      virtual public LEDOutputDevice {
+// class CustomSSD1306 : virtual public SSD1306Display,
+//                       virtual public LEDOutputDevice {
+//  public:
+//   CustomSSD1306(i2c_inst_t* i2c, uint8_t sda_pin, uint8_t scl_pin,
+//                 uint8_t i2c_addr, NumRows num_rows, bool flip)
+//       : SSD1306Display(i2c, sda_pin, scl_pin, i2c_addr, num_rows, flip) {}
+
+//   void IncreaseBrightness() override {}
+//   void DecreaseBrightness() override {}
+//   void IncreaseAnimationSpeed() override {}
+//   void DecreaseAnimationSpeed() override {}
+//   size_t NumPixels() const override { return 0; }
+//   void SetFixedColor(uint8_t w, uint8_t r, uint8_t g, uint8_t b) override {}
+//   void SetPixel(size_t idx, uint8_t w, uint8_t r, uint8_t g,
+//                 uint8_t b) override {}
+
+//   void SetLedStatus(LEDIndicators indicators) override {
+//     if (config_mode_) {
+//       return;
+//     }
+
+//     // Note: this implementation is still inefficient. It can take a
+//     significant
+//     // amount of time to render everything everytime.
+//     DrawRect(19, 0, GetNumRows() - 1, GetNumCols() - 1, /*fill=*/false, ADD);
+//     uint8_t offset = 21;
+//     DrawLEDIndicator("NumLock", offset, indicators.num_lock);
+//     if (GetNumRows() == 64) {
+//       DrawLEDIndicator("CapsLock", offset += 8, indicators.caps_lock);
+//       DrawLEDIndicator("ScrollLock", offset += 8, indicators.scroll_lock);
+//       DrawLEDIndicator("Compose", offset += 8, indicators.compose);
+//       DrawLEDIndicator("Kana", offset += 8, indicators.kana);
+//     }
+//   }
+
+//  private:
+//   void DrawLEDIndicator(const std::string& name, uint8_t row, bool on) {
+//     DrawText(row, 2, name, F8X8, ADD);
+//     if (!on) {
+//       // Clean up the rectangle
+//       DrawRect(row + 1, GetNumCols() - 9, row + 6, GetNumCols() - 4,
+//                /*fill=*/true, SUBTRACT);
+//     }
+//     DrawRect(row + 1, GetNumCols() - 9, row + 6, GetNumCols() - 4, on, ADD);
+//   }
+// };
+
+// Status RegisterCustomSSD1306(uint8_t tag, i2c_inst_t* i2c, uint8_t sda_pin,
+//                              uint8_t scl_pin, uint8_t i2c_addr,
+//                              SSD1306Display::NumRows num_rows, bool flip) {
+//   std::shared_ptr<CustomSSD1306> instance = std::make_shared<CustomSSD1306>(
+//       i2c, sda_pin, scl_pin, i2c_addr, num_rows, flip);
+//   if (DeviceRegistry::RegisterKeyboardOutputDevice(
+//           tag, true, [=]() { return instance; }) != OK ||
+//       DeviceRegistry::RegisterScreenOutputDevice(
+//           tag, true, [=]() { return instance; }) != OK ||
+//       DeviceRegistry::RegisterLEDOutputDevice(
+//           tag, true, [=]() { return instance; }) != OK) {
+//     return ERROR;
+//   }
+//   return OK;
+// }
+
+// Create the screen display
+
+class FancierScreen : public virtual SSD1306Display,
+                      public virtual ActiveLayersDisplayMixin<>,
+                      public virtual StatusLEDDisplayMixin<> {
  public:
-  CustomSSD1306(i2c_inst_t* i2c, uint8_t sda_pin, uint8_t scl_pin,
-                uint8_t i2c_addr, NumRows num_rows, bool flip)
-      : SSD1306Display(i2c, sda_pin, scl_pin, i2c_addr, num_rows, flip) {}
+  FancierScreen()
+      : SSD1306Display(i2c0, 20, 21, 0x3c, SSD1306Display::R_64, true),
+        ActiveLayersDisplayMixin<>(),
+        StatusLEDDisplayMixin<>() {}
 
-  void IncreaseBrightness() override {}
-  void DecreaseBrightness() override {}
-  void IncreaseAnimationSpeed() override {}
-  void DecreaseAnimationSpeed() override {}
-  size_t NumPixels() const override { return 0; }
-  void SetFixedColor(uint8_t w, uint8_t r, uint8_t g, uint8_t b) override {}
-  void SetPixel(size_t idx, uint8_t w, uint8_t r, uint8_t g,
-                uint8_t b) override {}
-
-  void SetLedStatus(LEDIndicators indicators) override {
-    if (config_mode_) {
-      return;
+  static Status RegisterScreen(uint8_t key) {
+    std::shared_ptr<FancierScreen> instance = std::make_shared<FancierScreen>();
+    if (ActiveLayersDisplayMixin<>::Register(key, /*slow=*/true, instance) !=
+            OK ||
+        StatusLEDDisplayMixin<>::Register(key, /*slow=*/true, instance) != OK ||
+        SSD1306Display::Register(key, /*slow=*/true, instance) != OK) {
+      return ERROR;
     }
-
-    // Note: this implementation is still inefficient. It can take a significant
-    // amount of time to render everything everytime.
-    DrawRect(19, 0, GetNumRows() - 1, GetNumCols() - 1, /*fill=*/false, ADD);
-    uint8_t offset = 21;
-    DrawLEDIndicator("NumLock", offset, indicators.num_lock);
-    if (GetNumRows() == 64) {
-      DrawLEDIndicator("CapsLock", offset += 8, indicators.caps_lock);
-      DrawLEDIndicator("ScrollLock", offset += 8, indicators.scroll_lock);
-      DrawLEDIndicator("Compose", offset += 8, indicators.compose);
-      DrawLEDIndicator("Kana", offset += 8, indicators.kana);
-    }
-  }
-
- private:
-  void DrawLEDIndicator(const std::string& name, uint8_t row, bool on) {
-    DrawText(row, 2, name, F8X8, ADD);
-    if (!on) {
-      // Clean up the rectangle
-      DrawRect(row + 1, GetNumCols() - 9, row + 6, GetNumCols() - 4,
-               /*fill=*/true, SUBTRACT);
-    }
-    DrawRect(row + 1, GetNumCols() - 9, row + 6, GetNumCols() - 4, on, ADD);
+    return OK;
   }
 };
-
-Status RegisterCustomSSD1306(uint8_t tag, i2c_inst_t* i2c, uint8_t sda_pin,
-                             uint8_t scl_pin, uint8_t i2c_addr,
-                             SSD1306Display::NumRows num_rows, bool flip) {
-  std::shared_ptr<CustomSSD1306> instance = std::make_shared<CustomSSD1306>(
-      i2c, sda_pin, scl_pin, i2c_addr, num_rows, flip);
-  if (DeviceRegistry::RegisterKeyboardOutputDevice(
-          tag, true, [=]() { return instance; }) != OK ||
-      DeviceRegistry::RegisterScreenOutputDevice(
-          tag, true, [=]() { return instance; }) != OK ||
-      DeviceRegistry::RegisterLEDOutputDevice(
-          tag, true, [=]() { return instance; }) != OK) {
-    return ERROR;
-  }
-  return OK;
-}
 
 // Register all the devices
 
@@ -153,8 +177,7 @@ static Status register2 =
     RegisterJoystick(JOYSTICK, 28, 27, 5, false, false, true, ALT_LY);
 static Status register3 = RegisterKeyscan(KEYSCAN);
 static Status register4 = RegisterEncoder(ENCODER, 19, 22, 2);
-static Status register5 = RegisterCustomSSD1306(SSD1306, i2c0, 20, 21, 0x3c,
-                                                SSD1306Display::R_64, true);
+static Status register5 = FancierScreen::RegisterScreen(SSD1306);
 static Status register6 = RegisterUSBKeyboardOutput(USB_KEYBOARD);
 static Status register7 = RegisterUSBMouseOutput(USB_MOUSE);
 static Status register8 = RegisterUSBInput(USB_INPUT);

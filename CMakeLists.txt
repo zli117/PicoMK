@@ -46,7 +46,8 @@ add_executable(firmware
         sync.cc
         temperature.cc
         ws2812.cc
-        cJSON/cJSON.c)
+        cJSON/cJSON.c
+        display_mixins.cc)
 
 
 file(GLOB pio "${CMAKE_CURRENT_LIST_DIR}/pio/*.pio")

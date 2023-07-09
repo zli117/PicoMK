@@ -21,6 +21,10 @@ void GenericInputDevice::SetLEDOutputs(
     const std::vector<std::shared_ptr<LEDOutputDevice>>* device) {
   led_output_ = device;
 }
+void GenericInputDevice::SetMiscOutputs(
+    const std::vector<std::shared_ptr<MiscOutputDevice>>* device) {
+  misc_output_ = device;
+}
 void GenericInputDevice::SetConfigModifier(
     std::shared_ptr<ConfigModifier> config_modifier) {
   config_modifier_ = config_modifier;
@@ -74,6 +78,12 @@ Status DeviceRegistry::RegisterLEDOutputDevice(uint8_t key, bool slow,
                                  &GetRegistry()->led_output_creators_);
 }
 
+Status DeviceRegistry::RegisterMiscOutputDevice(uint8_t key, bool slow,
+                                                MiscOutputDeviceCreator func) {
+  return RegisterCreatorFunction(key, slow, func,
+                                 &GetRegistry()->misc_output_creators_);
+}
+
 Status DeviceRegistry::RegisterConfigModifier(ConfigModifierCreator func) {
   if (GetRegistry()->config_modifier_creator_.has_value()) {
     return ERROR;
@@ -108,6 +118,7 @@ void DeviceRegistry::InitializeAllDevices() {
     mouse_devices_.clear();
     screen_devices_.clear();
     led_devices_.clear();
+    misc_devices_.clear();
     config_modifier_ = NULL;
 
     for (const auto [key, value] : GetRegistry()->keyboard_creators_) {
@@ -156,6 +167,7 @@ void DeviceRegistry::InitializeAllDevices() {
       config_modifier_->SetMouseOutputs(&mouse_devices_);
       config_modifier_->SetScreenOutputs(&screen_devices_);
       config_modifier_->SetLEDOutputs(&led_devices_);
+      config_modifier_->SetMiscOutputs(&misc_devices_);
       input_devices_.push_back(config_modifier_);
     }
 
@@ -167,6 +179,7 @@ void DeviceRegistry::InitializeAllDevices() {
       device->SetMouseOutputs(&mouse_devices_);
       device->SetScreenOutputs(&screen_devices_);
       device->SetLEDOutputs(&led_devices_);
+      device->SetMiscOutputs(&misc_devices_);
       device->SetConfigModifier(config_modifier_);
       AddConfig(device.get());
     }
@@ -179,7 +192,8 @@ void DeviceRegistry::InitializeAllDevices() {
   // Initialize the config from flash if there's any
   std::string config_file;
   if (ReadFileContent(CONFIG_FLASH_JSON_FILE_NAME, &config_file) == OK &&
-      !config_file.empty() && ParseJsonConfig(config_file, &global_config_) != OK) {
+      !config_file.empty() &&
+      ParseJsonConfig(config_file, &global_config_) != OK) {
     // Reinitialize to default
     CreateDefaultConfigImpl();
   }
