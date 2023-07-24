@@ -24,7 +24,7 @@ class ActiveLayersDisplayMixin
                    /*fill=*/false, ScreenOutputDevice::ADD);
     for (size_t i = 0; i < layers.size() && i < 16; ++i) {
       this->DrawRect(
-          11, i * 7 + 2, 15, i * 7 + 7, /*fill=*/true,
+          11 + row_offset, i * 7 + 2, 15, i * 7 + 7, /*fill=*/true,
           layers[i] ? ScreenOutputDevice::ADD : ScreenOutputDevice::SUBTRACT);
     }
   }
@@ -55,9 +55,6 @@ class StatusLEDDisplayMixin
 
   void SetLedStatus(LEDIndicators indicators) override {
     if (this->IsConfigMode()) {
-      return;
-    }
-    if (indicators == current_indicators_ && !first_run_) {
       return;
     }
     first_run_ = false;
