@@ -28,6 +28,8 @@ bool IsSourceChange(size_t scan_idx);
 Keycode GetKeycodeAtLayer(uint8_t layer, size_t scan_idx);
 
 enum BuiltInCustomKeyCode {
+  // Do not change the order of the mouse buttons, nor adding new items in
+  // between mouse buttons.
   MSE_L = 0,
   MSE_R,
   MSE_M,

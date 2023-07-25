@@ -285,7 +285,7 @@ class IBPDriverBase {
 
  protected:
   virtual Status SendBuffer(std::string_view buffer) = 0;
-  virtual Status ParseBuffer(std::string_view buffer) = 0;
+  virtual Status ReceiveBuffer(std::string_view buffer) = 0;
 };
 
 using IBPDriverCreator = std::function<std::shared_ptr<IBPDriverBase>()>;
