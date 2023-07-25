@@ -298,3 +298,32 @@ void DeviceRegistry::SaveConfig() {
   }
   LOG_INFO("Done saving config");
 }
+
+Status IBPDriverRegistry::RegisterDriver(uint8_t key, IBPDriverCreator func) {
+  IBPDriverRegistry* instance = IBPDriverRegistry::GetRegistry();
+  auto it = instance->driver_creators_.find(key);
+  if (it != instance->driver_creators_.end()) {
+    // Already registered
+    return ERROR;
+  }
+  instance->driver_creators_.insert({key, func});
+  return OK;
+}
+
+Status IBPDriverRegistry::InitializeAll() {
+  IBPDriverRegistry* instance = IBPDriverRegistry::GetRegistry();
+  for (const auto& [key, func] : instance->driver_creators_) {
+    std::shared_ptr<IBPDriverBase> driver = func();
+    instance->drivers_.insert({key, driver});
+    if (driver->IBPInitialize() != OK) {
+      LOG_ERROR("Failed to initialize driver %d", key);
+      return ERROR;
+    }
+  }
+  return OK;
+}
+
+IBPDriverRegistry* IBPDriverRegistry::GetRegistry() {
+  static IBPDriverRegistry registry;
+  return &registry;
+}

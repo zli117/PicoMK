@@ -8,7 +8,7 @@ add_definitions("-DSOURCE_PATH_SIZE=${SOURCE_PATH_SIZE}")
 
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-set(CMAKE_C_STANDARD 11)
+set(CMAKE_C_STANDARD 17)
 set(CMAKE_CXX_STANDARD 20)
 
 # Initialise pico_sdk from installed location
@@ -47,7 +47,10 @@ add_executable(firmware
         temperature.cc
         ws2812.cc
         cJSON/cJSON.c
-        display_mixins.cc)
+        display_mixins.cc
+        ibp_base.c
+        ibp.cc
+        spi.cc)
 
 
 file(GLOB pio "${CMAKE_CURRENT_LIST_DIR}/pio/*.pio")

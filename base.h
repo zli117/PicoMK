@@ -6,6 +6,7 @@
 #include <memory>
 #include <optional>
 #include <string>
+#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -276,6 +277,32 @@ class DeviceRegistry {
 
   ConfigObject global_config_;
   std::map<GenericDevice*, std::pair<std::string, Config*>> device_to_config_;
+};
+
+class IBPDriverBase {
+ public:
+  virtual Status IBPInitialize() = 0;
+
+ protected:
+  virtual Status SendBuffer(std::string_view buffer) = 0;
+  virtual Status ParseBuffer(std::string_view buffer) = 0;
+};
+
+using IBPDriverCreator = std::function<std::shared_ptr<IBPDriverBase>()>;
+
+// IBP stands for Inter Board Protocol.
+class IBPDriverRegistry {
+ public:
+  static Status RegisterDriver(uint8_t key, IBPDriverCreator func);
+  static Status InitializeAll();
+
+ private:
+  IBPDriverRegistry() : initialized_(false) {}
+  static IBPDriverRegistry* GetRegistry();
+
+  bool initialized_;
+  std::map<uint8_t, IBPDriverCreator> driver_creators_;
+  std::map<uint8_t, std::shared_ptr<IBPDriverBase>> drivers_;
 };
 
 #endif /* BASE_H_ */
