@@ -6,7 +6,6 @@
 #include <memory>
 #include <optional>
 #include <string>
-#include <string_view>
 #include <utility>
 #include <vector>
 
@@ -282,10 +281,6 @@ class DeviceRegistry {
 class IBPDriverBase {
  public:
   virtual Status IBPInitialize() = 0;
-
- protected:
-  virtual Status SendBuffer(std::string_view buffer) = 0;
-  virtual Status ReceiveBuffer(std::string_view buffer) = 0;
 };
 
 using IBPDriverCreator = std::function<std::shared_ptr<IBPDriverBase>()>;

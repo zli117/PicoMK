@@ -12,11 +12,12 @@ extern "C" {
 #include "ibp_lib.h"
 }
 
-class IBPProtocolOutputDevice : public virtual KeyboardOutputDevice,
-                                public virtual MouseOutputDevice,
-                                public virtual IBPDriverBase {
+class IBPDeviceBase : public virtual KeyboardOutputDevice,
+                        public virtual MouseOutputDevice,
+                        public virtual GenericInputDevice,
+                        public virtual IBPDriverBase {
  public:
-  IBPProtocolOutputDevice();
+  IBPDeviceBase();
 
   // No need to run anything on the output task as it's likely subclass will
   // have its own task for communication.
@@ -38,20 +39,29 @@ class IBPProtocolOutputDevice : public virtual KeyboardOutputDevice,
 
   void SetConfigMode(bool is_config_mode) { is_config_mode_ = is_config_mode; }
 
+  void InputLoopStart() override {}
+  void InputTick() override;
+
  protected:
+  std::string GetOutPacket();
+
+  // Fully packet with the transaction header.
+  void SetInPacket(const std::string& packet);
+
+ private:
   bool is_config_mode_;
-  bool has_keycode_update_;
-  bool has_mouse_update_;
-  bool has_consumer_key_update_;
-  bool has_layer_update_;
-  IBPKeyCodes keycodes_;
-  IBPConsumer consumer_keycodes_;
-  IBPMouse mouse_;
-  IBPLayers layers_;
-  // SemaphoreHandle_t semaphore_;
+  bool has_update_[IBP_TOTAL];
+  IBPSegment segments_[IBP_TOTAL];
+  std::string inbound_packet_;
   std::string outbound_packet_;
 
-  Status ReceiveBuffer(std::string_view) override final { return OK; }
+  // Protects both the inbound and outbound packets. One lock is enough because
+  // there are usually only two tasks involved: the input task and the low level
+  // protocol task.
+  SemaphoreHandle_t packet_semaphore_;
+};
+
+class IBPSPIDevice : public virtual IBPDeviceBase {
 };
 
 #endif /* IBP_H_ */

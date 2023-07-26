@@ -9,13 +9,16 @@ typedef enum {
   IBP_CONSUMER,
   IBP_MOUSE,
   IBP_ACTIVE_LAYERS,
-  IBP_INVALID,
+  IBP_TOTAL,
 } FieldType;
+
+#define IBPKeyCodesMAX 8
+#define IBPActiveLayersMAX 8
 
 typedef struct {
   uint8_t modifier_bitmask;  // Same as the USB HID.
   uint8_t num_keycodes : 3;
-  uint8_t keycodes[8];  // 8 keycodes max.
+  uint8_t keycodes[IBPKeyCodesMAX];
 } IBPKeyCodes;
 
 typedef struct {
@@ -29,17 +32,15 @@ typedef struct {
   // |      Reserved      |FRWARD| BACK |MSE_M |MSE_R |MSE_L |
   // +------+------+------+------+------+------+------+------+
   uint8_t button_bitmask;
-  uint8_t x;
-  uint8_t y;
-  uint8_t vertical;
-  uint8_t horizontal;
+  int8_t x;
+  int8_t y;
+  int8_t vertical;
+  int8_t horizontal;
 } IBPMouse;
 
 typedef struct {
-  // Represents little endian uint32_t
   uint8_t num_activated_layers : 3;
-  uint8_t active_layers[8];
-  // uint8_t layers[4];  // At most 32 layers.
+  uint8_t active_layers[IBPActiveLayersMAX];
 } IBPLayers;
 
 typedef union {

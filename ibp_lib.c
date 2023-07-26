@@ -64,10 +64,10 @@ static int8_t SerializeMouse(const IBPSegment* mouse_seg, uint8_t* buf,
   }
   buf[0] = CreateSegmentHeader(data_size, IBP_KEYCODE);
   buf[2] = mouse_seg->field_data.mouse.button_bitmask;
-  buf[3] = mouse_seg->field_data.mouse.x;
-  buf[4] = mouse_seg->field_data.mouse.y;
-  buf[5] = mouse_seg->field_data.mouse.vertical;
-  buf[6] = mouse_seg->field_data.mouse.horizontal;
+  buf[3] = (uint8_t)mouse_seg->field_data.mouse.x;
+  buf[4] = (uint8_t)mouse_seg->field_data.mouse.y;
+  buf[5] = (uint8_t)mouse_seg->field_data.mouse.vertical;
+  buf[6] = (uint8_t)mouse_seg->field_data.mouse.horizontal;
   buf[1] = CalculateCRC8(buf[2], data_size);
   return data_size + SEGMENT_HEADER_BYTES;
 }
@@ -141,12 +141,14 @@ int8_t SerializeSegments(const IBPSegment* segments, uint8_t num_segments,
   for (int i = 0; i < num_padding; ++i) {
     output[total_bytes + i] = 0;
   }
-  return total_bytes + num_padding;
+  total_bytes += num_padding;
+  output[0] = (total_bytes << 1) | CalculateParity(total_bytes);
+  return total_bytes;
 }
 
 static bool DeSerializeKeycodes(const uint8_t* buf, uint8_t buf_size,
                                 IBPSegment* keycodes_seg) {
-  if (buf_size > 8 + 1) {
+  if (buf_size > IBPKeyCodesMAX + 1) {
     return false;
   }
   keycodes_seg->field_data.keycodes.modifier_bitmask = buf[0];
@@ -181,16 +183,16 @@ static bool DeSerializeMouse(const uint8_t* buf, uint8_t buf_size,
     return false;
   }
   mouse_seg->field_data.mouse.button_bitmask = buf[0];
-  mouse_seg->field_data.mouse.x = buf[1];
-  mouse_seg->field_data.mouse.y = buf[2];
-  mouse_seg->field_data.mouse.vertical = buf[3];
-  mouse_seg->field_data.mouse.horizontal = buf[4];
+  mouse_seg->field_data.mouse.x = (int8_t)buf[1];
+  mouse_seg->field_data.mouse.y = (int8_t)buf[2];
+  mouse_seg->field_data.mouse.vertical = (int8_t)buf[3];
+  mouse_seg->field_data.mouse.horizontal = (int8_t)buf[4];
   return true;
 }
 
 static bool DeSerializeLayer(const uint8_t* buf, uint8_t buf_size,
                              IBPSegment* layer_seg) {
-  if (buf_size > 8) {
+  if (buf_size > IBPActiveLayersMAX) {
     return false;
   }
   layer_seg->field_data.layers.num_activated_layers = buf_size;
@@ -244,8 +246,10 @@ int8_t DeSerializeSegment(const uint8_t* input, uint8_t input_buffer_size,
 }
 
 int8_t GetTransactionTotalSize(uint8_t transaction_first_byte) {
-  if (CalculateParity(transaction_first_byte) != 0) {
+  const uint8_t total_bytes = transaction_first_byte >> 1;
+  if (CalculateParity(transaction_first_byte) != 0 ||
+      transaction_first_byte % 4 != 0) {
     return -1;
   }
-  return transaction_first_byte >> 1;
+  return total_bytes;
 }
