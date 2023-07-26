@@ -66,7 +66,7 @@ class MouseOutputDevice : virtual public GenericOutputDevice {
  public:
   virtual void MouseKeycode(uint8_t keycode) = 0;
   virtual void MouseMovement(int8_t x, int8_t y) = 0;
-  virtual void Pan(int8_t x, int8_t y) = 0;
+  virtual void Pan(int8_t horizontal, int8_t vertical) = 0;
 };
 
 class Suspendable {

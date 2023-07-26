@@ -66,7 +66,7 @@ class USBMouseOutput : public MouseOutputDevice, public USBOutputAddIn {
 
   void MouseKeycode(uint8_t keycode) override;
   void MouseMovement(int8_t x, int8_t y) override;
-  void Pan(int8_t x, int8_t y) override;
+  void Pan(int8_t horizontal, int8_t vertical) override;
 
  protected:
   USBMouseOutput();

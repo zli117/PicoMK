@@ -86,6 +86,8 @@ target_link_libraries(firmware
         hardware_regs
         hardware_pio
         pico_ssd1306
+        hardware_spi
+        hardware_irq
         littlefs
         )
 

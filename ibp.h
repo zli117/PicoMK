@@ -13,9 +13,9 @@ extern "C" {
 }
 
 class IBPDeviceBase : public virtual KeyboardOutputDevice,
-                        public virtual MouseOutputDevice,
-                        public virtual GenericInputDevice,
-                        public virtual IBPDriverBase {
+                      public virtual MouseOutputDevice,
+                      public virtual GenericInputDevice,
+                      public virtual IBPDriverBase {
  public:
   IBPDeviceBase();
 
@@ -59,9 +59,6 @@ class IBPDeviceBase : public virtual KeyboardOutputDevice,
   // there are usually only two tasks involved: the input task and the low level
   // protocol task.
   SemaphoreHandle_t packet_semaphore_;
-};
-
-class IBPSPIDevice : public virtual IBPDeviceBase {
 };
 
 #endif /* IBP_H_ */

@@ -495,9 +495,9 @@ void USBMouseOutput::MouseMovement(int8_t x, int8_t y) {
   double_buffer_[(active_buffer_ + 1) % 2][2] = y;
 }
 
-void USBMouseOutput::Pan(int8_t x, int8_t y) {
-  double_buffer_[(active_buffer_ + 1) % 2][3] = y;
-  double_buffer_[(active_buffer_ + 1) % 2][4] = x;
+void USBMouseOutput::Pan(int8_t horizontal, int8_t vertical) {
+  double_buffer_[(active_buffer_ + 1) % 2][3] = vertical;
+  double_buffer_[(active_buffer_ + 1) % 2][4] = horizontal;
 }
 
 USBMouseOutput::USBMouseOutput()

@@ -6,13 +6,13 @@ static uint8_t CalculateParity(uint8_t byte) {
   return 0;  // Dummy
 }
 
-static uint8_t CalculateCRC8(uint8_t* data, uint8_t length) {
+static uint8_t CalculateCRC8(const uint8_t* data, uint8_t length) {
   return 0;  // Dummy
 }
 
 static bool IsBigEndian() {
   uint16_t i = 0x0100;
-  uint8_t* ii = &i;
+  uint8_t* ii = (uint8_t*)&i;
   return ii[0];
 }
 
@@ -34,7 +34,7 @@ static int8_t SerializeKeycodes(const IBPSegment* keycodes_seg, uint8_t* buf,
   for (int i = 0; i < keycodes_seg->field_data.keycodes.num_keycodes; ++i) {
     buf[i + 3] = keycodes_seg->field_data.keycodes.keycodes[i];
   }
-  buf[1] = CalculateCRC8(buf[2], data_size);
+  buf[1] = CalculateCRC8(&buf[2], data_size);
   return data_size + SEGMENT_HEADER_BYTES;
 }
 
@@ -45,14 +45,14 @@ static int8_t SerializeConsumerKeycodes(const IBPSegment* consumer_seg,
     return -1;
   }
   buf[0] = CreateSegmentHeader(data_size, IBP_KEYCODE);
-  uint16_t* ptr = buf[2];
+  uint16_t* ptr = (uint16_t*)(&buf[2]);
   *ptr = consumer_seg->field_data.consumer_keycode.consumer_keycode;
   if (IsBigEndian()) {
     uint8_t tmp = buf[2];
     buf[2] = buf[3];
     buf[3] = tmp;
   }
-  buf[1] = CalculateCRC8(buf[2], data_size);
+  buf[1] = CalculateCRC8(&buf[2], data_size);
   return data_size + SEGMENT_HEADER_BYTES;
 }
 
@@ -68,7 +68,7 @@ static int8_t SerializeMouse(const IBPSegment* mouse_seg, uint8_t* buf,
   buf[4] = (uint8_t)mouse_seg->field_data.mouse.y;
   buf[5] = (uint8_t)mouse_seg->field_data.mouse.vertical;
   buf[6] = (uint8_t)mouse_seg->field_data.mouse.horizontal;
-  buf[1] = CalculateCRC8(buf[2], data_size);
+  buf[1] = CalculateCRC8(&buf[2], data_size);
   return data_size + SEGMENT_HEADER_BYTES;
 }
 
@@ -82,7 +82,7 @@ static int8_t SerializeLayers(const IBPSegment* layer_seg, uint8_t* buf,
   for (int i = 0; i < data_size; ++i) {
     buf[2 + i] = layer_seg->field_data.layers.active_layers[i];
   }
-  buf[1] = CalculateCRC8(buf[2], data_size);
+  buf[1] = CalculateCRC8(&buf[2], data_size);
   return data_size + SEGMENT_HEADER_BYTES;
 }
 
