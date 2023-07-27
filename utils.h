@@ -3,10 +3,12 @@
 
 #include <stdio.h>
 
+#include <queue>
 #include <string>
 
 #include "FreeRTOS.h"
 #include "config.h"
+#include "hardware/sync.h"
 #include "semphr.h"
 
 // TODO: rename this
@@ -36,12 +38,82 @@ enum LogLevel { L_ERROR = 1, L_WARNING = 2, L_INFO = 3, L_DEBUG = 4 };
 
 class LockSemaphore {
  public:
-  LockSemaphore(SemaphoreHandle_t semaphore);
+  explicit LockSemaphore(SemaphoreHandle_t semaphore);
 
   virtual ~LockSemaphore();
 
  private:
   SemaphoreHandle_t semaphore_;
+};
+
+class LockSpinlock {
+ public:
+  explicit LockSpinlock(spin_lock_t* lock);
+
+  virtual ~LockSpinlock();
+
+ private:
+  spin_lock_t* lock_;
+  uint32_t irq_;
+};
+
+template <typename T>
+class SleepQueue {
+ public:
+  SleepQueue(spin_lock_t* lock, TaskHandle_t task_handle, size_t max_size)
+      : max_size_(max_size), task_handle_(task_handle), lock_(lock) {}
+
+  void WakeupTask() const {
+    if (task_handle_ != NULL) {
+      xTaskNotifyGive(task_handle_);
+    }
+  }
+
+  bool Push(const T& value) {
+    LockSpinlock lock(lock_);
+    if (data_.size() >= max_size_) {
+      return false;
+    }
+    data_.push(value);
+    return true;
+  }
+
+  bool Push(T&& value) {
+    LockSpinlock lock(lock_);
+    if (data_.size() >= max_size_) {
+      return false;
+    }
+    data_.push(std::move(value));
+    return true;
+  }
+
+  const T* Peak() const {
+    LockSpinlock lock(lock_);
+    if (data_.empty()) {
+      return NULL;
+    }
+    return &data_.front();
+  }
+
+  bool Pop() {
+    LockSpinlock lock(lock_);
+    if (data_.empty()) {
+      return false;
+    }
+    data_.pop();
+    return true;
+  }
+
+  size_t Size() const {
+    LockSpinlock lock(lock_);
+    return data_.size();
+  }
+
+ private:
+  const size_t max_size_;
+  const TaskHandle_t task_handle_;
+  spin_lock_t* lock_;
+  std::queue<T> data_;
 };
 
 #endif /* UTILS_H_ */

@@ -45,9 +45,12 @@ Status StartSyncTasks() {
     return ERROR;
   }
 
-  core_info[0].sync_wait_lock = spin_lock_init(0);
-  core_info[1].sync_wait_lock = spin_lock_init(1);
-  critical_section_lock = spin_lock_init(3);
+  core_info[0].sync_wait_lock =
+      spin_lock_init(spin_lock_claim_unused(/*required=*/true));
+  core_info[1].sync_wait_lock =
+      spin_lock_init(spin_lock_claim_unused(/*required=*/true));
+  critical_section_lock =
+      spin_lock_init(spin_lock_claim_unused(/*required=*/true));
   if (core_info[0].sync_wait_lock == NULL ||  //
       core_info[1].sync_wait_lock == NULL ||  //
       critical_section_lock == NULL) {

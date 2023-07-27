@@ -8,3 +8,8 @@ LockSemaphore::LockSemaphore(SemaphoreHandle_t semaphore)
 }
 
 LockSemaphore::~LockSemaphore() { xSemaphoreGive(semaphore_); }
+
+LockSpinlock::LockSpinlock(spin_lock_t* lock)
+    : lock_(lock), irq_(spin_lock_blocking(lock_)) {}
+
+LockSpinlock::~LockSpinlock() { spin_unlock(lock_, irq_); }
