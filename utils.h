@@ -69,6 +69,12 @@ class SleepQueue {
     }
   }
 
+  void WakeupTaskISR() const {
+    if (task_handle_ != NULL) {
+      vTaskNotifyGiveFromISR(task_handle_, /*pxHigherPriorityTaskWoken=*/NULL);
+    }
+  }
+
   bool Push(const T& value) {
     LockSpinlock lock(lock_);
     if (data_.size() >= max_size_) {

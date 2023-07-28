@@ -45,7 +45,7 @@ class IBPDeviceBase : public virtual KeyboardOutputDevice,
  protected:
   std::string GetOutPacket();
 
-  // Fully packet with the transaction header.
+  // Full packet with the transaction header.
   void SetInPacket(const std::string& packet);
 
  private:

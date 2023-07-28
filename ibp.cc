@@ -93,7 +93,7 @@ void IBPDeviceBase::StartOfInputTick() {
   memset(segments_, 0, sizeof(segments_));
 }
 
-constexpr size_t kOutputBufferSize = 196;
+constexpr size_t kOutputBufferSize = 128;
 
 void IBPDeviceBase::FinalizeInputTickOutput() {
   IBPSegment segments[IBP_TOTAL];
@@ -102,11 +102,6 @@ void IBPDeviceBase::FinalizeInputTickOutput() {
     if (has_update_[i]) {
       segments[num_segments++] = segments_[i];
     }
-  }
-  if (num_segments == 0) {
-    LockSemaphore lock(packet_semaphore_);
-    outbound_packet_ = "";
-    return;
   }
   uint8_t buffer[kOutputBufferSize];
   const int num_bytes =
@@ -196,8 +191,19 @@ void IBPDeviceBase::InputTick() {
 }
 
 std::string IBPDeviceBase::GetOutPacket() {
-  LockSemaphore lock(packet_semaphore_);
-  return outbound_packet_;
+  uint8_t buffer[kOutputBufferSize];
+  const int num_bytes =
+      SerializeSegments(segments_, /*num_segments=*/0, buffer, sizeof(buffer));
+  if (num_bytes <= 0) {
+    LOG_ERROR("Create empty packet shouldn't fail.");
+    return "";
+  }
+  std::string packet_copy(buffer, buffer + num_bytes);
+  {
+    LockSemaphore lock(packet_semaphore_);
+    std::swap(packet_copy, outbound_packet_);
+  }
+  return packet_copy;
 }
 
 void IBPDeviceBase::SetInPacket(const std::string& packet) {

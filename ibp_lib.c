@@ -247,7 +247,8 @@ int8_t DeSerializeSegment(const uint8_t* input, uint8_t input_buffer_size,
 
 int8_t GetTransactionTotalSize(uint8_t transaction_first_byte) {
   const uint8_t total_bytes = transaction_first_byte >> 1;
-  if (CalculateParity(transaction_first_byte) != 0 ||
+  if (transaction_first_byte == 0 ||
+      CalculateParity(transaction_first_byte) != 0 ||
       transaction_first_byte % 4 != 0) {
     return -1;
   }
