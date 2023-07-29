@@ -5,6 +5,9 @@
 #include "hardware/spi.h"
 #include "utils.h"
 
+#define GPIO_DEBUG_PIN_0 3
+#define GPIO_DEBUG_PIN_1 4
+
 namespace {
 
 constexpr size_t kQueueSize = 128;
@@ -24,6 +27,7 @@ void SPIHostTask(void* parameter) {
 }
 
 void SPIDeviceRXIRQ(spi_inst_t* spi_port, SleepQueue<uint8_t>* queue) {
+gpio_put(GPIO_DEBUG_PIN_0, 1);
   spi_get_hw(spi_port)->imsc &= 0b1011;  // Mask IRQ
   while (spi_is_readable(spi_port)) {
     const uint8_t read = (uint8_t)spi_get_hw(spi_port)->dr;
@@ -129,11 +133,20 @@ Status IBPSPIDevice::IBPInitialize() {
   const irq_handler_t irq_handlers[2] = {SPI0DeviceIRQ, SPI1DeviceIRQ};
   InitQueues(irq_handlers[spi_get_index(spi_port_)]);
 
+
+  gpio_init(GPIO_DEBUG_PIN_0);
+  gpio_set_dir(GPIO_DEBUG_PIN_0, GPIO_OUT);
+  gpio_init(GPIO_DEBUG_PIN_1);
+  gpio_set_dir(GPIO_DEBUG_PIN_1, GPIO_OUT);
+
   return OK;
 }
 
 void IBPSPIDevice::DeviceTask() {
   while (true) {
+gpio_put(GPIO_DEBUG_PIN_0, 0);
+gpio_put(GPIO_DEBUG_PIN_1, 0);
+    LOG_INFO("IBP: A");
     // Clear RX FIFO
     while (spi_is_readable(spi_port_)) {
       (void)spi_get_hw(spi_port_)->dr;
@@ -144,21 +157,28 @@ void IBPSPIDevice::DeviceTask() {
     uint8_t buffer_bytes = 0;
     int8_t expected_bytes = 0;
 
+    LOG_INFO("IBP: B");
+
     // Wait for inbound packet
     do {
       xTaskNotifyWait(/*do not clear notification on enter*/ 0,
                       /*clear notification on exit*/ 0xffffffff,
                       /*pulNotificationValue=*/NULL, portMAX_DELAY);
+gpio_put(GPIO_DEBUG_PIN_1, 1);
+      LOG_INFO("IBP: C");
       for (const uint8_t* queue_head = rx_queue_->Peak();
            queue_head != NULL && buffer_bytes < kQueueSize;
            rx_queue_->Pop(), queue_head = rx_queue_->Peak()) {
         input_buffer[buffer_bytes] = *queue_head;
+        LOG_INFO("IBP READ %x", *queue_head);
         if (buffer_bytes == 0) {
           expected_bytes = GetTransactionTotalSize(input_buffer[0]);
         }
         ++buffer_bytes;
       }
     } while (expected_bytes > 0 && buffer_bytes < expected_bytes);
+
+    LOG_INFO("IBP: D");
 
     // Invalid packet or something is wrong (when expected_bytes is 0).
 
@@ -170,6 +190,8 @@ void IBPSPIDevice::DeviceTask() {
         ;
       continue;
     }
+
+    LOG_INFO("IBP: E");
 
     // Everything is ok, first disable the RX IRQ and send out the packet to the
     // input task.
@@ -185,6 +207,8 @@ void IBPSPIDevice::DeviceTask() {
       continue;
     }
 
+    LOG_INFO("IBP: F");
+
     // Send out the packet.
 
     for (const uint8_t byte : out_packet) {
@@ -196,7 +220,10 @@ void IBPSPIDevice::DeviceTask() {
     for (head = tx_queue_->Peak(); spi_is_writable(spi_port_) && head != NULL;
          tx_queue_->Pop(), head = tx_queue_->Peak()) {
       spi_get_hw(spi_port_)->dr = *head;
+      LOG_INFO("Write: %x", *head);
     }
+
+    LOG_INFO("IBP: G");
 
     // Only use IRQ if we still have more data to send.
     if (head != NULL) {
@@ -209,14 +236,21 @@ void IBPSPIDevice::DeviceTask() {
       spi_get_hw(spi_port_)->imsc &= 0b0111;  // Mask TX IRQ
     }
 
+    LOG_INFO("IBP: H");
+
     // Clear the TX queue in case anything goes wrong.
     while (tx_queue_->Pop())
       ;
+
+    LOG_INFO("IBP: I");
 
     // If there are data stuck in TX FIFO, reset the SPI controller. Seems like
     // the only way to clear up the TX FIFO.
     if (!TXEmpty()) {
       InitSPI(/*slave=*/true);
+      LOG_INFO("IBP: LLL");
     }
+
+    LOG_INFO("IBP: J");
   }
 }

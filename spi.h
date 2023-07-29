@@ -58,13 +58,6 @@ class IBPSPIHost : public IBPSPIBase {
 
  protected:
   IBPSPIHost(IBPSPIArgs args);
-
-  spi_inst_t* spi_port_;
-  uint32_t rx_pin_;
-  uint32_t tx_pin_;
-  uint32_t cs_pin_;
-  uint32_t sck_pin_;
-  uint32_t baud_rate_;
 };
 
 #endif /* SPI_H_ */

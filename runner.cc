@@ -66,6 +66,10 @@ Status RunnerStart() {
     return ERROR;
   }
 
+  if (IBPDriverRegistry::InitializeAll() != OK) {
+    return ERROR;
+  }
+
   // Start output device task
 
   BaseType_t status = xTaskCreate(&OutputDeviceTask, "output_device_task",

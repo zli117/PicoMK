@@ -1,8 +1,12 @@
 #ifndef IBP_LIB_H_
 #define IBP_LIB_H_
 
+#ifdef IBP_KERNEL_MODULE
+#include <linux/types.h>
+#else
 #include <stdbool.h>
 #include <stdint.h>
+#endif
 
 typedef enum {
   IBP_KEYCODE = 0,

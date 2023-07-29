@@ -46,14 +46,14 @@
 // Enable or disable USB serial debug
 
 // Set to 1 to enable USB serial debug.
-#define CONFIG_DEBUG_ENABLE_USB_SERIAL 0
+#define CONFIG_DEBUG_ENABLE_USB_SERIAL 1
 
 #if CONFIG_DEBUG_ENABLE_USB_SERIAL
 
 // Log level for debugging logs
 // L_ERROR = 1, L_WARNING = 2, L_INFO = 3, L_DEBUG = 4
 // Level <= CONFIG_DEBUG_LOG_LEVEL will be shown
-#define CONFIG_DEBUG_LOG_LEVEL 2
+#define CONFIG_DEBUG_LOG_LEVEL 3
 
 // Don't change these three unless you know what you're doing
 #define CONFIG_DEBUG_USB_SERIAL_CDC_CMD_MAX_SIZE 8

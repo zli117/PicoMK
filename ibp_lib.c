@@ -10,7 +10,7 @@ static uint8_t CalculateCRC8(const uint8_t* data, uint8_t length) {
   return 0;  // Dummy
 }
 
-static bool IsBigEndian() {
+static bool IsBigEndian(void) {
   uint16_t i = 0x0100;
   uint8_t* ii = (uint8_t*)&i;
   return ii[0];

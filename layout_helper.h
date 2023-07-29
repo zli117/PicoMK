@@ -7,17 +7,19 @@
 #include "class/hid/hid.h"
 #include "config.h"
 #include "config_modifier.h"
+#include "display_mixins.h"
+#include "ibp.h"
 #include "joystick.h"
 #include "keyscan.h"
 #include "layout.h"
 #include "pico/platform.h"
 #include "rotary_encoder.h"
+#include "spi.h"
 #include "ssd1306.h"
 #include "temperature.h"
 #include "usb.h"
 #include "utils.h"
 #include "ws2812.h"
-#include "display_mixins.h"
 
 // Macro to define keys that sends the USB HID keycode (aliased below in this
 // file) directly
