@@ -16,6 +16,12 @@ constexpr size_t kTicksToDelay = 2;
 SleepQueue<uint8_t>* spi_rx_queues[2] = {NULL};
 SleepQueue<uint8_t>* spi_tx_queues[2] = {NULL};
 
+static uint8_t rx_buf[128];
+static uint8_t rx_buf_size;
+static uint8_t tx_buf[128];
+static uint8_t tx_buf_size;
+static uint8_t tx_buf_idx;
+
 extern "C" {
 
 void SPIDeviceTask(void* parameter) {
@@ -26,35 +32,84 @@ void SPIHostTask(void* parameter) {
   reinterpret_cast<IBPSPIHost*>(parameter)->HostTask();
 }
 
-void SPIDeviceRXIRQ(spi_inst_t* spi_port, SleepQueue<uint8_t>* queue) {
-gpio_put(GPIO_DEBUG_PIN_0, 1);
+void __no_inline_not_in_flash_func(SPIDeviceRXIRQ)(
+    spi_inst_t* spi_port, SleepQueue<uint8_t>* queue,
+    SleepQueue<uint8_t>* tx_queue) {
+  gpio_put(GPIO_DEBUG_PIN_0, 1);
   spi_get_hw(spi_port)->imsc &= 0b1011;  // Mask IRQ
+  int8_t packet_size = 0;
+  // int8_t queue_size = queue->Size();
+  int8_t queue_size = rx_buf_size;
+  if (queue_size > 0) {
+    // packet_size = GetTransactionTotalSize(*queue->Peak());
+    packet_size = GetTransactionTotalSize(rx_buf[0]);
+    // packet_size = 4;
+    gpio_put(GPIO_DEBUG_PIN_1, 1);
+  }
+
   while (spi_is_readable(spi_port)) {
     const uint8_t read = (uint8_t)spi_get_hw(spi_port)->dr;
-    queue->Push(read);  // Don't care if push is unsuccessful.
+    if (queue_size == 0) {
+      packet_size = GetTransactionTotalSize(read);
+    }
+    // queue->Push(read);  // Don't care if push is unsuccessful.
+    rx_buf[rx_buf_size] = read;
+    ++queue_size;
+    ++rx_buf_size;
+    if (packet_size < 0 || queue_size >= packet_size) {
+      break;
+    }
   }
-  queue->WakeupTaskISR();
-  spi_get_hw(spi_port)->imsc |= 0b0100;  // Reenable IRQ
+
+  if (packet_size <= 0 || queue_size >= packet_size) {
+    // Put some initial data to the TX FIFO so that the IRQ can trigger.
+    if (queue_size >= packet_size) {
+      // for (const uint8_t* head = tx_queue->Peak();
+      //      spi_is_writable(spi_port) && head != NULL;
+      //      tx_queue->Pop(), head = tx_queue->Peak()) {
+      //   spi_get_hw(spi_port)->dr = *head;
+      //   gpio_put(GPIO_DEBUG_PIN_0, 0);
+      // }
+      while (spi_is_writable(spi_port) && tx_buf_idx < tx_buf_size) {
+        spi_get_hw(spi_port)->dr = tx_buf[tx_buf_idx++];
+        gpio_put(GPIO_DEBUG_PIN_0, 0);
+      }
+    }
+
+    // We'll leave the RX IRQ disabled here, but enable the TX IRQ
+    spi_get_hw(spi_port)->imsc |= 0b1000;  // Enable TX IRQ
+    queue->WakeupTaskISR();
+  } else {
+    spi_get_hw(spi_port)->imsc |= 0b0100;  // Reenable IRQ
+  }
 }
 
 void SPIDeviceTXIRQ(spi_inst_t* spi_port, SleepQueue<uint8_t>* queue) {
   spi_get_hw(spi_port)->imsc &= 0b0111;  // Mask IRQ
-  const uint8_t* head;
-  for (head = queue->Peak(); spi_is_writable(spi_port) && head != NULL;
-       queue->Pop(), head = queue->Peak()) {
-    spi_get_hw(spi_port)->dr = *head;
+  // const uint8_t* head;
+  // for (head = queue->Peak(); spi_is_writable(spi_port) && head != NULL;
+  //      queue->Pop(), head = queue->Peak()) {
+  //   spi_get_hw(spi_port)->dr = *head;
+  // }
+
+  while (spi_is_writable(spi_port) && tx_buf_idx < tx_buf_size) {
+    spi_get_hw(spi_port)->dr = tx_buf[tx_buf_idx++];
   }
-  if (head == NULL) {
+  if (tx_buf_idx >= tx_buf_size) {
+    // if (head == NULL) {
     // Only wake up the task when the queue is empty.
     queue->WakeupTaskISR();
+    // Leave TX IRQ disabled.
+    gpio_put(GPIO_DEBUG_PIN_1, 0);
+  } else {
+    spi_get_hw(spi_port)->imsc |= 0b1000;  // Reenable IRQ
   }
-  spi_get_hw(spi_port)->imsc |= 0b1000;  // Reenable IRQ
 }
 
 void SPI0DeviceIRQ() {
-  if (spi_get_hw(spi0)->ris & 0b0100) {
-    SPIDeviceRXIRQ(spi0, spi_rx_queues[0]);
-  } else if (spi_get_hw(spi0)->ris & 0b1000) {
+  if (spi_get_hw(spi0)->mis & 0b0100) {
+    SPIDeviceRXIRQ(spi0, spi_rx_queues[0], spi_tx_queues[0]);
+  } else if (spi_get_hw(spi0)->mis & 0b1000) {
     SPIDeviceTXIRQ(spi0, spi_tx_queues[0]);
   }
 }
@@ -62,9 +117,9 @@ void SPI0DeviceIRQ() {
 void SPI0HostIRQ() {}
 
 void SPI1DeviceIRQ() {
-  if (spi_get_hw(spi1)->ris & 0b0100) {
-    SPIDeviceRXIRQ(spi1, spi_rx_queues[1]);
-  } else if (spi_get_hw(spi1)->ris & 0b1000) {
+  if (spi_get_hw(spi1)->mis & 0b0100) {
+    SPIDeviceRXIRQ(spi1, spi_rx_queues[1], spi_tx_queues[1]);
+  } else if (spi_get_hw(spi1)->mis & 0b1000) {
     SPIDeviceTXIRQ(spi1, spi_tx_queues[1]);
   }
 }
@@ -133,7 +188,6 @@ Status IBPSPIDevice::IBPInitialize() {
   const irq_handler_t irq_handlers[2] = {SPI0DeviceIRQ, SPI1DeviceIRQ};
   InitQueues(irq_handlers[spi_get_index(spi_port_)]);
 
-
   gpio_init(GPIO_DEBUG_PIN_0);
   gpio_set_dir(GPIO_DEBUG_PIN_0, GPIO_OUT);
   gpio_init(GPIO_DEBUG_PIN_1);
@@ -144,8 +198,34 @@ Status IBPSPIDevice::IBPInitialize() {
 
 void IBPSPIDevice::DeviceTask() {
   while (true) {
-gpio_put(GPIO_DEBUG_PIN_0, 0);
-gpio_put(GPIO_DEBUG_PIN_1, 0);
+    rx_buf_size = 0;
+    tx_buf_size = 0;
+    tx_buf_idx = 0;
+    // rx_buf[0] = 0x08;
+    // rx_buf[1] = 0;
+    // rx_buf[2] = 0;
+    // rx_buf[3] = 0;
+    // rx_buf_size = 4;
+    // Get the new out-bound packet.
+    const std::string out_packet = GetOutPacket();
+    if (out_packet.size() > kQueueSize || out_packet.empty()) {
+      LOG_ERROR("Invalid out bound packet");
+      vTaskDelay(kTicksToDelay);
+      continue;
+    }
+
+    // for (const uint8_t byte : out_packet) {
+    //   LOG_INFO("Put into TX queue: %x", byte);
+    //   tx_queue_->Push(byte);
+    // }
+
+    for (const uint8_t byte : out_packet) {
+      LOG_INFO("Put into TX queue: %x", byte);
+      tx_buf[tx_buf_size++] = byte;
+    }
+
+    gpio_put(GPIO_DEBUG_PIN_0, 0);
+    gpio_put(GPIO_DEBUG_PIN_1, 0);
     LOG_INFO("IBP: A");
     // Clear RX FIFO
     while (spi_is_readable(spi_port_)) {
@@ -153,90 +233,53 @@ gpio_put(GPIO_DEBUG_PIN_1, 0);
     }
 
     spi_get_hw(spi_port_)->imsc |= 0b0100;  // Enable RX IRQ
+    spi_get_hw(spi_port_)->imsc &= 0b0111;  // Mask TX IRQ
     uint8_t input_buffer[kQueueSize];
     uint8_t buffer_bytes = 0;
     int8_t expected_bytes = 0;
 
+    // Wait for read packet to arrive.
+    xTaskNotifyWait(/*do not clear notification on enter*/ 0,
+                    /*clear notification on exit*/ 0xffffffff,
+                    /*pulNotificationValue=*/NULL, portMAX_DELAY);
+    // At this point RX IRQ should be disabled.
+
     LOG_INFO("IBP: B");
 
-    // Wait for inbound packet
-    do {
-      xTaskNotifyWait(/*do not clear notification on enter*/ 0,
-                      /*clear notification on exit*/ 0xffffffff,
-                      /*pulNotificationValue=*/NULL, portMAX_DELAY);
-gpio_put(GPIO_DEBUG_PIN_1, 1);
-      LOG_INFO("IBP: C");
-      for (const uint8_t* queue_head = rx_queue_->Peak();
-           queue_head != NULL && buffer_bytes < kQueueSize;
-           rx_queue_->Pop(), queue_head = rx_queue_->Peak()) {
-        input_buffer[buffer_bytes] = *queue_head;
-        LOG_INFO("IBP READ %x", *queue_head);
-        if (buffer_bytes == 0) {
-          expected_bytes = GetTransactionTotalSize(input_buffer[0]);
-        }
-        ++buffer_bytes;
-      }
-    } while (expected_bytes > 0 && buffer_bytes < expected_bytes);
-
-    LOG_INFO("IBP: D");
-
-    // Invalid packet or something is wrong (when expected_bytes is 0).
-
-    if (expected_bytes <= 0) {
-      LOG_ERROR("Invalid in bound packet");
+    // for (const uint8_t* queue_head = rx_queue_->Peak(); queue_head != NULL;
+    //      rx_queue_->Pop(), queue_head = rx_queue_->Peak(), ++buffer_bytes) {
+    //   LOG_INFO("RX: %x", *queue_head);
+    //   input_buffer[buffer_bytes] = *queue_head;
+    // }
+    for (size_t i = 0; i < rx_buf_size; ++i) {
+      LOG_INFO("RX: %x", rx_buf[i]);
+      input_buffer[buffer_bytes++] = rx_buf[i];
+    }
+    expected_bytes = GetTransactionTotalSize(input_buffer[0]);
+    if (buffer_bytes == 0 || expected_bytes < 0) {
+      LOG_ERROR("Invalid in bound packet, %d, %d, %d", buffer_bytes,
+                expected_bytes, rx_queue_->Size());
       vTaskDelay(kTicksToDelay);
-      // Drain the queue
-      while (rx_queue_->Pop())
-        ;
       continue;
     }
 
-    LOG_INFO("IBP: E");
+    LOG_INFO("IBP: C");
 
-    // Everything is ok, first disable the RX IRQ and send out the packet to the
-    // input task.
-
-    spi_get_hw(spi_port_)->imsc &= 0b1011;  // Mask RX IRQ
     SetInPacket(std::string(input_buffer, input_buffer + buffer_bytes));
 
-    // Prepare the response.
-
-    const std::string out_packet = GetOutPacket();
-    if (out_packet.size() > kQueueSize || out_packet.empty()) {
-      LOG_ERROR("Invalid out bound packet");
-      continue;
-    }
-
-    LOG_INFO("IBP: F");
-
-    // Send out the packet.
-
-    for (const uint8_t byte : out_packet) {
-      tx_queue_->Push(byte);
-    }
-
-    // Put some initial data to the TX FIFO so that the IRQ can trigger.
-    const uint8_t* head;
-    for (head = tx_queue_->Peak(); spi_is_writable(spi_port_) && head != NULL;
-         tx_queue_->Pop(), head = tx_queue_->Peak()) {
-      spi_get_hw(spi_port_)->dr = *head;
-      LOG_INFO("Write: %x", *head);
-    }
-
-    LOG_INFO("IBP: G");
-
-    // Only use IRQ if we still have more data to send.
-    if (head != NULL) {
-      spi_get_hw(spi_port_)->imsc |= 0b1000;  // Enable TX IRQ
-
+    if (spi_get_hw(spi_port_)->imsc & 0b1000) {
+      // If TX IRQ is enabled then let's wait for write to finish.
       // We don't sleep indefinitely here. kTicksToDelay is the timeout.
       xTaskNotifyWait(/*do not clear notification on enter*/ 0,
                       /*clear notification on exit*/ 0xffffffff,
                       /*pulNotificationValue=*/NULL, kTicksToDelay);
-      spi_get_hw(spi_port_)->imsc &= 0b0111;  // Mask TX IRQ
-    }
 
-    LOG_INFO("IBP: H");
+      // Mask TX IRQ
+      spi_get_hw(spi_port_)->imsc &= 0b0111;  // Mask IRQ
+    }
+    // At this point TX IRQ should be disabled.
+
+    LOG_INFO("IBP: D");
 
     // Clear the TX queue in case anything goes wrong.
     while (tx_queue_->Pop())
@@ -251,6 +294,114 @@ gpio_put(GPIO_DEBUG_PIN_1, 1);
       LOG_INFO("IBP: LLL");
     }
 
-    LOG_INFO("IBP: J");
+    // // Get the new out-bound packet.
+    // const std::string out_packet = GetOutPacket();
+    // if (out_packet.size() > kQueueSize || out_packet.empty()) {
+    //   LOG_ERROR("Invalid out bound packet");
+    //   continue;
+    // }
+
+    // for (const uint8_t byte : out_packet) {
+    //   LOG_INFO("Put into TX queue: %x", byte);
+    //   tx_queue_->Push(byte);
+    // }
+
+    LOG_INFO("IBP: B");
+    // // Wait for inbound packet
+    // do {
+    //   xTaskNotifyWait(/*do not clear notification on enter*/ 0,
+    //                   /*clear notification on exit*/ 0xffffffff,
+    //                   /*pulNotificationValue=*/NULL, portMAX_DELAY);
+    //   gpio_put(GPIO_DEBUG_PIN_1, 1);
+    //   LOG_INFO("IBP: C");
+    //   for (const uint8_t* queue_head = rx_queue_->Peak();
+    //        queue_head != NULL && buffer_bytes < kQueueSize;
+    //        rx_queue_->Pop(), queue_head = rx_queue_->Peak()) {
+    //     input_buffer[buffer_bytes] = *queue_head;
+    //     LOG_INFO("IBP READ %x", *queue_head);
+    //     if (buffer_bytes == 0) {
+    //       expected_bytes = GetTransactionTotalSize(input_buffer[0]);
+    //     }
+    //     ++buffer_bytes;
+    //   }
+    // } while (expected_bytes > 0 && buffer_bytes < expected_bytes);
+
+    // LOG_INFO("IBP: D");
+
+    // // Invalid packet or something is wrong (when expected_bytes is 0).
+
+    // if (expected_bytes <= 0) {
+    //   LOG_ERROR("Invalid in bound packet");
+    //   vTaskDelay(kTicksToDelay);
+    //   // Drain the queue
+    //   while (rx_queue_->Pop())
+    //     ;
+    //   continue;
+    // }
+
+    // LOG_INFO("IBP: E");
+
+    // // Everything is ok, first disable the RX IRQ and send out the packet to
+    // the
+    // // input task.
+
+    // spi_get_hw(spi_port_)->imsc &= 0b1011;  // Mask RX IRQ
+    // SetInPacket(std::string(input_buffer, input_buffer + buffer_bytes));
+
+    // // Prepare the response.
+
+    // const std::string out_packet = GetOutPacket();
+    // if (out_packet.size() > kQueueSize || out_packet.empty()) {
+    //   LOG_ERROR("Invalid out bound packet");
+    //   continue;
+    // }
+
+    // LOG_INFO("IBP: F");
+
+    // // Send out the packet.
+
+    // for (const uint8_t byte : out_packet) {
+    //   tx_queue_->Push(byte);
+    // }
+
+    // // Put some initial data to the TX FIFO so that the IRQ can trigger.
+    // const uint8_t* head;
+    // for (head = tx_queue_->Peak(); spi_is_writable(spi_port_) && head !=
+    // NULL;
+    //      tx_queue_->Pop(), head = tx_queue_->Peak()) {
+    //   spi_get_hw(spi_port_)->dr = *head;
+    //   LOG_INFO("Write: %x", *head);
+    // }
+
+    // LOG_INFO("IBP: G");
+
+    // // Only use IRQ if we still have more data to send.
+    // if (head != NULL) {
+    //   spi_get_hw(spi_port_)->imsc |= 0b1000;  // Enable TX IRQ
+
+    //   // We don't sleep indefinitely here. kTicksToDelay is the timeout.
+    //   xTaskNotifyWait(/*do not clear notification on enter*/ 0,
+    //                   /*clear notification on exit*/ 0xffffffff,
+    //                   /*pulNotificationValue=*/NULL, kTicksToDelay);
+    //   spi_get_hw(spi_port_)->imsc &= 0b0111;  // Mask TX IRQ
+    // }
+
+    // LOG_INFO("IBP: H");
+
+    // // Clear the TX queue in case anything goes wrong.
+    // while (tx_queue_->Pop())
+    //   ;
+
+    // LOG_INFO("IBP: I");
+
+    // // If there are data stuck in TX FIFO, reset the SPI controller. Seems
+    // like
+    // // the only way to clear up the TX FIFO.
+    // if (!TXEmpty()) {
+    //   InitSPI(/*slave=*/true);
+    //   LOG_INFO("IBP: LLL");
+    // }
+
+    // LOG_INFO("IBP: J");
   }
 }

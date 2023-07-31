@@ -1,5 +1,9 @@
 #include "ibp_lib.h"
 
+#ifndef IBP_KERNEL_MODULE
+#include "pico/platform.h"
+#endif
+
 #define SEGMENT_HEADER_BYTES 2
 
 static uint8_t CalculateParity(uint8_t byte) {
@@ -245,7 +249,12 @@ int8_t DeSerializeSegment(const uint8_t* input, uint8_t input_buffer_size,
   return -1;
 }
 
+#ifdef IBP_KERNEL_MODULE
 int8_t GetTransactionTotalSize(uint8_t transaction_first_byte) {
+#else
+int8_t __no_inline_not_in_flash_func(GetTransactionTotalSize)(
+    uint8_t transaction_first_byte) {
+#endif
   const uint8_t total_bytes = transaction_first_byte >> 1;
   if (transaction_first_byte == 0 ||
       CalculateParity(transaction_first_byte) != 0 ||

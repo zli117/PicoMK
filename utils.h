@@ -76,7 +76,7 @@ class SleepQueue {
   }
 
   bool Push(const T& value) {
-    LockSpinlock lock(lock_);
+    // LockSpinlock lock(lock_);
     if (data_.size() >= max_size_) {
       return false;
     }
@@ -85,7 +85,7 @@ class SleepQueue {
   }
 
   bool Push(T&& value) {
-    LockSpinlock lock(lock_);
+    // LockSpinlock lock(lock_);
     if (data_.size() >= max_size_) {
       return false;
     }
@@ -94,7 +94,7 @@ class SleepQueue {
   }
 
   const T* Peak() const {
-    LockSpinlock lock(lock_);
+    // LockSpinlock lock(lock_);
     if (data_.empty()) {
       return NULL;
     }
@@ -102,7 +102,7 @@ class SleepQueue {
   }
 
   bool Pop() {
-    LockSpinlock lock(lock_);
+    // LockSpinlock lock(lock_);
     if (data_.empty()) {
       return false;
     }
@@ -111,7 +111,7 @@ class SleepQueue {
   }
 
   size_t Size() const {
-    LockSpinlock lock(lock_);
+    // LockSpinlock lock(lock_);
     return data_.size();
   }
 
