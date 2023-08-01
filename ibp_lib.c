@@ -212,7 +212,7 @@ int8_t DeSerializeSegment(const uint8_t* input, uint8_t input_buffer_size,
       CalculateParity(input[0]) != 0) {
     return -1;
   }
-  const uint8_t num_data_bytes = (input[0] >> 4) & 0xf0;
+  const uint8_t num_data_bytes = (input[0] >> 4) & 0x0f;
   segment->field_type = (input[0] & 0x0e) >> 1;
   if (num_data_bytes + SEGMENT_HEADER_BYTES > input_buffer_size ||
       CalculateCRC8(&input[2], num_data_bytes) != input[1]) {

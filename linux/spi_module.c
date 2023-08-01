@@ -78,14 +78,13 @@ static void spi_keyboard_fn(struct work_struct *work) {
     }
     xs[bytes - 1].cs_change = false;
     if (spi_sync_transfer(spi_device, xs, bytes) < 0) {
-      printk(KERN_ALERT "Failed to write");
+      printk(KERN_ALERT "Failed to read");
       goto bad;
     }
 
     size_t write_offset = 0;
     bool found_header = false;
     for (size_t i = 0; i < bytes; ++i) {
-      printk(KERN_ALERT "READ 0x%x", buf[i]);
       if (buf[i] != 0 || found_header) {
         buf[write_offset++] = buf[i];
         found_header = true;
@@ -112,8 +111,8 @@ static void spi_keyboard_fn(struct work_struct *work) {
       for (size_t i = 0; i < bytes; ++i) {
         memset(&xs[i], 0, sizeof(xs[i]));
         xs[i].len = 1;
-        xs[i].rx_buf = &buf[i + write_offset];
         xs[i].tx_buf = &buf[BUF_SIZE - 1];
+        xs[i].rx_buf = &buf[i + write_offset];
         xs[i].cs_change = true;
         xs[i].delay.value = 0;
         xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
@@ -133,15 +132,21 @@ static void spi_keyboard_fn(struct work_struct *work) {
       printk(KERN_ALERT "Read 0x%x", buf[i]);
     }
 
+    bytes += write_offset;
     curr_buf = buf + 1;
     consumed_bytes = 0;
     do {
       memset(&segment, 0, sizeof(segment));
       bytes -= consumed_bytes;
       consumed_bytes = DeSerializeSegment(curr_buf, bytes, &segment);
-      if (segment.field_type == IBP_KEYCODE) {
-        input_report_key(button_dev, KEY_1, segment.field_data.keycodes.keycodes[0] == 0x1e);
-        input_sync(button_dev);
+      printk("Segment type: %d, consumed_bytes: %d", segment.field_type,
+             consumed_bytes);
+      if (consumed_bytes > 0) {
+        if (segment.field_type == IBP_KEYCODE) {
+          input_report_key(button_dev, KEY_1,
+                           segment.field_data.keycodes.keycodes[0] == 0x1e);
+          input_sync(button_dev);
+        }
       }
     } while (consumed_bytes > 0);
 
@@ -232,6 +237,7 @@ static void spi_keyboard_fn(struct work_struct *work) {
     */
   bad:
     kfree(buf);
+    kfree(xs);
   }
   mod_timer(&timer, jiffies + msecs_to_jiffies(INTERVAL_MS));
 }
