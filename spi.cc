@@ -61,25 +61,36 @@ void __no_inline_not_in_flash_func(SPIDeviceRXIRQ)(
     }
   }
 
-  if (packet_size <= 0 || queue_size >= packet_size) {
-    // Put some initial data to the TX FIFO so that the IRQ can trigger.
-    if (queue_size >= packet_size) {
-      // for (const uint8_t* head = tx_queue->Peak();
-      //      spi_is_writable(spi_port) && head != NULL;
-      //      tx_queue->Pop(), head = tx_queue->Peak()) {
-      //   spi_get_hw(spi_port)->dr = *head;
-      //   gpio_put(GPIO_DEBUG_PIN_0, 0);
-      // }
-      while (spi_is_writable(spi_port) && tx_buf_idx < tx_buf_size) {
-        spi_get_hw(spi_port)->dr = tx_buf[tx_buf_idx++];
-        gpio_put(GPIO_DEBUG_PIN_0, 0);
-      }
+  if (queue_size >= packet_size) {
+    while (spi_is_writable(spi_port) && tx_buf_idx < tx_buf_size) {
+      spi_get_hw(spi_port)->dr = tx_buf[tx_buf_idx++];
+      gpio_put(GPIO_DEBUG_PIN_0, 0);
     }
-
     // We'll leave the RX IRQ disabled here, but enable the TX IRQ
     spi_get_hw(spi_port)->imsc |= 0b1000;  // Enable TX IRQ
     queue->WakeupTaskISR();
+  } else if (packet_size <= 0) {
+    queue->WakeupTaskISR();
   } else {
+  // if (packet_size <= 0 || queue_size >= packet_size) {
+  //   // Put some initial data to the TX FIFO so that the IRQ can trigger.
+  //   if (queue_size >= packet_size) {
+  //     // for (const uint8_t* head = tx_queue->Peak();
+  //     //      spi_is_writable(spi_port) && head != NULL;
+  //     //      tx_queue->Pop(), head = tx_queue->Peak()) {
+  //     //   spi_get_hw(spi_port)->dr = *head;
+  //     //   gpio_put(GPIO_DEBUG_PIN_0, 0);
+  //     // }
+  //     while (spi_is_writable(spi_port) && tx_buf_idx < tx_buf_size) {
+  //       spi_get_hw(spi_port)->dr = tx_buf[tx_buf_idx++];
+  //       gpio_put(GPIO_DEBUG_PIN_0, 0);
+  //     }
+  //   }
+
+  //   // We'll leave the RX IRQ disabled here, but enable the TX IRQ
+  //   spi_get_hw(spi_port)->imsc |= 0b1000;  // Enable TX IRQ
+  //   queue->WakeupTaskISR();
+  // } else {
     spi_get_hw(spi_port)->imsc |= 0b0100;  // Reenable IRQ
   }
 }
@@ -198,6 +209,20 @@ Status IBPSPIDevice::IBPInitialize() {
 
 void IBPSPIDevice::DeviceTask() {
   while (true) {
+
+    // // Clear the TX queue in case anything goes wrong.
+    // while (tx_queue_->Pop())
+    //   ;
+
+    // LOG_INFO("IBP: I");
+
+    // If there are data stuck in TX FIFO, reset the SPI controller. Seems like
+    // the only way to clear up the TX FIFO.
+    if (!TXEmpty()) {
+      InitSPI(/*slave=*/true);
+      LOG_INFO("IBP: LLL");
+    }
+
     rx_buf_size = 0;
     tx_buf_size = 0;
     tx_buf_idx = 0;
@@ -281,19 +306,6 @@ void IBPSPIDevice::DeviceTask() {
 
     LOG_INFO("IBP: D");
 
-    // Clear the TX queue in case anything goes wrong.
-    while (tx_queue_->Pop())
-      ;
-
-    LOG_INFO("IBP: I");
-
-    // If there are data stuck in TX FIFO, reset the SPI controller. Seems like
-    // the only way to clear up the TX FIFO.
-    if (!TXEmpty()) {
-      InitSPI(/*slave=*/true);
-      LOG_INFO("IBP: LLL");
-    }
-
     // // Get the new out-bound packet.
     // const std::string out_packet = GetOutPacket();
     // if (out_packet.size() > kQueueSize || out_packet.empty()) {
@@ -306,7 +318,6 @@ void IBPSPIDevice::DeviceTask() {
     //   tx_queue_->Push(byte);
     // }
 
-    LOG_INFO("IBP: B");
     // // Wait for inbound packet
     // do {
     //   xTaskNotifyWait(/*do not clear notification on enter*/ 0,

@@ -9,7 +9,7 @@
 
 #include "../ibp_lib.h"
 
-#define INTERVAL_MS 8
+#define INTERVAL_MS 800
 
 static struct input_dev *button_dev;
 static struct timer_list timer;
