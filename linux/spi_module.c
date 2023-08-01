@@ -140,7 +140,7 @@ static void spi_keyboard_fn(struct work_struct *work) {
       bytes -= consumed_bytes;
       consumed_bytes = DeSerializeSegment(curr_buf, bytes, &segment);
       if (segment.field_type == IBP_KEYCODE) {
-        input_report_key(button_dev, KEY_1, 1);
+        input_report_key(button_dev, KEY_1, segment.field_data.keycode[0] == 0x1e);
         input_sync(button_dev);
       }
     } while (consumed_bytes > 0);
