@@ -9,7 +9,7 @@
 
 #include "../ibp_lib.h"
 
-#define INTERVAL_MS 800
+#define INTERVAL_MS 10
 
 static struct input_dev *button_dev;
 static struct timer_list timer;
@@ -27,7 +27,7 @@ static void spi_keyboard_fn(struct work_struct *work) {
     int8_t bytes;
     int8_t consumed_bytes;
 
-    if (!buf) {
+    if (!buf || !xs) {
       printk(KERN_ALERT "Failed to allocate buffer");
       return;
     }
@@ -91,16 +91,6 @@ static void spi_keyboard_fn(struct work_struct *work) {
       }
     }
 
-    // // Now read the first byte of the response packet
-    // memset(buf, 0, BUF_SIZE);
-    // memset(&xs[0], 0, sizeof(xs[0]));
-    // xs[0].len = 1;
-    // xs[0].tx_buf = &buf[10];
-    // xs[0].rx_buf = &buf[0];
-    // if (spi_sync_transfer(spi_device, &xs[0], 1) < 0) {
-    //   printk(KERN_ALERT "Failed to write");
-    //   goto bad;
-    // }
     bytes = GetTransactionTotalSize(buf[0]);
     if (bytes < 0) {
       printk(KERN_ALERT "Invalid response packet header %x", buf[0]);
@@ -108,8 +98,9 @@ static void spi_keyboard_fn(struct work_struct *work) {
     }
     bytes -= write_offset;
     if (bytes > 0) {
+      memset(xs, 0, sizeof(xs[0]) * bytes);
       for (size_t i = 0; i < bytes; ++i) {
-        memset(&xs[i], 0, sizeof(xs[i]));
+        // memset(&xs[i], 0, sizeof(xs[i]));
         xs[i].len = 1;
         xs[i].tx_buf = &buf[BUF_SIZE - 1];
         xs[i].rx_buf = &buf[i + write_offset];
@@ -128,10 +119,6 @@ static void spi_keyboard_fn(struct work_struct *work) {
       }
     }
 
-    for (size_t i = 0; i < bytes + write_offset; ++i) {
-      printk(KERN_ALERT "Read 0x%x", buf[i]);
-    }
-
     bytes += write_offset;
     curr_buf = buf + 1;
     consumed_bytes = 0;
@@ -139,102 +126,20 @@ static void spi_keyboard_fn(struct work_struct *work) {
       memset(&segment, 0, sizeof(segment));
       bytes -= consumed_bytes;
       consumed_bytes = DeSerializeSegment(curr_buf, bytes, &segment);
-      printk("Segment type: %d, consumed_bytes: %d", segment.field_type,
-             consumed_bytes);
+      // printk("Segment type: %d, consumed_bytes: %d", segment.field_type,
+      //        consumed_bytes);
       if (consumed_bytes > 0) {
         if (segment.field_type == IBP_KEYCODE) {
           input_report_key(button_dev, KEY_1,
                            segment.field_data.keycodes.keycodes[0] == 0x1e);
           input_sync(button_dev);
         }
+      } else {
+        input_report_key(button_dev, KEY_1, 0);
+        input_sync(button_dev);
       }
     } while (consumed_bytes > 0);
 
-    /*
-        /////////////
-
-        buf[0] = 5;
-        buf[1] = 0x1b;
-        buf[2] = 0x2b;
-        buf[3] = 0x3b;
-        buf[4] = 0x4b;
-
-        struct spi_transfer xs[32];
-        struct spi_transfer x;
-
-        for (size_t i = 0; i < 5; ++i) {
-          memset(&xs[i], 0, sizeof(xs[i]));
-          xs[i].len = 1;
-          xs[i].tx_buf = &buf[i];
-          xs[i].rx_buf = &buf[32];
-          xs[i].cs_change = true;
-          xs[i].delay.value = 0;
-          xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
-          xs[i].cs_change_delay.value = 0;
-          xs[i].cs_change_delay.unit = SPI_DELAY_UNIT_SCK;
-          xs[i].word_delay.value = 0;
-          xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
-        }
-        if (spi_sync_transfer(spi_device, xs, 5) < 0) {
-          printk(KERN_ALERT "Failed to write");
-          goto bad;
-        }
-
-        uint8_t *read_buf = buf + 32;
-        read_buf[0] = 0;
-
-        for (size_t i = 0; i < 64; ++i) {
-          memset(&x, 0, sizeof(x));
-          x.len = 1;
-          x.tx_buf = &buf[10];
-          x.rx_buf = &read_buf[0];
-          if (spi_sync_transfer(spi_device, &x, 1) < 0) {
-            printk(KERN_ALERT "Failed to write");
-            goto bad;
-          }
-          if (read_buf[0]) {
-            break;
-          }
-        }
-        if (read_buf[0] > 16) {
-          read_buf[0] = 16;
-        }
-        for (size_t i = 0; i < read_buf[0]; ++i) {
-          memset(&xs[i], 0, sizeof(xs[i]));
-          xs[i].len = 1;
-          xs[i].tx_buf = &buf[10];
-          xs[i].rx_buf = &read_buf[i + 1];
-          xs[i].cs_change = true;
-          xs[i].delay.value = 0;
-          xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
-          xs[i].cs_change_delay.value = 0;
-          xs[i].cs_change_delay.unit = SPI_DELAY_UNIT_SCK;
-          xs[i].word_delay.value = 0;
-          xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
-        }
-        xs[read_buf[0] - 1].cs_change = false;
-        if (spi_sync_transfer(spi_device, xs, read_buf[0]) < 0) {
-          printk(KERN_ALERT "Failed to write");
-          goto bad;
-        }
-
-    #if INTERVAL_MS > 800
-        printk(KERN_ALERT "NEW MESSAGE");
-        for (size_t i = 0; i < read_buf[0] && i < 16; ++i) {
-          printk(KERN_ALERT "Read value %02x", read_buf[i]);
-        }
-    #endif
-
-        if (read_buf[2] == 0x2c) {
-          input_report_key(button_dev, KEY_1, (int)read_buf[1] > 0);
-          input_sync(button_dev);
-        } else {
-    #if INTERVAL_MS > 800
-          printk(KERN_ALERT "Pico says magic number is not right");
-    #endif
-        }
-
-    */
   bad:
     kfree(buf);
     kfree(xs);
