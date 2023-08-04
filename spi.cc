@@ -7,6 +7,7 @@
 
 #define GPIO_DEBUG_PIN_0 3
 #define GPIO_DEBUG_PIN_1 4
+#define GPIO_DEBUG_PIN_2 5
 
 namespace {
 
@@ -69,28 +70,9 @@ void __no_inline_not_in_flash_func(SPIDeviceRXIRQ)(
     spi_get_hw(spi_port)->imsc |= 0b1000;  // Enable TX IRQ
     queue->WakeupTaskISR();
   } else if (packet_size < 0) {
-    gpio_put(GPIO_DEBUG_PIN_1, 1);
+    gpio_put(GPIO_DEBUG_PIN_2, 1);
     queue->WakeupTaskISR();
   } else {
-    // if (packet_size <= 0 || queue_size >= packet_size) {
-    //   // Put some initial data to the TX FIFO so that the IRQ can trigger.
-    //   if (queue_size >= packet_size) {
-    //     // for (const uint8_t* head = tx_queue->Peak();
-    //     //      spi_is_writable(spi_port) && head != NULL;
-    //     //      tx_queue->Pop(), head = tx_queue->Peak()) {
-    //     //   spi_get_hw(spi_port)->dr = *head;
-    //     //   gpio_put(GPIO_DEBUG_PIN_0, 0);
-    //     // }
-    //     while (spi_is_writable(spi_port) && tx_buf_idx < tx_buf_size) {
-    //       spi_get_hw(spi_port)->dr = tx_buf[tx_buf_idx++];
-    //       gpio_put(GPIO_DEBUG_PIN_0, 0);
-    //     }
-    //   }
-
-    //   // We'll leave the RX IRQ disabled here, but enable the TX IRQ
-    //   spi_get_hw(spi_port)->imsc |= 0b1000;  // Enable TX IRQ
-    //   queue->WakeupTaskISR();
-    // } else {
     spi_get_hw(spi_port)->imsc |= 0b0100;  // Reenable IRQ
   }
 }
@@ -202,6 +184,8 @@ Status IBPSPIDevice::IBPInitialize() {
   gpio_set_dir(GPIO_DEBUG_PIN_0, GPIO_OUT);
   gpio_init(GPIO_DEBUG_PIN_1);
   gpio_set_dir(GPIO_DEBUG_PIN_1, GPIO_OUT);
+  gpio_init(GPIO_DEBUG_PIN_2);
+  gpio_set_dir(GPIO_DEBUG_PIN_2, GPIO_OUT);
 
   return OK;
 }
@@ -239,6 +223,7 @@ void IBPSPIDevice::DeviceTask() {
 
     gpio_put(GPIO_DEBUG_PIN_0, 0);
     gpio_put(GPIO_DEBUG_PIN_1, 0);
+    gpio_put(GPIO_DEBUG_PIN_2, 0);
     // Clear RX FIFO
     while (spi_is_readable(spi_port_)) {
       (void)spi_get_hw(spi_port_)->dr;
@@ -276,9 +261,9 @@ void IBPSPIDevice::DeviceTask() {
     }
     expected_bytes = GetTransactionTotalSize(input_buffer[0]);
     if (buffer_bytes == 0 || expected_bytes < 0) {
-      gpio_put(GPIO_DEBUG_PIN_1, 1);
       LOG_ERROR("Invalid in bound packet, %d, %d, %d", buffer_bytes,
                 expected_bytes, rx_buf_size);
+      // gpio_put(GPIO_DEBUG_PIN_2, 1);
       vTaskDelay(kTicksToDelay);
       continue;
     }
