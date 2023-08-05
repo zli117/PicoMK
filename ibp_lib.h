@@ -8,6 +8,11 @@
 #include <stdint.h>
 #endif
 
+#define IBP_MAX_PACKET_LEN 128
+#define IBP_MAX_KEYCODES 8
+#define IBP_MAX_ACTIVELAYERS 8
+#define IBP_INVALID_PACKET_DELAY_MS 1
+
 typedef enum {
   IBP_KEYCODE = 0,
   IBP_CONSUMER,
@@ -16,13 +21,10 @@ typedef enum {
   IBP_TOTAL,
 } FieldType;
 
-#define IBPKeyCodesMAX 8
-#define IBPActiveLayersMAX 8
-
 typedef struct {
   uint8_t modifier_bitmask;  // Same as the USB HID.
   uint8_t num_keycodes : 3;
-  uint8_t keycodes[IBPKeyCodesMAX];
+  uint8_t keycodes[IBP_MAX_KEYCODES];
 } IBPKeyCodes;
 
 typedef struct {
@@ -44,7 +46,7 @@ typedef struct {
 
 typedef struct {
   uint8_t num_activated_layers : 3;
-  uint8_t active_layers[IBPActiveLayersMAX];
+  uint8_t active_layers[IBP_MAX_ACTIVELAYERS];
 } IBPLayers;
 
 typedef union {

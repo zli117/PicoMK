@@ -152,7 +152,7 @@ int8_t SerializeSegments(const IBPSegment* segments, uint8_t num_segments,
 
 static bool DeSerializeKeycodes(const uint8_t* buf, uint8_t buf_size,
                                 IBPSegment* keycodes_seg) {
-  if (buf_size > IBPKeyCodesMAX + 1) {
+  if (buf_size > IBP_MAX_KEYCODES + 1) {
     return false;
   }
   keycodes_seg->field_data.keycodes.modifier_bitmask = buf[0];
@@ -196,7 +196,7 @@ static bool DeSerializeMouse(const uint8_t* buf, uint8_t buf_size,
 
 static bool DeSerializeLayer(const uint8_t* buf, uint8_t buf_size,
                              IBPSegment* layer_seg) {
-  if (buf_size > IBPActiveLayersMAX) {
+  if (buf_size > IBP_MAX_ACTIVELAYERS) {
     return false;
   }
   layer_seg->field_data.layers.num_activated_layers = buf_size;

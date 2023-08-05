@@ -24,7 +24,7 @@ void IBPDeviceBase::SendKeycode(uint8_t keycode) {
   auto& keycodes = segments_[IBP_KEYCODE].field_data.keycodes;
   if (keycode >= HID_KEY_CONTROL_LEFT && keycode <= HID_KEY_GUI_RIGHT) {
     keycodes.modifier_bitmask |= (1 << (keycode - HID_KEY_CONTROL_LEFT));
-  } else if (keycodes.num_keycodes < IBPKeyCodesMAX) {
+  } else if (keycodes.num_keycodes < IBP_MAX_KEYCODES) {
     keycodes.keycodes[keycodes.num_keycodes++] = keycode;
   }
   has_update_[IBP_KEYCODE] = true;
@@ -53,7 +53,7 @@ void IBPDeviceBase::ChangeActiveLayers(const std::vector<bool>& layers) {
     if (layers[i]) {
       output_layers.active_layers[output_layers.num_activated_layers++] = i;
     }
-    if (output_layers.num_activated_layers >= IBPActiveLayersMAX) {
+    if (output_layers.num_activated_layers >= IBP_MAX_ACTIVELAYERS) {
       break;
     }
   }
