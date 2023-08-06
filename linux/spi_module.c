@@ -168,6 +168,7 @@ static void DeleteTimer(void) {
   if (!timer_initialized) {
     goto done;
   }
+  cancel_work_sync(&workqueue);
   del_timer_sync(&timer);
   timer_initialized = false;
 done:
