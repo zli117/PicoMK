@@ -90,7 +90,8 @@
     "lfs.h": "c",
     "netfwd": "cpp",
     "ratio": "cpp",
-    "span": "cpp"
+    "span": "cpp",
+    "ibp_lib.h": "c"
   },
   "C_Cpp.intelliSenseEngineFallback": "enabled",
   "C_Cpp.files.exclude": {

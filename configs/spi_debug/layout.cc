@@ -11,7 +11,7 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
     {
         [0] =
             {
-                {K(K_1)},
+                {K(K_2)},
             },
 };
 

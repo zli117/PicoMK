@@ -80,7 +80,6 @@ void SPIDeviceTXIRQ(IBPIRQData* irq_data) {
 
   if (irq_data_local.tx_buf_idx >= irq_data_local.tx_packet_size) {
     // Only wake up the task when the queue is empty.
-    // queue->WakeupTaskISR();
     xSemaphoreGiveFromISR(irq_data_local.tx_handle,
                           /*pxHigherPriorityTaskWoken=*/NULL);
     // Leave TX IRQ disabled.
@@ -109,6 +108,7 @@ void SPI1DeviceIRQ() {
 
 void SPI1HostIRQ() {}
 }
+
 }  // namespace
 
 void IBPIRQData::Clear() {
@@ -192,7 +192,7 @@ Status IBPSPIDevice::IBPInitialize() {
 
 void IBPSPIDevice::DeviceTask() {
   if (irq_data_ == NULL) {
-    LOG_ERROR("irq_data_ is NULL");
+    LOG_ERROR("irq_data_ is NULL. Terminate the IBP device task");
     return;
   }
 
@@ -242,7 +242,6 @@ void IBPSPIDevice::DeviceTask() {
 
     if (irq_data_->rx_packet_size < 0) {
       LOG_ERROR("Invalid in bound packet");
-      // gpio_put(GPIO_DEBUG_PIN_2, 1);
       vTaskDelay(pdMS_TO_TICKS(IBP_INVALID_PACKET_DELAY_MS));
       continue;
     }
