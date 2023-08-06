@@ -43,13 +43,13 @@ static int SPIWriteFromBuffer(size_t num_bytes) {
   return spi_sync_transfer(spi_dev, xs, num_bytes);
 }
 
-static int SPIReadToBuffer(size_t num_bytes) {
+static int SPIReadToBuffer(size_t num_bytes, size_t start_offset) {
   memset(xs, 0, sizeof(xs[0]) * num_bytes);
   buffer[BUF_SIZE - 1] = 0;
   for (size_t i = 0; i < num_bytes; ++i) {
     xs[i].len = 1;
     xs[i].tx_buf = &buffer[BUF_SIZE - 1];
-    xs[i].rx_buf = &buffer[i];
+    xs[i].rx_buf = &buffer[i + start_offset];
     xs[i].cs_change = true;
     xs[i].delay.value = 0;
     xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
@@ -92,7 +92,7 @@ static void SPIPullFn(struct work_struct *work) {
   static_assert(READ_BYTES_FOR_HEADER >= 1 &&
                 READ_BYTES_FOR_HEADER < IBP_MAX_PACKET_LEN);
   memset(buffer, 0, BUF_SIZE);
-  if (SPIReadToBuffer(READ_BYTES_FOR_HEADER) < 0) {
+  if (SPIReadToBuffer(READ_BYTES_FOR_HEADER, /*start_offset=*/0) < 0) {
     printk(KERN_WARNING "Failed to read");
     goto label1;
   }
@@ -113,7 +113,7 @@ static void SPIPullFn(struct work_struct *work) {
   }
   const int8_t remaining_bytes = response_bytes - write_offset;
   if (remaining_bytes > 0) {
-    if (SPIReadToBuffer(remaining_bytes)) {
+    if (SPIReadToBuffer(remaining_bytes, write_offset)) {
       printk(KERN_WARNING "Failed to receive remaining response.");
       goto label1;
     }
@@ -125,12 +125,11 @@ static void SPIPullFn(struct work_struct *work) {
   int8_t consumed_bytes =
       DeSerializeSegment(curr_buf, remaining_parse_bytes, &segment);
   while (consumed_bytes > 0) {
-    if (segment.field_type >= IBP_TOTAL) {
-      continue;
+    if (segment.field_type < IBP_TOTAL) {
+      segments[segment.field_type] = segment;
     }
-    segments[segment.field_type] = segment;
     remaining_parse_bytes -= consumed_bytes;
-    memset(&segment, 0, sizeof(segment));
+    memset(&segment, 0, sizeof(IBPSegment));
     consumed_bytes =
         DeSerializeSegment(curr_buf, remaining_parse_bytes, &segment);
   }
