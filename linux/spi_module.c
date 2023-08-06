@@ -81,21 +81,6 @@ static void SPIPullFn(struct work_struct *work) {
     goto label1;
   }
 
-  // for (size_t i = 0; i < output_bytes; ++i) {
-  //   memset(&xs[i], 0, sizeof(xs[i]));
-  //   xs[i].len = 1;
-  //   xs[i].tx_buf = &buffer[i];
-  //   xs[i].rx_buf = &buffer[BUF_SIZE - 1];
-  //   xs[i].cs_change = true;
-  //   xs[i].delay.value = 0;
-  //   xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
-  //   xs[i].cs_change_delay.value = 0;
-  //   xs[i].cs_change_delay.unit = SPI_DELAY_UNIT_SCK;
-  //   xs[i].word_delay.value = 0;
-  //   xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
-  // }
-  // xs[output_bytes - 1].cs_change = false;
-  // if (spi_sync_transfer(spi_dev, xs, output_bytes) < 0) {
   if (SPIWriteFromBuffer(output_bytes) < 0) {
     printk(KERN_WARNING "Failed to write");
     goto label1;
@@ -107,21 +92,6 @@ static void SPIPullFn(struct work_struct *work) {
   static_assert(READ_BYTES_FOR_HEADER >= 1 &&
                 READ_BYTES_FOR_HEADER < IBP_MAX_PACKET_LEN);
   memset(buffer, 0, BUF_SIZE);
-  // memset(xs, 0, sizeof(xs[0]) * READ_BYTES_FOR_HEADER);
-  // for (size_t i = 0; i < READ_BYTES_FOR_HEADER; ++i) {
-  //   xs[i].len = 1;
-  //   xs[i].tx_buf = &buffer[BUF_SIZE - 1];
-  //   xs[i].rx_buf = &buffer[i];
-  //   xs[i].cs_change = true;
-  //   xs[i].delay.value = 0;
-  //   xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
-  //   xs[i].cs_change_delay.value = 0;
-  //   xs[i].cs_change_delay.unit = SPI_DELAY_UNIT_SCK;
-  //   xs[i].word_delay.value = 0;
-  //   xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
-  // }
-  // xs[READ_BYTES_FOR_HEADER - 1].cs_change = false;
-  // if (spi_sync_transfer(spi_dev, xs, READ_BYTES_FOR_HEADER) < 0) {
   if (SPIReadToBuffer(READ_BYTES_FOR_HEADER) < 0) {
     printk(KERN_WARNING "Failed to read");
     goto label1;
@@ -143,21 +113,6 @@ static void SPIPullFn(struct work_struct *work) {
   }
   const int8_t remaining_bytes = response_bytes - write_offset;
   if (remaining_bytes > 0) {
-    // memset(xs, 0, sizeof(xs[0]) * remaining_bytes);
-    // for (size_t i = 0; i < remaining_bytes; ++i) {
-    //   xs[i].len = 1;
-    //   xs[i].tx_buf = &buffer[BUF_SIZE - 1];
-    //   xs[i].rx_buf = &buffer[i + write_offset];
-    //   xs[i].cs_change = true;
-    //   xs[i].delay.value = 0;
-    //   xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
-    //   xs[i].cs_change_delay.value = 0;
-    //   xs[i].cs_change_delay.unit = SPI_DELAY_UNIT_SCK;
-    //   xs[i].word_delay.value = 0;
-    //   xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
-    // }
-    // xs[remaining_bytes - 1].cs_change = false;
-    // if (spi_sync_transfer(spi_dev, xs, remaining_bytes) < 0) {
     if (SPIReadToBuffer(remaining_bytes)) {
       printk(KERN_WARNING "Failed to receive remaining response.");
       goto label1;
@@ -184,6 +139,7 @@ label1:
   // We'll update the inputs even when something bad has happened. The input may
   // just be empty.
   OnNewKeycodes(&segments[IBP_KEYCODE].field_data.keycodes);
+  OnNewConsumerKeycodes(&segments[IBP_CONSUMER].field_data.consumer_keycode);
 
 label2:
   mod_timer(&timer, jiffies + msecs_to_jiffies(INTERVAL_MS));
@@ -200,7 +156,6 @@ static int SetupTimer(void) {
   if (timer_initialized) {
     goto done;
   }
-  printk(KERN_ALERT "Setup timer");
   timer_setup(&timer, TimerCallback, 0);
   mod_timer(&timer, jiffies + msecs_to_jiffies(INTERVAL_MS));
   timer_initialized = true;
@@ -214,7 +169,6 @@ static void DeleteTimer(void) {
   if (!timer_initialized) {
     goto done;
   }
-  printk(KERN_ALERT "Delete timer");
   del_timer_sync(&timer);
   timer_initialized = false;
 done:
@@ -234,7 +188,6 @@ static const struct spi_device_id picomk_spi_table[] = {{"spi_board_v0", 0},
 MODULE_DEVICE_TABLE(spi, picomk_spi_table);
 
 static void picomk_spi_remove(struct spi_device *spi) {
-  printk(KERN_ALERT "SPI remove.");
   DeleteTimer();
   DestroyKeyboardDevice();
   if (spi_dev) {
@@ -255,7 +208,7 @@ static void picomk_spi_shutdown(struct spi_device *spi) {
 }
 
 static int picomk_spi_probe(struct spi_device *spi) {
-  printk(KERN_ALERT "PicoMK SPI IBP driver inserted.");
+  printk(KERN_INFO "PicoMK SPI IBP driver inserted.");
   spi_dev = spi;
   spi_dev->bits_per_word = 8;
   spi_dev->max_speed_hz = 1000000;

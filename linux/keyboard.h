@@ -1,8 +1,6 @@
 #ifndef KEYBOARD_H_
 #define KEYBOARD_H_
 
-#include <linux/input.h>
-
 #include "../ibp_lib.h"
 
 int CreateKeyboardDevice(int (*open)(void), void (*close)(void));

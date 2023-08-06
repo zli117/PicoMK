@@ -1,5 +1,7 @@
 #include "keyboard.h"
 
+#include <linux/input.h>
+
 // Copied from drivers/hid/usbhid/usbkbd.c
 static const uint8_t usb_kbd_keycode[256] = {
     0,   0,   0,   0,   30,  48,  46,  32,  18,  33,  34,  35,  23,  36,  37,
@@ -112,7 +114,6 @@ int OnNewKeycodes(IBPKeyCodes* keys) {
     return 0;
   }
   spin_unlock(&keyboard_device_lock);
-  printk(KERN_ALERT "Key pressed");
 
   for (int i = 0; i < 8; i++) {
     input_report_key(keyboard_device.dev, usb_kbd_keycode[i + 224],
@@ -124,7 +125,6 @@ int OnNewKeycodes(IBPKeyCodes* keys) {
       const uint8_t keycode =
           usb_kbd_keycode[keyboard_device.old_keys.keycodes[i]];
       if (keycode) {
-        printk(KERN_ALERT "Released keycode: %d\n", keycode);
         input_report_key(keyboard_device.dev, keycode, 0);
       }
     }
@@ -136,7 +136,6 @@ int OnNewKeycodes(IBPKeyCodes* keys) {
             keyboard_device.old_keys.num_keycodes) {
       const uint8_t keycode = usb_kbd_keycode[keys->keycodes[i]];
       if (keycode) {
-        printk(KERN_ALERT "Pressed keycode: %d\n", keycode);
         input_report_key(keyboard_device.dev, keycode, 1);
       }
     }
