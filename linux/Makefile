@@ -11,3 +11,6 @@ clean:
 
 install:
 	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules_install
+
+device_tree:
+	dtc -O dtb -o spi1-picomk.dtbo spi1-picomk-overlay.dts

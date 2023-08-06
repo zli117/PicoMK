@@ -1,0 +1,62 @@
+/dts-v1/;
+/plugin/;
+
+
+/ {
+	compatible = "brcm,bcm2835";
+
+	fragment@0 {
+		target = <&gpio>;
+		__overlay__ {
+			spi1_pins: spi1_pins {
+				brcm,pins = <19 20 21>;
+				brcm,function = <3>; /* alt4 */
+			};
+
+			spi1_cs_pins: spi1_cs_pins {
+				brcm,pins = <16>;
+				brcm,function = <1>; /* output */
+			};
+		};
+	};
+
+	fragment@1 {
+		target = <&spi1>;
+		frag1: __overlay__ {
+			/* needed to avoid dtc warning */
+			#address-cells = <1>;
+			#size-cells = <0>;
+			pinctrl-names = "default";
+			pinctrl-0 = <&spi1_pins &spi1_cs_pins>;
+			cs-gpios = <&gpio 16 1>;
+			status = "okay";
+
+			picomk: picomk@0 {
+				compatible = "picomk,spi_board_v0";
+				reg = <0>;      /* CE0 */
+				#address-cells = <1>;
+				#size-cells = <0>;
+				spi-max-frequency = <1000000>;
+				status = "okay";
+			};
+		};
+	};
+
+	fragment@2 {
+		target = <&aux>;
+		__overlay__ {
+			status = "okay";
+		};
+	};
+
+	fragment@3 {
+		target = <&spidev1>;
+		__overlay__ {
+			status = "disabled";
+		};
+	};
+
+	__overrides__ {
+		speed     = <&picomk>,"spi-max-frequency:0";	
+	};
+};

@@ -67,3 +67,6 @@ dkms.conf
 
 # Debugger
 *.cortex-debug*
+
+# Device tree
+*.dtbo
