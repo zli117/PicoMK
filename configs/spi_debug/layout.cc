@@ -20,8 +20,6 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 // Compile time validation and conversion for the key matrix. Must include this.
 #include "layout_internal.inc"
 
-// Only register the key scanner to save binary size
-
 class IBPSPIDeviceDebug : public IBPSPIDevice {
  public:
   static std::shared_ptr<IBPSPIDeviceDebug> GetIBPSPIDeviceDebug(

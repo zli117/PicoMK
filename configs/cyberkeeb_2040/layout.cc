@@ -23,10 +23,12 @@
 #define CONFIG_NUM_PHY_ROWS 6
 #define CONFIG_NUM_PHY_COLS 15
 
-// This is a special layer that rotary encoder might have different behaviors.
-// Also optional.
+// This is a special layer that changes the behavior of the joystick (i.e. from
+// moving the mouse to pan and scroll). Also optional.
 
 #define ALT_LY 4
+
+#define SPI_LY 5
 
 // For a layout.cc file, the followings are required: kGPIOMatrix, and
 // kKeyCodes. They need to have exactly the same name and type. They also need
@@ -54,8 +56,8 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
     {K(K_MUTE),  K(K_GRAVE),  K(K_1),     K(K_2),     K(K_3),     K(K_4),     K(K_5),     K(K_6),     K(K_7),     K(K_8),     K(K_9),     K(K_0),     K(K_MINUS), K(K_EQUAL), K(K_BACKS)},
     {K(K_ESC),   K(K_TAB),    K(K_Q),     K(K_W),     K(K_E),     K(K_R),     K(K_T),     K(K_Y),     K(K_U),     K(K_I),     K(K_O),     K(K_P),     K(K_BRKTL), K(K_BRKTR), K(K_BKSL)},
     {K(K_DEL),   K(K_CTR_L),  K(K_A),     K(K_S),     K(K_D),     K(K_F),     K(K_G),     K(K_H),     K(K_J),     K(K_K),     K(K_L),     K(K_SEMIC), K(K_APST),  K(K_ENTER)},
-    {K(K_INS),   K(K_SFT_L),  K(K_Z),     K(K_X),     K(K_C),     K(K_V),     K(K_B),     K(K_N),     K(K_M),     K(K_COMMA), K(K_PERID), K(K_SLASH), K(K_SFT_R)},
-    {MO(1),      MO(ALT_LY), K(K_GUI_L),  K(K_ALT_L), K(K_SPACE), MO(2),      K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
+    {TG(SPI_LY), K(K_SFT_L),  K(K_Z),     K(K_X),     K(K_C),     K(K_V),     K(K_B),     K(K_N),     K(K_M),     K(K_COMMA), K(K_PERID), K(K_SLASH), K(K_SFT_R)},
+    {MO(1),      MO(ALT_LY),  K(K_GUI_L), K(K_ALT_L), K(K_SPACE), MO(2),      K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
     {CK(MSE_L),  CK(MSE_M),   CK(MSE_R)}
   },
   [1]={
@@ -63,7 +65,7 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
     {K(K_ESC),   K(K_TAB),    K(K_Q),     K(K_W),     K(K_E),     K(K_R),     K(K_T),     K(K_Y),     K(K_U),     K(K_I),     K(K_O),     K(K_P),     K(K_BRKTL), K(K_BRKTR), K(K_BKSL)},
     {K(K_DEL),   K(K_CAPS),   K(K_A),     K(K_S),     K(K_D),     K(K_F),     K(K_G),     K(K_H),     K(K_J),     K(K_K),     K(K_L),     K(K_SEMIC), K(K_APST),  K(K_ENTER)},
     {MO(3),      K(K_SFT_L),  K(K_Z),     K(K_X),     K(K_C),     K(K_V),     K(K_B),     K(K_N),     K(K_M),     K(K_COMMA), K(K_PERID), K(K_SLASH), K(K_SFT_R)},
-    {______,     CONFIG,     TG(2),       K(K_ALT_L), K(K_SPACE), ______,     K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
+    {______,     CONFIG,      TG(2),      K(K_ALT_L), K(K_SPACE), ______,     K(K_ARR_L), K(K_ARR_D), K(K_ARR_U), K(K_ARR_R)},
   },
   [2]={
     {CK(CONFIG_SEL)},
@@ -75,6 +77,7 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
     {CK(BOOTSEL)},
   },
   [ALT_LY]={},
+  [SPI_LY]={},
 };
 
 // clang-format on
@@ -105,6 +108,55 @@ class FancierScreen : public virtual SSD1306Display,
   }
 };
 
+class IBPSPIOutputDevice : public IBPSPIDevice {
+ public:
+  static std::shared_ptr<IBPSPIOutputDevice> GetIBPSPIDeviceDebug(
+      IBPSPIArgs args, uint8_t active_layer) {
+    static std::shared_ptr<IBPSPIOutputDevice> instance_ = NULL;
+    if (instance_ == NULL) {
+      instance_ = std::shared_ptr<IBPSPIOutputDevice>(
+          new IBPSPIOutputDevice(args, active_layer));
+    }
+    return instance_;
+  }
+
+  void ChangeActiveLayers(const std::vector<bool>& layers) override {
+    IBPSPIDevice::ChangeActiveLayers(layers);
+    layer_active_ = layers.size() > active_layer_ && layers[active_layer_];
+  }
+
+  void FinalizeInputTickOutput() {
+    if (layer_active_) {
+      IBPSPIDevice::FinalizeInputTickOutput();
+    }
+  }
+
+  void InputTick() {
+    if (layer_active_) {
+      IBPSPIDevice::InputTick();
+    }
+  }
+
+ private:
+  const uint8_t active_layer_;
+  bool layer_active_;
+
+  IBPSPIOutputDevice(IBPSPIArgs args, uint8_t active_layer)
+      : IBPSPIDevice(args), active_layer_(active_layer), layer_active_(false) {}
+};
+
+Status RegisterSPIOut(uint8_t tag, IBPSPIArgs args, uint8_t active_layer) {
+  auto creator_fn = [=]() {
+    return IBPSPIOutputDevice::GetIBPSPIDeviceDebug(args, active_layer);
+  };
+  if (IBPDriverRegistry::RegisterDriver(tag, creator_fn) == OK &&
+      DeviceRegistry::RegisterKeyboardOutputDevice(tag, false, creator_fn) ==
+          OK) {
+    return OK;
+  }
+  return ERROR;
+}
+
 // Register all the devices
 
 // Each device is registered with a unique tag.
@@ -117,6 +169,7 @@ enum {
   USB_MOUSE,
   USB_INPUT,
   LED,
+  IBP_OUTPUT,
 };
 
 // The return values have to be retained and static for the registration code to
@@ -129,7 +182,16 @@ static Status register2 =
 static Status register3 = RegisterKeyscan(KEYSCAN);
 static Status register4 = RegisterEncoder(ENCODER, 12, 13, 2);
 static Status register5 = FancierScreen::RegisterScreen(SSD1306);
-static Status register6 = RegisterUSBKeyboardOutput(USB_KEYBOARD);
-static Status register7 = RegisterUSBMouseOutput(USB_MOUSE);
+static Status register6 =
+    RegisterDisablableUSBKeyboardOutput(USB_KEYBOARD, SPI_LY);
+static Status register7 = RegisterDisablableUSBMouseOutput(USB_MOUSE, SPI_LY);
 static Status register8 = RegisterUSBInput(USB_INPUT);
 static Status register9 = RegisterWS2812(LED, 28, 17);
+static Status register10 = RegisterSPIOut(IBP_OUTPUT,
+                                          {.spi_port = spi0,
+                                           .rx_pin = PICO_DEFAULT_SPI_RX_PIN,
+                                           .tx_pin = PICO_DEFAULT_SPI_TX_PIN,
+                                           .cs_pin = PICO_DEFAULT_SPI_CSN_PIN,
+                                           .sck_pin = PICO_DEFAULT_SPI_SCK_PIN,
+                                           .baud_rate = 100000},
+                                          SPI_LY);

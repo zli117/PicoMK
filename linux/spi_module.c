@@ -139,22 +139,6 @@ static void SPIPullFn(struct work_struct *work) {
     memset(&segment, 0, sizeof(segment));
     consumed_bytes = DeSerializeSegment(curr_buf, bytes, &segment);
   }
-  // do {
-  //   memset(&segment, 0, sizeof(segment));
-  //   bytes -= consumed_bytes;
-  //   consumed_bytes = ;
-  //   if (consumed_bytes > 0) {
-  //     switch (segment.field_type) {
-  //       case IBP_KEYCODE: {
-  //         printk(KERN_ALERT "DEBUG.");
-  //         OnNewKeycodes(&segment.field_data.keycodes);
-  //         break;
-  //       }
-  //       default:
-  //         break;
-  //     }
-  //   }
-  // } while (consumed_bytes > 0);
 
   IBPKeyCodes empty_keys;
   mod_timer(&timer, jiffies + msecs_to_jiffies(INTERVAL_MS));

@@ -438,6 +438,37 @@ void USBKeyboardOutput::SendConsumerKeycode(uint16_t keycode) {
   consumer_keycode_ = keycode;
 }
 
+std::shared_ptr<USBKeyboardOutput>
+USBKeyboardOutputDisablable::GetUSBKeyboardOutput(uint8_t disable_at_layer) {
+  static std::shared_ptr<USBKeyboardOutputDisablable> singleton = NULL;
+  if (singleton == NULL) {
+    singleton = std::shared_ptr<USBKeyboardOutputDisablable>(
+        new USBKeyboardOutputDisablable(disable_at_layer));
+  }
+  return singleton;
+}
+
+void USBKeyboardOutputDisablable::OutputTick() {
+  {
+    LockSemaphore lock(semaphore_);
+    if (disabled_) {
+      return;
+    }
+  }
+  USBKeyboardOutput::OutputTick();
+}
+
+void USBKeyboardOutputDisablable::ChangeActiveLayers(
+    const std::vector<bool> &layers) {
+  disabled_ = layers.size() > disable_at_layer_ && layers[disable_at_layer_];
+}
+
+USBKeyboardOutputDisablable::USBKeyboardOutputDisablable(
+    uint8_t disable_at_layer)
+    : USBKeyboardOutput(),
+      disable_at_layer_(disable_at_layer),
+      disabled_(false) {}
+
 std::shared_ptr<USBMouseOutput> USBMouseOutput::GetUSBMouseOutput() {
   static std::shared_ptr<USBMouseOutput> singleton = NULL;
   if (singleton == NULL) {
@@ -502,6 +533,34 @@ void USBMouseOutput::Pan(int8_t horizontal, int8_t vertical) {
 
 USBMouseOutput::USBMouseOutput()
     : USBOutputAddIn(), active_buffer_(0), is_config_mode_(false) {}
+
+std::shared_ptr<USBMouseOutputDisablable>
+USBMouseOutputDisablable::GetUSBMouseOutput(uint8_t disable_at_layer) {
+  static std::shared_ptr<USBMouseOutputDisablable> singleton = NULL;
+  if (singleton == NULL) {
+    singleton = std::shared_ptr<USBMouseOutputDisablable>(
+        new USBMouseOutputDisablable(disable_at_layer));
+  }
+  return singleton;
+}
+
+void USBMouseOutputDisablable::OutputTick() {
+  {
+    LockSemaphore lock(semaphore_);
+    if (disabled_) {
+      return;
+    }
+  }
+  USBMouseOutput::OutputTick();
+}
+
+void USBMouseOutputDisablable::ChangeActiveLayers(
+    const std::vector<bool> &layers) {
+  disabled_ = layers.size() > disable_at_layer_ && layers[disable_at_layer_];
+}
+
+USBMouseOutputDisablable::USBMouseOutputDisablable(uint8_t disable_at_layer)
+    : USBMouseOutput(), disable_at_layer_(disable_at_layer), disabled_(false) {}
 
 std::shared_ptr<USBInput> USBInput::GetUSBInput() {
   static std::shared_ptr<USBInput> singleton = NULL;
@@ -573,6 +632,28 @@ Status RegisterUSBKeyboardOutput(uint8_t tag) {
 Status RegisterUSBMouseOutput(uint8_t tag) {
   return DeviceRegistry::RegisterMouseOutputDevice(
       tag, false, []() { return USBMouseOutput::GetUSBMouseOutput(); });
+}
+
+Status RegisterDisablableUSBKeyboardOutput(uint8_t tag,
+                                           uint8_t disable_at_layer) {
+  return DeviceRegistry::RegisterKeyboardOutputDevice(tag, false, [=]() {
+    return USBKeyboardOutputDisablable::GetUSBKeyboardOutput(disable_at_layer);
+  });
+}
+
+Status RegisterDisablableUSBMouseOutput(uint8_t tag, uint8_t disable_at_layer) {
+  if (DeviceRegistry::RegisterKeyboardOutputDevice(
+          tag, false,
+          [=]() {
+            return USBMouseOutputDisablable::GetUSBMouseOutput(
+                disable_at_layer);
+          }) != OK ||
+      DeviceRegistry::RegisterMouseOutputDevice(tag, false, [=]() {
+        return USBMouseOutputDisablable::GetUSBMouseOutput(disable_at_layer);
+      })) {
+    return ERROR;
+  }
+  return OK;
 }
 
 Status RegisterUSBInput(uint8_t tag) {

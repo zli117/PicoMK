@@ -54,6 +54,22 @@ class USBKeyboardOutput : public KeyboardOutputDevice, public USBOutputAddIn {
   bool has_key_output_;
 };
 
+class USBKeyboardOutputDisablable : public USBKeyboardOutput {
+ public:
+  static std::shared_ptr<USBKeyboardOutput> GetUSBKeyboardOutput(
+      uint8_t disable_at_layer);
+
+  void OutputTick() override;
+
+  void ChangeActiveLayers(const std::vector<bool>& layers) override;
+
+ protected:
+  USBKeyboardOutputDisablable(uint8_t disable_at_layer);
+
+  const uint8_t disable_at_layer_;
+  bool disabled_;
+};
+
 class USBMouseOutput : public MouseOutputDevice, public USBOutputAddIn {
  public:
   static std::shared_ptr<USBMouseOutput> GetUSBMouseOutput();
@@ -74,6 +90,26 @@ class USBMouseOutput : public MouseOutputDevice, public USBOutputAddIn {
   std::array<std::array<int8_t, 5>, 2> double_buffer_;
   uint8_t active_buffer_;
   bool is_config_mode_;
+};
+
+class USBMouseOutputDisablable : virtual public USBMouseOutput,
+                                 virtual public KeyboardOutputDevice {
+ public:
+  static std::shared_ptr<USBMouseOutputDisablable> GetUSBMouseOutput(
+      uint8_t disable_at_layer);
+
+  void OutputTick() override;
+
+  void SendKeycode(uint8_t) override {}
+  void SendKeycode(const std::vector<uint8_t>&) override {}
+  void SendConsumerKeycode(uint16_t) override {}
+  void ChangeActiveLayers(const std::vector<bool>& layers) override;
+
+ protected:
+  USBMouseOutputDisablable(uint8_t disable_at_layer);
+
+  const uint8_t disable_at_layer_;
+  bool disabled_;
 };
 
 class USBInput : public GenericInputDevice {
@@ -124,6 +160,9 @@ enum InterfaceID {
 
 Status RegisterUSBKeyboardOutput(uint8_t tag);
 Status RegisterUSBMouseOutput(uint8_t tag);
+Status RegisterDisablableUSBKeyboardOutput(uint8_t tag,
+                                           uint8_t disable_at_layer);
+Status RegisterDisablableUSBMouseOutput(uint8_t tag, uint8_t disable_at_layer);
 Status RegisterUSBInput(uint8_t tag);
 
 #endif /* USB_H_ */
