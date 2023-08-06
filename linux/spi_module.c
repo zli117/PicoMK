@@ -40,7 +40,7 @@ static int SPIWriteFromBuffer(size_t num_bytes) {
     xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
   }
   xs[num_bytes - 1].cs_change = false;
-  return spi_sync_transfer(spi_dev, xs, output_bytes);
+  return spi_sync_transfer(spi_dev, xs, num_bytes);
 }
 
 static int SPIReadToBuffer(size_t num_bytes) {
@@ -59,7 +59,7 @@ static int SPIReadToBuffer(size_t num_bytes) {
     xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
   }
   xs[num_bytes - 1].cs_change = false;
-  return spi_sync_transfer(spi_dev, xs, output_bytes);
+  return spi_sync_transfer(spi_dev, xs, num_bytes);
 }
 
 static void SPIPullFn(struct work_struct *work) {
