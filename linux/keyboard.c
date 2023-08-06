@@ -142,7 +142,7 @@ int OnNewKeycodes(IBPKeyCodes* keys) {
     }
   }
   input_sync(keyboard_device.dev);
-  memcpy(&keyboard_device.old_keys, keys, sizeof(IBPKeyCodes));
+  keyboard_device.old_keys = *keys;
   return 0;
 }
 

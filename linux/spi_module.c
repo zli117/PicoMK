@@ -14,6 +14,9 @@
 #define INTERVAL_MS 10
 #define BUF_SIZE 132
 
+// How many bytes to read when waiting for the response header.
+#define READ_BYTES_FOR_HEADER 4
+
 static struct timer_list timer;
 static bool timer_initialized = false;
 static spinlock_t timer_initialized_lock;
@@ -22,28 +25,12 @@ static struct spi_device *spi_dev = NULL;
 static uint8_t *buffer = NULL;
 static struct spi_transfer *xs = NULL;
 
-static void SPIPullFn(struct work_struct *work) {
-  if (spi_dev == NULL || buffer == NULL || xs == NULL) {
-    goto bad;
-  }
-
-  IBPSegment segment;
-  int8_t bytes;
-
-  memset(buffer, 0, BUF_SIZE);
-
-  // Right now there's no auto-type so output buffer always has zero segment.
-  bytes = SerializeSegments(&segment, /*num_segments=*/0, buffer, BUF_SIZE);
-  if (bytes < 0) {
-    printk(KERN_WARNING "Failed create output buffer");
-    goto bad;
-  }
-
-  for (size_t i = 0; i < bytes; ++i) {
-    memset(&xs[i], 0, sizeof(xs[i]));
+static int SPIWriteFromBuffer(size_t num_bytes) {
+  memset(xs, 0, sizeof(xs[0]) * num_bytes);
+  for (size_t i = 0; i < num_bytes; ++i) {
     xs[i].len = 1;
     xs[i].tx_buf = &buffer[i];
-    xs[i].rx_buf = &buffer[32];
+    xs[i].rx_buf = &buffer[BUF_SIZE - 1];
     xs[i].cs_change = true;
     xs[i].delay.value = 0;
     xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
@@ -52,21 +39,16 @@ static void SPIPullFn(struct work_struct *work) {
     xs[i].word_delay.value = 0;
     xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
   }
-  xs[bytes - 1].cs_change = false;
-  if (spi_sync_transfer(spi_dev, xs, bytes) < 0) {
-    printk(KERN_WARNING "Failed to write");
-    goto bad;
-  }
+  xs[num_bytes - 1].cs_change = false;
+  return spi_sync_transfer(spi_dev, xs, output_bytes);
+}
 
-  // Read 4 bytes to hopefully include the header if it's missed in the first
-  // one.
-
-  bytes = 4;
-  memset(buffer, 0, BUF_SIZE);
-  memset(xs, 0, sizeof(xs[0]) * bytes);
-  for (size_t i = 0; i < bytes; ++i) {
+static int SPIReadToBuffer(size_t num_bytes) {
+  memset(xs, 0, sizeof(xs[0]) * num_bytes);
+  buffer[BUF_SIZE - 1] = 0;
+  for (size_t i = 0; i < num_bytes; ++i) {
     xs[i].len = 1;
-    xs[i].tx_buf = &buffer[32];
+    xs[i].tx_buf = &buffer[BUF_SIZE - 1];
     xs[i].rx_buf = &buffer[i];
     xs[i].cs_change = true;
     xs[i].delay.value = 0;
@@ -76,78 +58,134 @@ static void SPIPullFn(struct work_struct *work) {
     xs[i].word_delay.value = 0;
     xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
   }
-  xs[bytes - 1].cs_change = false;
-  if (spi_sync_transfer(spi_dev, xs, bytes) < 0) {
+  xs[num_bytes - 1].cs_change = false;
+  return spi_sync_transfer(spi_dev, xs, output_bytes);
+}
+
+static void SPIPullFn(struct work_struct *work) {
+  static_assert(BUF_SIZE > IBP_MAX_PACKET_LEN);
+  if (spi_dev == NULL || buffer == NULL || xs == NULL) {
+    goto label2;
+  }
+
+  IBPSegment segments[IBP_TOTAL];
+
+  memset(buffer, 0, BUF_SIZE);
+  memset(segments, 0, sizeof(IBPSegment) * IBP_TOTAL);
+
+  // Right now there's no auto-type so output buffer always has zero segment.
+  const int8_t output_bytes =
+      SerializeSegments(segments, /*num_segments=*/0, buffer, BUF_SIZE);
+  if (output_bytes < 0) {
+    printk(KERN_WARNING "Failed create output buffer");
+    goto label1;
+  }
+
+  // for (size_t i = 0; i < output_bytes; ++i) {
+  //   memset(&xs[i], 0, sizeof(xs[i]));
+  //   xs[i].len = 1;
+  //   xs[i].tx_buf = &buffer[i];
+  //   xs[i].rx_buf = &buffer[BUF_SIZE - 1];
+  //   xs[i].cs_change = true;
+  //   xs[i].delay.value = 0;
+  //   xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
+  //   xs[i].cs_change_delay.value = 0;
+  //   xs[i].cs_change_delay.unit = SPI_DELAY_UNIT_SCK;
+  //   xs[i].word_delay.value = 0;
+  //   xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
+  // }
+  // xs[output_bytes - 1].cs_change = false;
+  // if (spi_sync_transfer(spi_dev, xs, output_bytes) < 0) {
+  if (SPIWriteFromBuffer(output_bytes) < 0) {
+    printk(KERN_WARNING "Failed to write");
+    goto label1;
+  }
+
+  // Read some bytes to hopefully include the header if it's missed in the first
+  // one.
+
+  static_assert(READ_BYTES_FOR_HEADER >= 1 &&
+                READ_BYTES_FOR_HEADER < IBP_MAX_PACKET_LEN);
+  memset(buffer, 0, BUF_SIZE);
+  // memset(xs, 0, sizeof(xs[0]) * READ_BYTES_FOR_HEADER);
+  // for (size_t i = 0; i < READ_BYTES_FOR_HEADER; ++i) {
+  //   xs[i].len = 1;
+  //   xs[i].tx_buf = &buffer[BUF_SIZE - 1];
+  //   xs[i].rx_buf = &buffer[i];
+  //   xs[i].cs_change = true;
+  //   xs[i].delay.value = 0;
+  //   xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
+  //   xs[i].cs_change_delay.value = 0;
+  //   xs[i].cs_change_delay.unit = SPI_DELAY_UNIT_SCK;
+  //   xs[i].word_delay.value = 0;
+  //   xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
+  // }
+  // xs[READ_BYTES_FOR_HEADER - 1].cs_change = false;
+  // if (spi_sync_transfer(spi_dev, xs, READ_BYTES_FOR_HEADER) < 0) {
+  if (SPIReadToBuffer(READ_BYTES_FOR_HEADER) < 0) {
     printk(KERN_WARNING "Failed to read");
-    goto bad;
+    goto label1;
   }
 
   size_t write_offset = 0;
   bool found_header = false;
-  for (size_t i = 0; i < bytes; ++i) {
+  for (size_t i = 0; i < READ_BYTES_FOR_HEADER; ++i) {
     if (buffer[i] != 0 || found_header) {
       buffer[write_offset++] = buffer[i];
       found_header = true;
     }
   }
 
-  bytes = GetTransactionTotalSize(buffer[0]);
-  if (bytes < 0) {
+  const int8_t response_bytes = GetTransactionTotalSize(buffer[0]);
+  if (response_bytes < 0) {
     // Invalid response header.
-    goto bad;
+    goto label1;
   }
-  bytes -= write_offset;
-  if (bytes > 0) {
-    memset(xs, 0, sizeof(xs[0]) * bytes);
-    for (size_t i = 0; i < bytes; ++i) {
-      xs[i].len = 1;
-      xs[i].tx_buf = &buffer[BUF_SIZE - 1];
-      xs[i].rx_buf = &buffer[i + write_offset];
-      xs[i].cs_change = true;
-      xs[i].delay.value = 0;
-      xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
-      xs[i].cs_change_delay.value = 0;
-      xs[i].cs_change_delay.unit = SPI_DELAY_UNIT_SCK;
-      xs[i].word_delay.value = 0;
-      xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
-    }
-    xs[bytes - 1].cs_change = false;
-    if (spi_sync_transfer(spi_dev, xs, bytes) < 0) {
+  const int8_t remaining_bytes = response_bytes - write_offset;
+  if (remaining_bytes > 0) {
+    // memset(xs, 0, sizeof(xs[0]) * remaining_bytes);
+    // for (size_t i = 0; i < remaining_bytes; ++i) {
+    //   xs[i].len = 1;
+    //   xs[i].tx_buf = &buffer[BUF_SIZE - 1];
+    //   xs[i].rx_buf = &buffer[i + write_offset];
+    //   xs[i].cs_change = true;
+    //   xs[i].delay.value = 0;
+    //   xs[i].delay.unit = SPI_DELAY_UNIT_SCK;
+    //   xs[i].cs_change_delay.value = 0;
+    //   xs[i].cs_change_delay.unit = SPI_DELAY_UNIT_SCK;
+    //   xs[i].word_delay.value = 0;
+    //   xs[i].word_delay.unit = SPI_DELAY_UNIT_SCK;
+    // }
+    // xs[remaining_bytes - 1].cs_change = false;
+    // if (spi_sync_transfer(spi_dev, xs, remaining_bytes) < 0) {
+    if (SPIReadToBuffer(remaining_bytes)) {
       printk(KERN_WARNING "Failed to receive remaining response.");
-      goto bad;
+      goto label1;
     }
   }
 
-  bytes += write_offset - 1;
+  IBPSegment segment;
+  uint8_t remaining_parse_bytes = response_bytes - 1;
   uint8_t *curr_buf = buffer + 1;
-  int8_t consumed_bytes = DeSerializeSegment(curr_buf, bytes, &segment);
-  if (consumed_bytes < 0) {
-    goto bad;
-  }
+  int8_t consumed_bytes =
+      DeSerializeSegment(curr_buf, remaining_parse_bytes, &segment);
   while (consumed_bytes > 0) {
-    if (consumed_bytes > 0) {
-      switch (segment.field_type) {
-        case IBP_KEYCODE: {
-          OnNewKeycodes(&segment.field_data.keycodes);
-          break;
-        }
-        default:
-          break;
-      }
+    if (segment.field_type >= IBP_TOTAL) {
+      continue;
     }
-    bytes -= consumed_bytes;
+    segments[segment.field_type] = segment;
+    remaining_parse_bytes -= consumed_bytes;
     memset(&segment, 0, sizeof(segment));
-    consumed_bytes = DeSerializeSegment(curr_buf, bytes, &segment);
+    consumed_bytes =
+        DeSerializeSegment(curr_buf, remaining_parse_bytes, &segment);
   }
 
-  IBPKeyCodes empty_keys;
-  mod_timer(&timer, jiffies + msecs_to_jiffies(INTERVAL_MS));
-  return;
+label1:
+  // We'll update the inputs even when something bad has happened. The input may
+  // just be empty.
+  OnNewKeycodes(&segments[IBP_KEYCODE].field_data.keycodes);
 
-bad:
-  // Clear keycode
-  memset(&empty_keys, 0, sizeof(IBPKeyCodes));
-  OnNewKeycodes(&empty_keys);
+label2:
   mod_timer(&timer, jiffies + msecs_to_jiffies(INTERVAL_MS));
 }
 
