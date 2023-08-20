@@ -1,6 +1,9 @@
 # PicoMK <!-- omit in toc -->
 
-PicoMK is a highly configurable mechanical keyboard firmware designed for Raspberry Pi Foundation's [RP2040](https://www.raspberrypi.com/documentation/microcontrollers/rp2040.html). The chip features two Cortex-M0 processors. Based on the smp branch of [FreeRTOS](https://github.com/FreeRTOS/FreeRTOS-Kernel/tree/smp), PicoMK supports multicore execution on RP2040. It's originally built for [Pico-Keyboard](https://github.com/zli117/Pico-Keyboard), but it can be easily adapted to other RP2040 based keyboards.
+PicoMK is a highly configurable mechanical keyboard firmware designed for Raspberry Pi Foundation's [RP2040](https://www.raspberrypi.com/documentation/microcontrollers/rp2040.html). The chip features two Cortex-M0 processors. Based on the smp branch of [FreeRTOS](https://github.com/FreeRTOS/FreeRTOS-Kernel/tree/smp), PicoMK supports multicore execution on RP2040. It currently powers these boards:
+
+ * [Pico-Keyboard](https://github.com/zli117/Pico-Keyboard)
+ * [CyberKeeb2040](https://github.com/zli117/CyberKeeb2040)
 
 ## Table of Contents
 
@@ -27,6 +30,8 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
   |![Config Menu Demo](docs/config_menu.gif)|
   |:----:|
   |Turn off LED|
+* Arbitrary duplex scan matrix ([Japanese duplex](https://kbd.news/The-Japanese-duplex-matrix-1391.html), [Charlieplexing](https://en.wikipedia.org/wiki/Charlieplexing) etc.). See [Anatomy of layout.cc](#anatomy-of-layoutcc)
+* Inter-Board Protocol (IBP) for communication between multiple modules (i.e. Pico <-> Pico, Pico <-> Pi Zero). See [CyberKeeb2040](https://github.com/zli117/CyberKeeb2040) for the demo.
 
 # Quick Start
 
@@ -141,11 +146,12 @@ Documents the overall code design, and some decisions.
 | [`examples/home_screen`](configs/examples/home_screen) | An example of customizing the home screen, and overall how to customize a default device and register it.
 | [`examples/bare_minimum`](configs/examples/bare_minimum) | Show that registration is like conditional compilation. If you don't register something, it'll be stripped from the binary. `default` config binary size: 509440 bytes, `examples/bare_minimum` binary size: 372736 bytes
 | [`examples/custom_keycode`](configs/examples/custom_keycode) | Create three custom keycodes that translate keyboard up/down/enter keys to config mode curser up/down/select.
+| [`cyberkeeb_2040`](configs/cyberkeeb_2040) | Example for setting up IBP for sending keycodes to Pi Zero.
 
 # Future Roadmaps
 
  * USB mass storage mode for importing and exporting json config file.
- * Support charlieplexing to save pins for other things such as driving an LED matrix.
+ * ~~Support charlieplexing to save pins for other things such as driving an LED matrix.~~
  * Keyboard as a wifi dongle with Pico W (Nice for RPi2 and lower but is this too crazy?)
  * More peripherals such as SK6805, bigger screen, LED matrix, trackpad, etc.
  * USB hub
