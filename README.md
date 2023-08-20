@@ -14,6 +14,7 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
   - [Build and install the Linux Kernel Module (for Raspberry Pi OS)](#build-and-install-the-linux-kernel-module-for-raspberry-pi-os)
 - [Documentations](#documentations)
   - [Anatomy of layout.cc](#anatomy-of-layoutcc)
+  - [Inter-Board Protocol (IBP)](#inter-board-protocol-ibp)
   - [Devices and Registration Functions](#devices-and-registration-functions)
   - [Configuration Menu](#configuration-menu)
   - [Design and Tradeoffs](#design-and-tradeoffs)
@@ -159,6 +160,10 @@ The Kernel Module works for the latest kernel on Raspberry Pi OS (6.1.21).
 
 Basic intro to configuring a keyboard layout with `layout.cc` file. 
 
+## [Inter-Board Protocol (IBP)](docs/ibp.md)
+
+Details on the Inter-Board Protocol and how it's designed.
+
 ## [Devices and Registration Functions](docs/devices.md)
 
 Description of the currently supported devices and their registration functions. 
@@ -177,7 +182,7 @@ Documents the overall code design, and some decisions.
 | -------------------------------------------------------- | ----------- |
 | [`default`](configs/default) | Default config for the [Pico-Keyboard](https://github.com/zli117/Pico-Keyboard)
 | [`examples/home_screen`](configs/examples/home_screen) | An example of customizing the home screen, and overall how to customize a default device and register it.
-| [`examples/bare_minimum`](configs/examples/bare_minimum) | Show that registration is like conditional compilation. If you don't register something, it'll be stripped from the binary. `default` config binary size: 509440 bytes, `examples/bare_minimum` binary size: 372736 bytes
+| [`examples/bare_minimum`](configs/examples/bare_minimum) | Show that registration is like conditional compilation. If you don't register something, it'll be stripped from the binary. `default` config binary size: 542208 bytes, `examples/bare_minimum` binary size: 394240 bytes
 | [`examples/custom_keycode`](configs/examples/custom_keycode) | Create three custom keycodes that translate keyboard up/down/enter keys to config mode curser up/down/select.
 | [`cyberkeeb_2040`](configs/cyberkeeb_2040) | Example for setting up IBP for sending keycodes to Pi Zero.
 

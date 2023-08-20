@@ -65,18 +65,6 @@ typedef struct {
   FieldData field_data;
 } IBPSegment;
 
-// // For the actual transaction through low level protocols such as SPI, I2C,
-// the
-// // total number of bytes transmitted is always padded to a multiple of 4. The
-// // total number of bytes includes the transaction header and padding.
-// typedef struct {
-//   //        7                                                0
-//   // +------+------+------+------+------+------+------+------+
-//   // |    total number of bytes incl. this header     |parity|
-//   // +------+------+------+------+------+------+------+------+
-//   uint8_t total_bytes : 7;
-// } IBPTransactionHeader;
-
 int8_t SerializeSegments(const IBPSegment* segments, uint8_t num_segments,
                          uint8_t* output, uint8_t buffer_size);
 int8_t DeSerializeSegment(const uint8_t* input, uint8_t input_buffer_size,

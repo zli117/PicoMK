@@ -14,19 +14,6 @@ First, we need to include a helper file at the very top
 Then we need to define the required variables. Note that all the variables here should at least be `constexpr`.
 
 ```cpp
-// Row GPIOs for the key matrix. Refer to the schematic.
-static constexpr uint8_t kRowGPIO[] = {0, 1, 2};
-
-// Column GPIOs for the key matrix. Refer to the schematic.
-static constexpr uint8_t kColGPIO[] = {12, 13, 11};
-
-// Specifies the direction of the diodes.
-static constexpr bool kDiodeColToRow = true;
-```
-
-The first two variables specify the GPIOs used for the key matrix, and whether they are on the row direction or column direction on the schematic. The order doesn't matter here. The thrid variable specifies the direction of the diodes. In our case, current flows from column GPIO to row GPIO so it's set to `true`.
-
-```cpp
 static constexpr GPIO kGPIOMatrix[3][3] = {
   {G(0, 11), G(0, 12), G(0, 13)},
   {G(1, 11), G(1, 12), G(1, 13)},
@@ -34,7 +21,7 @@ static constexpr GPIO kGPIOMatrix[3][3] = {
 };
 ```
 
-`kGPIOMatrix` translates the **physical layout** of the keyboard to the GPIO wiring of each key. The `G` macro takes two parameters: the row GPIO and column GPIO. The `kGPIOMatrix` array has the shape of the maximum layout size so in our case it's 3x3 even though the bottom row only has 2 keys. The keys are represented in a row major left to right fasion, so for the bottom row even though in the physical layout the gap is in between the left arrow and right arrow, we still put them together next to each other.
+`kGPIOMatrix` translates the **physical layout** of the keyboard to the GPIO wiring of each key. The `G` macro takes two parameters: the row GPIO and column GPIO. The `kGPIOMatrix` array has the shape of the maximum layout size so in our case it's 3x3 even though the bottom row only has 2 keys. The keys are represented in a row major left to right fasion, so for the bottom row even though in the physical layout the gap is in between the left arrow and right arrow, we still put them together next to each other. Each element of the matrix represents the scanning direction for the switch. For example `G(0, 11)` means the current flows from pin 0 to pin 11. Note that a pin can be either the source or sink on the matrix, as long as it's not both for the same switch. In other words, `G(0, 0)` will be invalid, but `G(11, 0)` is fine. This allows us to support arbitrary multiplexing wirings. See `config/cyberkeeb_2040` for an example of Japanese Duplexing. Of course, the hardware design has to ensure no ghosting can happen.
 
 ```cpp
 static constexpr Keycode kKeyCodes[][3][3] = {
@@ -72,15 +59,6 @@ The whole file looks like this:
 ```cpp
 #include "layout_helper.h"
 
-// Row GPIOs for the key matrix. Refer to the schematic.
-static constexpr uint8_t kRowGPIO[] = {0, 1, 2};
-
-// Column GPIOs for the key matrix. Refer to the schematic.
-static constexpr uint8_t kColGPIO[] = {12, 13, 11};
-
-// Specifies the direction of the diodes.
-static constexpr bool kDiodeColToRow = true;
-
 static constexpr GPIO kGPIOMatrix[3][3] = {
   {G(0, 11), G(0, 12), G(0, 13)},
   {G(1, 11), G(1, 12), G(1, 13)},
@@ -106,3 +84,6 @@ static Status register1 = RegisterKeyscan(/*tag=*/0);
 ```
 
 For next step you can take a look at the default layout at `configs/default/layout.cc` for [Pico-Keyboard](https://github.com/zli117/Pico-Keyboard). Please also take a look at the `layout_helper.h` for helper macros and keycodes.
+
+# Migrate from old config
+Note that in order to support arbitrary duplexing, `kRowGPIO`, `kColGPIO`, and `kDiodeColToRow` are deprecated. If you're using the old config, all you have to do is to remove these three variables. The new `kGPIOMatrix` supports a superset of what the old `kGPIOMatrix` can express, namely now a pin can be both a source and a sink, as long as not for the same switch.
