@@ -11,6 +11,7 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
 - [Quick Start](#quick-start)
   - [Get the Code](#get-the-code)
   - [Build a Firmware](#build-a-firmware)
+  - [Build and install the Linux Kernel Module (for Raspberry Pi OS)](#build-and-install-the-linux-kernel-module-for-raspberry-pi-os)
 - [Documentations](#documentations)
   - [Anatomy of layout.cc](#anatomy-of-layoutcc)
   - [Devices and Registration Functions](#devices-and-registration-functions)
@@ -119,6 +120,38 @@ cmake -DBOARD_CONFIG=tutorial/my_new_config ..
 Once you successfully build the firmware, you can find the `firmware.uf2` file under the current (`build/`) folder. Now take the Pico board (or other RP2040 boards you have) and put it into the bootloader mode (for Pico board, you can just hold down the bootsel button and replug the USB cable). Mount the board as USB mass storage device, if not done automatically. Copy over the `firmware.uf2` to the storage device folder and you're all set.
 
 Please take a look at the following documentations on how to customize different parts of the firmware, including implementing your own custom keycode handler and more. 
+
+## Build and install the Linux Kernel Module (for Raspberry Pi OS)
+
+The Kernel Module works for the latest kernel on Raspberry Pi OS (6.1.21).
+
+1. Install kernel headers: 
+   ```bash
+   sudo apt install raspberrypi-kernel-headers
+   ```
+2. Build the driver and device tree overlay:
+   ```bash
+   cd linux/
+   make -j
+   make device_tree
+   ```
+3. Install the driver:
+   ```bash
+   sudo -E make install
+   sudo depmod -a
+   ```
+4. Copy over the device tree overlay:
+   ```bash
+   sudo cp spi1-picomk.dtbo /boot/overlays
+   ```
+5. Add this line to the `/boot/config.txt` to enable the overlay. Make sure SPI1 is not enabled.
+   ```bash
+   dtoverlay=spi1-picomk
+   ```
+6. Add this line to the `/etc/modules` file for loading the kernel module:
+   ```bash
+   spi_picomk
+   ```
 
 # Documentations
 

@@ -35,28 +35,19 @@
 
 #define ALT_LY 4
 
-// For a layout.cc file, the followings are required: kRowGPIO, kColGPIO,
-// kDiodeColToRow, kGPIOMatrix, and kKeyCodes. They need to have exactly the
-// same name and type. They also need to be constexpr. For array types you don't
-// need to specify the size for all the dimenions as long as compiler is happy.
-// See docs/layout_cc.md for an example key matrix setup.
-
-// The row GPIOs for the key matrix. Order doesn't matter.
-static constexpr uint8_t kRowGPIO[] = {R0, R1, R2, R3, R4};
-
-// The column GPIOs for the key matrix. Order doesn't matter.
-static constexpr uint8_t kColGPIO[] = {C0, C1, C2, C3,  C4,  C5,  C6,
-                                       C7, C8, C9, C10, C11, C12, C13};
-
-// Specifies the direction of the diodes.
-static constexpr bool kDiodeColToRow = true;
+// For a layout.cc file, the followings are required: kGPIOMatrix, and
+// kKeyCodes. They need to have exactly the same shape and type. They also need
+// to be constexpr. For array types you don't need to specify the size for all
+// the dimenions as long as compiler is happy. See docs/layout_cc.md for an
+// example key matrix setup.
 
 // clang-format off
 
 // Keyboard switch physical GPIO connection setup. This is a map from the
 // physical layout of the keys to their switch matrix. The reason for having 
 // this mapping is that often times the physical layout of the switches does not
-// match up with their wiring matrix 
+// match up with their wiring matrix. For each switch, it specifies the 
+// direction of scanning.
 static constexpr GPIO kGPIOMatrix[CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] = {
   {G(C0, R0),  G(C1, R0),  G(C2, R0),  G(C3, R0),  G(C4, R0),  G(C5, R0),  G(C6, R0),  G(C7, R0),  G(C8, R0),  G(C9, R0),  G(C10, R0),  G(C11, R0),  G(C12, R0),  G(C13, R0),  G(C13, R1)},
   {G(C0, R1),  G(C1, R1),  G(C2, R1),  G(C3, R1),  G(C4, R1),  G(C5, R1),  G(C6, R1),  G(C7, R1),  G(C8, R1),  G(C9, R1),  G(C10, R1),  G(C11, R1),  G(C12, R1),  G(C13, R2),  G(C13, R3)},

@@ -71,7 +71,12 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 // Compile time validation and conversion for the key matrix
 #include "layout_internal.inc"
 
-// Create the screen display
+// Create the screen display. The content displayed on the screen is created
+// with the help of mixins. See display_mixins.h for the builtin mixins. Each
+// mixin displays a specific functionality at a specific region. Here we display
+// two items: the current active layer and the LED status (i.e. capslock,
+// numlock LEDs you can find on a keyboard). The mixins can be customized with
+// the template parameters. Here we are using the default paramters.
 
 class FancierScreen : public virtual SSD1306Display,
                       public virtual ActiveLayersDisplayMixin<>,

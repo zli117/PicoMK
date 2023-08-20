@@ -36,7 +36,7 @@
 #define ALT_LY 4
 
 // For a layout.cc file, the followings are required: kGPIOMatrix, and
-// kKeyCodes. They need to have exactly the same name and type. They also need
+// kKeyCodes. They need to have exactly the same shape and type. They also need
 // to be constexpr. For array types you don't need to specify the size for all
 // the dimenions as long as compiler is happy. See docs/layout_cc.md for an
 // example key matrix setup.
@@ -46,7 +46,8 @@
 // Keyboard switch physical GPIO connection setup. This is a map from the
 // physical layout of the keys to their switch matrix. The reason for having 
 // this mapping is that often times the physical layout of the switches does not
-// match up with their wiring matrix 
+// match up with their wiring matrix. For each switch, it specifies the 
+// direction of scanning.
 static constexpr GPIO kGPIOMatrix[CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] = {
   {G(C0, R0),  G(C1, R0),  G(C2, R0),  G(C3, R0),  G(C4, R0),  G(C5, R0),  G(C6, R0),  G(C7, R0),  G(C8, R0),  G(C9, R0),  G(C10, R0),  G(C11, R0),  G(C12, R0),  G(C13, R0),  G(C13, R1)},
   {G(C0, R1),  G(C1, R1),  G(C2, R1),  G(C3, R1),  G(C4, R1),  G(C5, R1),  G(C6, R1),  G(C7, R1),  G(C8, R1),  G(C9, R1),  G(C10, R1),  G(C11, R1),  G(C12, R1),  G(C13, R2),  G(C13, R3)},
@@ -90,7 +91,9 @@ static constexpr Keycode kKeyCodes[][CONFIG_NUM_PHY_ROWS][CONFIG_NUM_PHY_COLS] =
 // Compile time validation and conversion for the key matrix. Must include this.
 #include "layout_internal.inc"
 
-// Create the screen display
+// Create the screen display. The content displayed on the screen is created
+// with the help of mixins. See display_mixins.h for the builtin mixins. Each
+// mixin displays a specific functionality at a specific region.
 
 class Screen : public virtual SSD1306Display,
                public virtual ActiveLayersDisplayMixin<> {

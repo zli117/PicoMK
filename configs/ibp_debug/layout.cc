@@ -1,3 +1,4 @@
+// A very simple setup with only one key for developing the IBP protocol.
 #include "layout_helper.h"
 
 #define CONFIG_NUM_PHY_ROWS 1

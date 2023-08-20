@@ -108,6 +108,9 @@ class FancierScreen : public virtual SSD1306Display,
   }
 };
 
+// Create the IBP output device. Override the ChangeActiveLayers function to
+// only send keycodes when a specific layer is active.
+
 class IBPSPIOutputDevice : public IBPSPIDevice {
  public:
   static std::shared_ptr<IBPSPIOutputDevice> GetIBPSPIDeviceDebug(
