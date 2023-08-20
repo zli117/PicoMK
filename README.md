@@ -32,7 +32,7 @@ PicoMK is a highly configurable mechanical keyboard firmware designed for Raspbe
   |![Config Menu Demo](docs/config_menu.gif)|
   |:----:|
   |Turn off LED|
-* Arbitrary duplex scan matrix ([Japanese duplex](https://kbd.news/The-Japanese-duplex-matrix-1391.html), [Charlieplexing](https://en.wikipedia.org/wiki/Charlieplexing) etc.). See [Anatomy of layout.cc](#anatomy-of-layoutcc)
+* Arbitrary multiplex scan matrix ([Japanese duplex](https://kbd.news/The-Japanese-duplex-matrix-1391.html), [Charlieplexing](https://en.wikipedia.org/wiki/Charlieplexing) etc.). See [Anatomy of layout.cc](#anatomy-of-layoutcc)
 * [Inter-Board Protocol (IBP)](docs/ibp.md) for communication between multiple modules (i.e. Pico <-> Pico, Pico <-> Pi Zero). See [CyberKeeb2040](https://github.com/zli117/CyberKeeb2040) for the demo.
 
 # Quick Start
