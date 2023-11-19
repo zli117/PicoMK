@@ -180,8 +180,8 @@ enum {
 // values are needed for the registration function.
 
 static Status register1 = RegisterConfigModifier(SSD1306);
-static Status register2 =
-    RegisterJoystick(JOYSTICK, 26, 27, 5, false, false, true, ALT_LY);
+// static Status register2 =
+//     RegisterJoystick(JOYSTICK, 26, 27, 5, false, false, true, ALT_LY);
 static Status register3 = RegisterKeyscan(KEYSCAN);
 static Status register4 = RegisterEncoder(ENCODER, 12, 13, 2);
 static Status register5 = FancierScreen::RegisterScreen(SSD1306);
