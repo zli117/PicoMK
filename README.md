@@ -68,6 +68,12 @@ First, install the dependencies for pico-sdk
 
    For details on what this script does, please see Pi Pico [Getting started guide](https://datasheets.raspberrypi.com/pico/getting-started-with-pico.pdf) chapter 1.
 
+ * Alpine:
+
+   ```bash
+   apk add git cmake gcc-arm-none-eabi newlib-arm-none-eabi
+   ```
+
  * MacOS:
 
    ```bash
