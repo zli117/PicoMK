@@ -94,8 +94,7 @@ Then checkout the code
 ```bash
 git clone https://github.com/zli117/PicoMK.git
 cd PicoMK
-git submodule update --init
-git -C pico-sdk submodule update --init
+git submodule update --init && git -C pico-sdk submodule update --init
 ```
 The last command will checkout all the dependencies such as pico-sdk and FreeRTOS, so it might take a while depending on your internet connection.
 
