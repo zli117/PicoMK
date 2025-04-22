@@ -45,7 +45,7 @@ First, install the dependencies for pico-sdk
  * Arch Linux:
 
    ```bash
-   pacman -S git cmake arm-none-eabi-gcc
+   pacman -S git cmake arm-none-eabi-gcc arm-none-eabi-newlib
    ```
 
  * Ubuntu:
@@ -110,6 +110,8 @@ cp configs/default/* configs/tutorial/my_new_config
 Each config consists of two files: `config.h` and `layout.cc`. Please see the comments in the file and the documentations for information on how to configure them.
 
 The following commands builds the firmware:
+
+(You might need to downgrade `cmake` to <=3.31)
 
 ```bash
 mkdir build
