@@ -1,7 +1,7 @@
 #include "ibp_lib.h"
 
 #ifndef IBP_KERNEL_MODULE
-#include "pico/platform.h"
+#include "pico.h"
 #endif
 
 #define SEGMENT_HEADER_BYTES 2
